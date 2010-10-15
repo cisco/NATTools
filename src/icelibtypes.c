@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "api/icelibtypes.h"
+#include "icelibtypes.h"
 
 
 char const * ICELIBTYPES_ICE_CANDIDATE_TYPE_toString(const ICE_CANDIDATE_TYPE candidateType){
@@ -21,11 +21,12 @@ char const * ICELIBTYPES_ICE_CANDIDATE_TYPE_toString(const ICE_CANDIDATE_TYPE ca
 }
 
 void ICELIBTYPES_ICE_CANDIDATE_dump(const ICE_CANDIDATE *candidate){
+    char addr[MAX_NET_ADDR_STRING_SIZE];
     printf("   Fnd: '%s' ", candidate->foundation);
     printf("Comp: %i ", candidate->componentid);
     printf("Pri: %u ", candidate->priority);
-    printf("Addr: ");
-    NetAddr_dump(&candidate->connectionAddr, true);
+    printf("Addr: %s", netaddr_toStr(&candidate->connectionAddr, addr, sizeof addr, true));
+           //netaddr_dump(&candidate->connectionAddr, true);
     printf(" Type: '%s' ", ICELIBTYPES_ICE_CANDIDATE_TYPE_toString(candidate->type));
     printf(" UVal1: %u ", candidate->userValue1);
     printf(" UVal2: %u\n", candidate->userValue2);

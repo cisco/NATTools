@@ -2,10 +2,11 @@
 #include "icelib_intern.h"
 #include "icelib_debugwebserver.h"
 
+#include "netaddr.h"
 
 #include <stdio.h>
 
-static void  ICELIB_FormatHeaderOk(char  *resp_head, char *resp, char  *content)
+static void  ICELIB_FormatHeaderOk(char  *resp_head, char *resp, const char  *content)
 {
     sprintf(resp_head, "HTTP/1.0 200 OK\r\n");
     sprintf(&resp_head[strlen(resp_head)], "Content-type: %s\r\n", content);
@@ -13,7 +14,7 @@ static void  ICELIB_FormatHeaderOk(char  *resp_head, char *resp, char  *content)
     sprintf(&resp_head[strlen(resp_head)], "\r\n");
 }
 
-static void ICELIB_RowStart(char *s, char *bgColour, bool isExcel) {
+static void ICELIB_RowStart(char *s, const char *bgColour, bool isExcel) {
     if (!isExcel) {
         sprintf(&s[strlen(s)], "<tr bgcolor=%s>", bgColour);
     }
@@ -122,7 +123,7 @@ void ICELIB_FormatValidCheckListsBodyTable(ICELIB_INSTANCE *icelib, char *s, cha
                              ICELIB_IceComponentIdToStr(pValidPair->pLocalCandidate->componentid), false, true, false);
             ICELIB_FormatStr(&s[strlen(s)], 
                              ICELIBTYPES_ICE_CANDIDATE_TYPE_toString(pValidPair->pLocalCandidate->type), false, true, false);
-            NetAddr_toString(&pValidPair->pLocalCandidate->connectionAddr, addr , sizeof( addr), true);
+            netaddr_toString(&pValidPair->pLocalCandidate->connectionAddr, addr , sizeof( addr), true);
             ICELIB_FormatStr(&s[strlen(s)], addr, false, true, false);
 
             /* remote cand */
@@ -130,7 +131,7 @@ void ICELIB_FormatValidCheckListsBodyTable(ICELIB_INSTANCE *icelib, char *s, cha
                              ICELIB_IceComponentIdToStr(pValidPair->pRemoteCandidate->componentid), false, true, false);
             ICELIB_FormatStr(&s[strlen(s)], 
                              ICELIBTYPES_ICE_CANDIDATE_TYPE_toString(pValidPair->pRemoteCandidate->type), false, true, false);
-            NetAddr_toString(&pValidPair->pRemoteCandidate->connectionAddr, addr , sizeof( addr), true);
+            netaddr_toString(&pValidPair->pRemoteCandidate->connectionAddr, addr , sizeof( addr), true);
             ICELIB_FormatStr(&s[strlen(s)], addr, false, true, false);
 
             ICELIB_RowEnd(&s[strlen(s)], false);

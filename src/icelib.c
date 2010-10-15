@@ -24,8 +24,8 @@ static const char *type2char2[] = { "--", "HO", "SX", "RY", "PX" };
 static void debug_pair(ICELIB_LIST_PAIR *pair, const char *msg)
 {
     char local[22], remote[22];
-    NetAddr_toString(&pair->pLocalCandidate->connectionAddr, local, sizeof(local), true);
-    NetAddr_toString(&pair->pRemoteCandidate->connectionAddr, remote, sizeof(remote), true);
+    netaddr_toString(&pair->pLocalCandidate->connectionAddr, local, sizeof(local), true);
+    netaddr_toString(&pair->pRemoteCandidate->connectionAddr, remote, sizeof(remote), true);
     printf("   %2d: %s %21s (%s %d) - %21s (%s %d) %s\n", pair->pairId,
            state2char4[pair->pairState],
            local,
@@ -153,12 +153,12 @@ char *ICELIB_makeUsernamePair(char       *dst,
 }
 
 const ICE_CANDIDATE *pICELIB_findCandidate(const ICE_MEDIA_STREAM *pMediaStream,
-                                           const NET_ADDR         *address)
+                                           const struct net_addr         *address)
 {
     uint32_t i;
 
     for (i=0; i < pMediaStream->numberOfCandidates; ++i) {
-        if (NetAddr_alike(&pMediaStream->candidate[ i].connectionAddr,
+        if (netaddr_alike(&pMediaStream->candidate[ i].connectionAddr,
                           address)) {
             return &pMediaStream->candidate[ i];
         }
@@ -356,6 +356,7 @@ void FORMAT_CHECK(6,7) ICELIB_log_(const ICELIB_CALLBACK_LOG *pCallbackLog,
     ICELIB_logString(pCallbackLog, logLevel, str1);
 }
 
+/*
 void ICELIB_timerConstructor(ICELIB_TIMER *pTimer,
                              unsigned int tickIntervalMS)
 {
@@ -374,13 +375,13 @@ void ICELIB_timerStart(ICELIB_TIMER *pTimer,
     pTimer->timerState     = ICELIB_timerRunning;
 }
 
-
+*/
 void ICELIB_timerStop(ICELIB_TIMER *pTimer)
 {
     pTimer->timerState = ICELIB_timerStopped;
 }
 
-
+/*
 void ICELIB_timerTick(ICELIB_TIMER *pTimer)
 {
     if (pTimer->timerState == ICELIB_timerRunning) {
@@ -404,7 +405,7 @@ bool ICELIB_timerIsTimedOut(ICELIB_TIMER *pTimer)
 {
     return pTimer->timerState == ICELIB_timerTimeout;
 }
-
+*/
 
 bool ICELIB_veryfyICESupportOnStream(ICELIB_INSTANCE *pInstance,
                                      const ICE_MEDIA_STREAM *stream) {
@@ -414,7 +415,7 @@ bool ICELIB_veryfyICESupportOnStream(ICELIB_INSTANCE *pInstance,
     for (i=0;i<stream->numberOfCandidates;i++) {
         ICE_CANDIDATE const *candidate = &stream->candidate[i];
 
-        if (NetAddr_sameAddr(&candidate->connectionAddr, &stream->defaultAddr)) {
+        if (netaddr_sameAddr(&candidate->connectionAddr, &stream->defaultAddr)) {
             return true;
         }
     }
@@ -567,8 +568,8 @@ bool ICELIB_isEmptyCandidate(const ICE_CANDIDATE *pCandidate)
 //
 bool ICELIB_isNonValidCandidate(const ICE_CANDIDATE *pCandidate)
 {
-    return !NetAddr_isSet(    &pCandidate->connectionAddr) ||
-            NetAddr_isAddrAny(&pCandidate->connectionAddr);
+    return !netaddr_isSet(    &pCandidate->connectionAddr) ||
+            netaddr_isAddrAny(&pCandidate->connectionAddr);
 }
 
 
@@ -595,7 +596,7 @@ void ICELIB_clearRedundantCandidates(ICE_CANDIDATE candidates[])
 
             for (j=i+1; j < ICE_MAX_CANDIDATES; ++j) {
 
-                if (NetAddr_alike(&candidates[ i].connectionAddr,
+                if (netaddr_alike(&candidates[ i].connectionAddr,
                                    &candidates[ j].connectionAddr)) {
                     // Found redundant, eliminate
                     ICELIB_resetCandidate(&candidates[ j]);
@@ -774,8 +775,8 @@ void ICELIB_formPairs(ICELIB_CHECKLIST       *pCheckList,
             if (iPairs >= maxPairs) break;
 
             if (pLocalCand->componentid == pRemoteCand->componentid) {
-                if (NetAddr_type(&pLocalCand->connectionAddr) ==
-                    NetAddr_type(&pRemoteCand->connectionAddr)) {
+                if (netaddr_type(&pLocalCand->connectionAddr) ==
+                    netaddr_type(&pRemoteCand->connectionAddr)) {
 
                     // Local and remote matches in component ID and address type,
                     // make a pair!
@@ -1820,7 +1821,7 @@ void ICELIB_scheduleCheck(ICELIB_INSTANCE   *pInstance,
             debug(pCheckList, pPair->pairId, " --> sending binding request");
         }
 
-        NetAddr_toString(&pPair->pRemoteCandidate->connectionAddr,
+        netaddr_toString(&pPair->pRemoteCandidate->connectionAddr,
                          addr,
                          sizeof(addr),
                          true);
@@ -1974,11 +1975,11 @@ void ICELIB_recomputeAllPairPriorities(ICELIB_STREAM_CONTROLLER streamController
 //
 unsigned int ICELIB_findStreamByAddress(ICELIB_STREAM_CONTROLLER streamControllers[],
                                         unsigned int             numberOfMediaStreams,
-                                        const NET_ADDR           *pHostAddr)
+                                        const struct net_addr           *pHostAddr)
 {
     unsigned int       i;
     unsigned int       j;
-    const NET_ADDR     *pAddr;
+    const struct net_addr     *pAddr;
     ICELIB_CHECKLIST   *pCheckList;
 
     for (i=0; i < numberOfMediaStreams; ++i) {
@@ -1987,7 +1988,7 @@ unsigned int ICELIB_findStreamByAddress(ICELIB_STREAM_CONTROLLER streamControlle
             if (pCheckList->checkListPairs[j].pLocalCandidate->type == ICE_CAND_TYPE_HOST)
             {
                 pAddr = &pCheckList->checkListPairs[j].pLocalCandidate->connectionAddr;
-                if (NetAddr_alike(pAddr, pHostAddr))
+                if (netaddr_alike(pAddr, pHostAddr))
                 {
                     return i;
                 }
@@ -2176,7 +2177,7 @@ void ICELIB_storeRemoteCandidates(ICELIB_INSTANCE *pInstance) {
 
                 pInstance->streamControllers[i].remoteCandidates.
                     remoteCandidate[ICELIB_RTP_COMPONENT_INDEX].componentId = ICELIB_RTP_COMPONENT_ID;
-                NetAddr_copy(&pInstance->streamControllers[i].remoteCandidates.
+                netaddr_copy(&pInstance->streamControllers[i].remoteCandidates.
                              remoteCandidate[ICELIB_RTP_COMPONENT_INDEX].connectionAddr,
                              &pRemoteCandidate->connectionAddr);
                 pInstance->streamControllers[i].remoteCandidates.
@@ -2189,7 +2190,7 @@ void ICELIB_storeRemoteCandidates(ICELIB_INSTANCE *pInstance) {
 
                 pInstance->streamControllers[i].remoteCandidates.
                     remoteCandidate[ICELIB_RTCP_COMPONENT_INDEX].componentId = ICELIB_RTCP_COMPONENT_ID;
-                NetAddr_copy(&pInstance->streamControllers[i].remoteCandidates.
+                netaddr_copy(&pInstance->streamControllers[i].remoteCandidates.
                              remoteCandidate[ICELIB_RTCP_COMPONENT_INDEX].connectionAddr,
                              &pRemoteCandidate->connectionAddr);
                 pInstance->streamControllers[i].remoteCandidates.
@@ -2210,7 +2211,7 @@ void ICELIB_storeRemoteCandidates(ICELIB_INSTANCE *pInstance) {
 //
 bool ICELIB_validListNominatePair(ICELIB_VALIDLIST *pValidList,
                                   ICELIB_LIST_PAIR *pPair,
-                                  const NET_ADDR   *pMappedAddress)
+                                  const struct net_addr   *pMappedAddress)
 {
     unsigned int i;
     ICELIB_LIST_PAIR *pPairFromList;
@@ -2229,7 +2230,7 @@ bool ICELIB_validListNominatePair(ICELIB_VALIDLIST *pValidList,
 
     //Try with mapped addres innstead (Or maybee thats what we always should do?)
 
-    NetAddr_copy(&dummyCandidate.connectionAddr, pMappedAddress);
+    netaddr_copy(&dummyCandidate.connectionAddr, pMappedAddress);
     dummyPair.pLocalCandidate = &dummyCandidate;
     dummyPair.pRemoteCandidate = pPair->pRemoteCandidate;
 
@@ -2501,12 +2502,12 @@ ICELIB_LIST_PAIR *pICELIB_correlateToRequest(unsigned int    *pStreamIndex,
 //              false - addresses does not match
 //
 bool ICELIB_checkSourceAndDestinationAddr(const ICELIB_LIST_PAIR *pPair,
-                                          const NET_ADDR         *source,
-                                          const NET_ADDR         *destination)
+                                          const struct net_addr         *source,
+                                          const struct net_addr         *destination)
 {
-    if (! NetAddr_alike(&pPair->pLocalCandidate->connectionAddr,destination))
+    if (! netaddr_alike(&pPair->pLocalCandidate->connectionAddr,destination))
         return false;
-    if (! NetAddr_alike(&pPair->pRemoteCandidate->connectionAddr, source))
+    if (! netaddr_alike(&pPair->pRemoteCandidate->connectionAddr, source))
         return false;
     return true;
 }
@@ -2521,10 +2522,10 @@ bool ICELIB_checkSourceAndDestinationAddr(const ICELIB_LIST_PAIR *pPair,
 bool ICELIB_isPairAddressMatch(const ICELIB_LIST_PAIR *pPair1,
                                const ICELIB_LIST_PAIR *pPair2)
 {
-    if (! NetAddr_alike(&pPair1->pLocalCandidate->connectionAddr,
+    if (! netaddr_alike(&pPair1->pLocalCandidate->connectionAddr,
                         &pPair2->pLocalCandidate->connectionAddr)) return false;
 
-    if (! NetAddr_alike(&pPair1->pRemoteCandidate->connectionAddr,
+    if (! netaddr_alike(&pPair1->pRemoteCandidate->connectionAddr,
                         &pPair2->pRemoteCandidate->connectionAddr)) return false;
 
     return true;
@@ -2558,11 +2559,11 @@ ICE_CANDIDATE *ICELIB_addDiscoveredCandidate(ICE_MEDIA_STREAM    *pMediaStream,
 //
 void ICELIB_makePeerLocalReflexiveCandidate(ICE_CANDIDATE       *pPeerCandidate,
                                             ICELIB_CALLBACK_LOG *pCallbackLog,
-                                            const NET_ADDR      *pMappedAddress,
+                                            const struct net_addr      *pMappedAddress,
                                             uint16_t             componentId)
 {
     ICELIB_resetCandidate(pPeerCandidate);
-    NetAddr_copy(&pPeerCandidate->connectionAddr, pMappedAddress);
+    netaddr_copy(&pPeerCandidate->connectionAddr, pMappedAddress);
     pPeerCandidate->type        = ICE_CAND_TYPE_PRFLX;
     pPeerCandidate->componentid = componentId;
     ICELIB_createFoundation(pPeerCandidate->foundation,
@@ -2581,7 +2582,7 @@ void ICELIB_makePeerLocalReflexiveCandidate(ICE_CANDIDATE       *pPeerCandidate,
 //
 void ICELIB_makePeerRemoteReflexiveCandidate(ICE_CANDIDATE       *pPeerCandidate,
                                              ICELIB_CALLBACK_LOG *pCallbackLog,
-                                             const NET_ADDR      *sourceAddr,
+                                             const struct net_addr      *sourceAddr,
                                              uint32_t             peerPriority,
                                              uint16_t             componentId)
 {
@@ -2591,7 +2592,7 @@ void ICELIB_makePeerRemoteReflexiveCandidate(ICE_CANDIDATE       *pPeerCandidate
     pPeerCandidate->type     = ICE_CAND_TYPE_PRFLX;
 
 
-    NetAddr_copy(&pPeerCandidate->connectionAddr, sourceAddr);
+    netaddr_copy(&pPeerCandidate->connectionAddr, sourceAddr);
     pPeerCandidate->type        = ICE_CAND_TYPE_PRFLX;
     pPeerCandidate->componentid = componentId;
     strncpy(pPeerCandidate->foundation, "2345\0", ICELIB_FOUNDATION_LENGTH);
@@ -2688,7 +2689,7 @@ void ICELIB_processSuccessResponse(ICELIB_INSTANCE         *pInstance,
                                    ICELIB_CHECKLIST        *pCurrentCheckList,
                                    ICELIB_VALIDLIST        *pValidList,
                                    ICELIB_LIST_PAIR        *pPair,
-                                   const NET_ADDR          *pMappedAddress,
+                                   const struct net_addr          *pMappedAddress,
                                    bool                    iceControlling)
 {
     bool                     listFull;
@@ -2994,9 +2995,9 @@ void ICELIB_processSuccessResponse(ICELIB_INSTANCE         *pInstance,
 void ICELIB_incommingBindingResponse(ICELIB_INSTANCE  *pInstance,
                                      uint16_t          errorResponse,
                                      StunMsgId         transactionId,
-                                     const NET_ADDR   *source,
-                                     const NET_ADDR   *destination,
-                                     const NET_ADDR   *mappedAddress)
+                                     const struct net_addr   *source,
+                                     const struct net_addr   *destination,
+                                     const struct net_addr   *mappedAddress)
 {
     unsigned int            streamIndex;
     bool                    iceControlling;
@@ -3055,10 +3056,10 @@ void ICELIB_incommingBindingResponse(ICELIB_INSTANCE  *pInstance,
 
         //ICELIB_checkListDumpAll(pInstance);
 
-        //NetAddr_dump(&pPair->pLocalCandidate->connectionAddr, true);
+        //netaddr_dump(&pPair->pLocalCandidate->connectionAddr, true);
         //printf(" type: %i ", pPair->pLocalCandidate->type);
         //printf("  :  ");
-        //NetAddr_dump(&pPair->pRemoteCandidate->connectionAddr, true);
+        //netaddr_dump(&pPair->pRemoteCandidate->connectionAddr, true);
         //printf(" type: %i ", pPair->pRemoteCandidate->type);
         //printf("\n");
     }
@@ -3273,9 +3274,9 @@ void ICELIB_incommingTimeout(ICELIB_INSTANCE  *pInstance,
 //
 
 void ICELIB_sendBindingResponse(ICELIB_INSTANCE   *pInstance,
-                                const NET_ADDR    *source,
-                                const NET_ADDR    *destination,
-                                const NET_ADDR    *MappedAddress,
+                                const struct net_addr    *source,
+                                const struct net_addr    *destination,
+                                const struct net_addr    *MappedAddress,
                                 uint32_t           userValue1,
                                 uint32_t           userValue2,
                                 uint16_t           componentId,
@@ -3308,9 +3309,9 @@ void ICELIB_sendBindingResponse(ICELIB_INSTANCE   *pInstance,
 
 void ICELIB_processSuccessRequest(ICELIB_INSTANCE         *pInstance,
                                   StunMsgId                transactionId,
-                                  const NET_ADDR          *source,
-                                  const NET_ADDR          *destination,
-                                  const NET_ADDR          *relayBaseAddr,
+                                  const struct net_addr          *source,
+                                  const struct net_addr          *destination,
+                                  const struct net_addr          *relayBaseAddr,
                                   uint32_t                 userValue1,
                                   uint32_t                 userValue2,
                                   uint32_t                 peerPriority,
@@ -3537,8 +3538,8 @@ void ICELIB_processIncommingLite(ICELIB_INSTANCE  *pInstance,
                                  bool              iceControlled,
                                  uint64_t          tieBreaker,
                                  StunMsgId         transactionId,
-                                 const NET_ADDR   *source,
-                                 const NET_ADDR   *destination,
+                                 const struct net_addr   *source,
+                                 const struct net_addr   *destination,
                                  uint16_t          componentId)
 {
     (void)userValue1;
@@ -3569,10 +3570,10 @@ void ICELIB_processIncommingFull(ICELIB_INSTANCE  *pInstance,
                                  bool              iceControlled,
                                  uint64_t          tieBreaker,
                                  StunMsgId         transactionId,
-                                 const NET_ADDR   *source,
-                                 const NET_ADDR   *destination,
+                                 const struct net_addr   *source,
+                                 const struct net_addr   *destination,
                                  bool              fromRelay,
-                                 const NET_ADDR   *relayBaseAddr,
+                                 const struct net_addr   *relayBaseAddr,
                                  uint16_t          componentId)
 
 {
@@ -3748,10 +3749,10 @@ void ICELIB_incommingBindingRequest(ICELIB_INSTANCE   *pInstance,
                                     bool               iceControlled,
                                     uint64_t           tieBreaker,
                                     StunMsgId          transactionId,
-                                    const NET_ADDR    *source,
-                                    const NET_ADDR    *destination,
+                                    const struct net_addr    *source,
+                                    const struct net_addr    *destination,
                                     bool               fromRelay,
-                                    const NET_ADDR    *relayBaseAddr,
+                                    const struct net_addr    *relayBaseAddr,
                                     uint16_t           componentId)
 {
 
@@ -4499,6 +4500,7 @@ void ICELIB_PasswordUpdate(ICELIB_INSTANCE *pInstance)
 
 }
 
+
 void ICELIB_EliminateRedundantCandidates(ICELIB_INSTANCE *pInstance)
 {
     uint32_t i;
@@ -4511,7 +4513,6 @@ void ICELIB_EliminateRedundantCandidates(ICELIB_INSTANCE *pInstance)
             ICELIB_eliminateRedundantCandidates(iceMediaStream->candidate);
     }
 }
-
 
 
 bool ICELIB_Start(ICELIB_INSTANCE *pInstance, bool controlling)
@@ -4776,17 +4777,6 @@ char *ICELIB_getPairFoundation(char                    *dst,
 }
 
 
-uint32_t ICELIB_numberOfLocalMediaStreams(ICELIB_INSTANCE *pInstance)
-{
-    return pInstance->localIceMedia.numberOfICEMediaLines;
-}
-
-uint32_t ICELIB_numberOfRemoteMediaStreams(ICELIB_INSTANCE *pInstance)
-{
-    return pInstance->remoteIceMedia.numberOfICEMediaLines;
-}
-
-
 ICE_REMOTE_CANDIDATES const *ICELIB_getActiveRemoteCandidates(ICELIB_INSTANCE *pInstance,
                                                               int mediaLineId)
 {
@@ -4889,11 +4879,11 @@ bool ICELIB_isControlling(ICELIB_INSTANCE *pInstance)
 
 void ICELIB_netAddrDumpLog(const ICELIB_CALLBACK_LOG *pCallbackLog,
                             ICELIB_logLevel            logLevel,
-                            const NET_ADDR            *netAddr)
+                            const struct net_addr            *netAddr)
 {
     char addr[ MAX_NET_ADDR_STRING_SIZE];
 
-    if (NetAddr_toString(netAddr, addr , sizeof(addr), true)) {
+    if (netaddr_toString(netAddr, addr , sizeof(addr), true)) {
         ICELIB_logString(pCallbackLog, logLevel, addr);
     } else {
         ICELIB_logString(pCallbackLog, logLevel, "invalid");
@@ -5075,7 +5065,7 @@ void ICELIB_validListDumpLog(const ICELIB_CALLBACK_LOG *pCallbackLog,
 }
 
 
-void ICELIB_netAddrDump(const NET_ADDR *netAddr)
+void ICELIB_netAddrDump(const struct net_addr *netAddr)
 {
     ICELIB_netAddrDumpLog(NULL, ICELIB_logDebug, netAddr);
 }
@@ -5185,7 +5175,7 @@ uint32_t ICELIB_getRemoteComponentId(const ICELIB_INSTANCE *pInstance, uint32_t 
 }
 
 
-NET_ADDR const *ICELIB_getLocalConnectionAddr(const ICELIB_INSTANCE *pInstance, uint32_t mediaIdx, uint32_t candIdx)
+struct net_addr const *ICELIB_getLocalConnectionAddr(const ICELIB_INSTANCE *pInstance, uint32_t mediaIdx, uint32_t candIdx)
 {
     if (mediaIdx > pInstance->localIceMedia.numberOfICEMediaLines) {
         return NULL;
@@ -5198,7 +5188,7 @@ NET_ADDR const *ICELIB_getLocalConnectionAddr(const ICELIB_INSTANCE *pInstance, 
     return &pInstance->localIceMedia.mediaStream[mediaIdx].candidate[candIdx].connectionAddr;
 }
 
-NET_ADDR const *ICELIB_getRemoteConnectionAddr(const ICELIB_INSTANCE *pInstance, uint32_t mediaIdx, uint32_t candIdx)
+struct net_addr const *ICELIB_getRemoteConnectionAddr(const ICELIB_INSTANCE *pInstance, uint32_t mediaIdx, uint32_t candIdx)
 {
     if (mediaIdx > pInstance->localIceMedia.numberOfICEMediaLines) {
         return NULL;
@@ -5242,7 +5232,7 @@ ICE_CANDIDATE_TYPE ICELIB_getRemoteCandidateType(const ICELIB_INSTANCE *pInstanc
 }
 
 
-int ICELIB_candidateSort(const void *x, const void *y) {
+static int ICELIB_candidateSort(const void *x, const void *y) {
     ICE_CANDIDATE *a = (ICE_CANDIDATE*)x;
     ICE_CANDIDATE *b = (ICE_CANDIDATE*)y;
 
@@ -5253,8 +5243,8 @@ int ICELIB_candidateSort(const void *x, const void *y) {
 int32_t ICELIB_addLocalCandidate(ICELIB_INSTANCE *pInstance,
                                  uint32_t mediaIdx,
                                  uint32_t componentId,
-                                 NET_ADDR *connectionAddr,
-                                 NET_ADDR *relAddr,
+                                 struct net_addr *connectionAddr,
+                                 struct net_addr *relAddr,
                                  ICE_CANDIDATE_TYPE candType)
 {
     ICE_MEDIA_STREAM *mediaStream;
@@ -5282,7 +5272,7 @@ int32_t ICELIB_addLocalCandidate(ICELIB_INSTANCE *pInstance,
     cand = &mediaStream->candidate[mediaStream->numberOfCandidates];
 
 
-    NetAddr_copy(&cand->connectionAddr, connectionAddr);
+    netaddr_copy(&cand->connectionAddr, connectionAddr);
     cand->type = candType;
     cand->componentid = componentId;
 
@@ -5292,7 +5282,7 @@ int32_t ICELIB_addLocalCandidate(ICELIB_INSTANCE *pInstance,
 
     cand->priority = priority;
     if (relAddr != NULL) {
-        NetAddr_copy(&cand->relAddr, relAddr);
+        netaddr_copy(&cand->relAddr, relAddr);
     }
 
     //Once the candidates are paired and the checlist is created
@@ -5343,15 +5333,15 @@ int32_t ICELIB_addRemoteCandidate(ICELIB_INSTANCE *pInstance,
 
 
     //connection address
-    if (! NetAddr_initFromString(&iceCand->connectionAddr,
-                                connectionAddr,
-                                port,
-                                NET_PROTO_UDP)) {
+    if (! netaddr_initFromString(&iceCand->connectionAddr,
+                                 connectionAddr,
+                                 IPPROTO_UDP)) {
         ICELIB_log(&pInstance->callbacks.callbackLog,
                     ICELIB_logDebug, "Failed to add candidate. Something wrong with IP address\n");
         return -1;
 
     }
+    netaddr_setIPPort(&iceCand->connectionAddr, port);
 
 
 
@@ -5413,7 +5403,7 @@ int32_t ICELIB_addLocalMediaStream(ICELIB_INSTANCE *pInstance,
 }
 
 int32_t ICELIB_addRemoteMediaStream(ICELIB_INSTANCE *pInstance,
-                                    char* ufrag, char *pwd, NET_ADDR *defaultAddr)
+                                    char* ufrag, char *pwd, struct net_addr *defaultAddr)
 {
     ICE_MEDIA_STREAM *mediaStream;
 
@@ -5443,7 +5433,7 @@ int32_t ICELIB_addRemoteMediaStream(ICELIB_INSTANCE *pInstance,
     }
 
     if (defaultAddr != NULL) {
-        NetAddr_copy(&mediaStream->defaultAddr, defaultAddr);
+        netaddr_copy(&mediaStream->defaultAddr, defaultAddr);
     }else{
         ICELIB_log(&pInstance->callbacks.callbackLog,
                     ICELIB_logDebug, "Failed to add medialine. No default address\n");
@@ -5474,7 +5464,7 @@ ICE_MEDIA const *ICELIB_getLocalIceMedia(const ICELIB_INSTANCE *pInstance)
     return &pInstance->localIceMedia;
 }
 
-NET_ADDR const *ICELIB_getLocalRelayAddr(const ICELIB_INSTANCE *pInstance,
+struct net_addr const *ICELIB_getLocalRelayAddr(const ICELIB_INSTANCE *pInstance,
                                          uint32_t mediaIdx)
 {
     uint32_t i;
@@ -5490,8 +5480,8 @@ NET_ADDR const *ICELIB_getLocalRelayAddr(const ICELIB_INSTANCE *pInstance,
 }
 
 
-NET_ADDR const *ICELIB_getLocalRelayAddrFromHostAddr(const ICELIB_INSTANCE *pInstance,
-                                                     const NET_ADDR *hostAddr)
+struct net_addr const *ICELIB_getLocalRelayAddrFromHostAddr(const ICELIB_INSTANCE *pInstance,
+                                                     const struct net_addr *hostAddr)
 {
     //TODO: Rewrite Not using MAX values (Use actual number of stred instead)
     int i,j,k = 0;
@@ -5499,7 +5489,7 @@ NET_ADDR const *ICELIB_getLocalRelayAddrFromHostAddr(const ICELIB_INSTANCE *pIns
     for (i=0;i<ICE_MAX_MEDIALINES;i++) {
             for (j=0;j<ICE_MAX_CANDIDATES;j++) {
 
-                if (NetAddr_alike(&pInstance->localIceMedia.mediaStream[i].candidate[j].connectionAddr,
+                if (netaddr_alike(&pInstance->localIceMedia.mediaStream[i].candidate[j].connectionAddr,
                                     hostAddr)) {
                     //Found a match. No find the relay candidate..
                     uint32_t compId = pInstance->localIceMedia.mediaStream[i].candidate[j].componentid;

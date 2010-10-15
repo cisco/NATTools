@@ -58,13 +58,16 @@ extern "C" {
     void ICELIB_clearRedundantCandidates(ICE_CANDIDATE candidates[]);
     void ICELIB_compactTable(ICE_CANDIDATE candidates[]);
     int ICELIB_countCandidates(ICE_CANDIDATE candidates[]);
+    
     int ICELIB_eliminateRedundantCandidates(ICE_CANDIDATE candidates[]);
 
+    void ICELIB_EliminateRedundantCandidates(ICELIB_INSTANCE *pInstance);
+
     void ICELIB_fillCandidate(ICE_MEDIA_STREAM *iceMediaStream,
-                              int idx, const NET_ADDR *addr,
+                              int idx, const struct net_addr *addr,
                               ICE_CANDIDATE_TYPE type,
                               int compId,
-                              const NET_ADDR *relAddr);
+                              const struct net_addr *relAddr);
 
     const char *ICELIB_toString_CheckListState(ICELIB_CHECKLIST_STATE state);
     const char *ICELIB_toString_CheckListPairState(ICELIB_PAIR_STATE state);
@@ -155,7 +158,7 @@ extern "C" {
 
     unsigned int ICELIB_findStreamByAddress(ICELIB_STREAM_CONTROLLER streamControllers[],
                                             unsigned int numberOfMediaStreams,
-                                            const NET_ADDR *pHostAddr);
+                                            const struct net_addr *pHostAddr);
 
     int ICELIB_listCompareVL(const void *cp1, const void *cp2);
     void ICELIB_listSortVL(ICELIB_LIST_VL *pList);
@@ -188,7 +191,7 @@ extern "C" {
 
     bool ICELIB_validListNominatePair(ICELIB_VALIDLIST *pValidList,
                                       ICELIB_LIST_PAIR *pPair,
-                                      const NET_ADDR *pMappedAddress);
+                                      const struct net_addr *pMappedAddress);
 
     bool ICELIB_validListAddBack(ICELIB_VALIDLIST *pValidList,
                                  ICELIB_VALIDLIST_ELEMENT *pPair);
@@ -217,19 +220,19 @@ extern "C" {
                                     ICELIB_INSTANCE *pInstance);
 
     bool ICELIB_checkSourceAndDestinationAddr(const ICELIB_LIST_PAIR *pPair,
-                                              const NET_ADDR *source, const NET_ADDR *destination);
+                                              const struct net_addr *source, const struct net_addr *destination);
 
     ICE_CANDIDATE *ICELIB_addDiscoveredCandidate(ICE_MEDIA_STREAM *pMediaStream,
                                                  const ICE_CANDIDATE *pPeerCandidate);
 
     void ICELIB_makePeerLocalReflexiveCandidate(ICE_CANDIDATE *pPeerCandidate,
                                                 ICELIB_CALLBACK_LOG *pCallbackLog,
-                                                const NET_ADDR *pMappedAddress,
+                                                const struct net_addr *pMappedAddress,
                                                 uint16_t componentId);
 
     void ICELIB_makePeerRemoteReflexiveCandidate(ICE_CANDIDATE *pPeerCandidate,
                                                  ICELIB_CALLBACK_LOG *pCallbackLog,
-                                                 const NET_ADDR *sourceAddr,
+                                                 const struct net_addr *sourceAddr,
                                                  uint32_t peerPriority,
                                                  uint16_t componentId);
 
@@ -250,13 +253,13 @@ extern "C" {
                                        ICELIB_CHECKLIST *pCurrentCheckList,
                                        ICELIB_VALIDLIST *pValidList,
                                        ICELIB_LIST_PAIR *pPair,
-                                       const NET_ADDR *pMappedAddress,
+                                       const struct net_addr *pMappedAddress,
                                        bool iceControlling);
 
     void ICELIB_sendBindingResponse(ICELIB_INSTANCE *pInstance,
-                                    const NET_ADDR *source,
-                                    const NET_ADDR *destination,
-                                    const NET_ADDR *MappedAddress,
+                                    const struct net_addr *source,
+                                    const struct net_addr *destination,
+                                    const struct net_addr *MappedAddress,
                                     uint32_t userValue1,
                                     uint32_t userValue2,
                                     uint16_t componentId,
@@ -268,9 +271,9 @@ extern "C" {
 
     void ICELIB_processSuccessRequest(ICELIB_INSTANCE *pInstance,
                                       StunMsgId transactionId,
-                                      const NET_ADDR *source,
-                                      const NET_ADDR *destination,
-                                      const NET_ADDR *relayBaseAddr,
+                                      const struct net_addr *source,
+                                      const struct net_addr *destination,
+                                      const struct net_addr *relayBaseAddr,
                                       uint32_t userValue1,
                                       uint32_t userValue2,
                                       uint32_t peerPriority,
@@ -296,8 +299,8 @@ extern "C" {
                                      bool iceControlled,
                                      uint64_t tieBreaker,
                                      StunMsgId transactionId,
-                                     const NET_ADDR *source,
-                                     const NET_ADDR *destination,
+                                     const struct net_addr *source,
+                                     const struct net_addr *destination,
                                      uint16_t componentId);
 
     void ICELIB_processIncommingFull(ICELIB_INSTANCE *pInstance,
@@ -310,10 +313,10 @@ extern "C" {
                                      bool iceControlled,
                                      uint64_t tieBreaker,
                                      StunMsgId transactionId,
-                                     const NET_ADDR *source,
-                                     const NET_ADDR *destination,
+                                     const struct net_addr *source,
+                                     const struct net_addr *destination,
                                      bool fromRelay,
-                                     const NET_ADDR *relayBaseAddr,
+                                     const struct net_addr *relayBaseAddr,
                                      uint16_t componentId);
 
     bool ICELIB_isNominatingCriteriaMet(ICELIB_VALIDLIST *pValidList);
@@ -526,7 +529,7 @@ extern "C" {
                                          uint32_t timeMultiplier);
 
     const ICE_CANDIDATE *pICELIB_findCandidate(const ICE_MEDIA_STREAM *pMediaStream,
-                                               const NET_ADDR         *address);
+                                               const struct net_addr         *address);
 
     void ICELIB_validListIteratorConstructor(ICELIB_VALIDLIST_ITERATOR *pIterator,
                                              ICELIB_VALIDLIST          *pValidList);
@@ -541,7 +544,7 @@ extern "C" {
 
     void ICELIB_netAddrDumpLog(      const ICELIB_CALLBACK_LOG   *pCallbackLog,
                                      ICELIB_logLevel              logLevel,
-                                     const NET_ADDR              *netAddr);
+                                     const struct net_addr              *netAddr);
     void ICELIB_transactionIdDumpLog(const ICELIB_CALLBACK_LOG   *pCallbackLog,
                                      ICELIB_logLevel              logLevel,
                                      StunMsgId                    tId);
@@ -564,7 +567,7 @@ extern "C" {
                                      ICELIB_logLevel              logLevel,
                                      ICELIB_VALIDLIST            *pValidList);
 
-    void ICELIB_netAddrDump(const NET_ADDR              *netAddr);
+    void ICELIB_netAddrDump(const struct net_addr              *netAddr);
     void ICELIB_transactionIdDump(StunMsgId                   tId);
     void ICELIB_candidateDump(const ICE_CANDIDATE         *candidate);
     void ICELIB_componentIdsDump(const ICELIB_COMPONENTLIST  *pComponentList);

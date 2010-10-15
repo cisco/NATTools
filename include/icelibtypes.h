@@ -2,11 +2,13 @@
 #define ICELIBTYPES_H
 
 
-#include "ttstdint.h"
+
 #include "netaddr.h"
 #include "stunlib.h"
 
 #include "icelib_defines.h"
+
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -162,16 +164,16 @@ typedef struct {
     char                foundation[ ICE_MAX_FOUNDATION_LENGTH];
     uint32_t            componentid;
     uint32_t            priority;
-    NET_ADDR            connectionAddr;
+    struct net_addr     connectionAddr;
     ICE_CANDIDATE_TYPE  type;
-    NET_ADDR            relAddr;
+    struct net_addr     relAddr;
     uint32_t            userValue1;
     uint32_t            userValue2;
 } ICE_CANDIDATE;
 
 typedef struct {
     uint32_t            componentId;
-    NET_ADDR            connectionAddr;
+    struct net_addr     connectionAddr;
     ICE_CANDIDATE_TYPE  type;
 } ICE_REMOTE_CANDIDATE;
 
@@ -191,7 +193,7 @@ typedef struct {
     ICE_TURN_STATE      turnState;
     uint32_t            userValue1;
     uint32_t            userValue2;
-    NET_ADDR            defaultAddr;
+    struct net_addr     defaultAddr;
     ICE_CANDIDATE_TYPE  defaultCandType;
 } ICE_MEDIA_STREAM;
 
