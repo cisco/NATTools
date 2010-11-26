@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 
+
+#include "sockaddr_util.h"
 #include "icelibtypes.h"
 
 
@@ -21,11 +23,12 @@ char const * ICELIBTYPES_ICE_CANDIDATE_TYPE_toString(const ICE_CANDIDATE_TYPE ca
 }
 
 void ICELIBTYPES_ICE_CANDIDATE_dump(const ICE_CANDIDATE *candidate){
-    char addr[MAX_NET_ADDR_STRING_SIZE];
+    char addr[SOCKADDR_MAX_STRLEN];
     printf("   Fnd: '%s' ", candidate->foundation);
     printf("Comp: %i ", candidate->componentid);
     printf("Pri: %u ", candidate->priority);
-    printf("Addr: %s", netaddr_toStr(&candidate->connectionAddr, addr, sizeof addr, true));
+    printf("Addr: %s", sockaddr_toString((const struct sockaddr *)&candidate->connectionAddr, 
+                                         addr, sizeof addr, true));
            //netaddr_dump(&candidate->connectionAddr, true);
     printf(" Type: '%s' ", ICELIBTYPES_ICE_CANDIDATE_TYPE_toString(candidate->type));
     printf(" UVal1: %u ", candidate->userValue1);

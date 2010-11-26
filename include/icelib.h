@@ -3,8 +3,8 @@
 
 
 
-#include "netaddr.h"
-#include "stunlib.h"
+
+//#include "stunlib.h"
 
 
 
@@ -34,21 +34,21 @@ extern "C" {
 //
 //----- Callback for sending a Binding Request message (STUN client role)
 //
-typedef ICELIB_Result (*ICELIB_outgoingBindingRequest)(void             *pUserData,
-                                                       const struct net_addr   *destination,
-                                                       const struct net_addr   *source,
-                                                       uint32_t          userValue1,
-                                                       uint32_t          userValue2,
-                                                       uint32_t          componentId,
-                                                       bool              useRelay,
-                                                       const char       *pUfragPair,
-                                                       const char       *pPasswd,
-                                                       uint32_t          peerPriority,
-                                                       bool              useCandidate,
-                                                       bool              iceControlling,
-                                                       bool              iceControlled,
-                                                       uint64_t          tieBreaker,
-                                                       StunMsgId         transactionId);
+typedef ICELIB_Result (*ICELIB_outgoingBindingRequest)(void                  *pUserData,
+                                                       const struct sockaddr *destination,
+                                                       const struct sockaddr *source,
+                                                       uint32_t              userValue1,
+                                                       uint32_t              userValue2,
+                                                       uint32_t              componentId,
+                                                       bool                  useRelay,
+                                                       const char            *pUfragPair,
+                                                       const char            *pPasswd,
+                                                       uint32_t              peerPriority,
+                                                       bool                  useCandidate,
+                                                       bool                  iceControlling,
+                                                       bool                  iceControlled,
+                                                       uint64_t              tieBreaker,
+                                                       StunMsgId             transactionId);
     
 //
 //----- Callback sending a Binding Response message (STUN server role)
@@ -57,9 +57,9 @@ typedef ICELIB_Result (*ICELIB_outgoingBindingResponse)(void *pUserData,
                                                         uint32_t userValue1,
                                                         uint32_t userValue2,
                                                         uint32_t componentId,
-                                                        const struct net_addr *source,
-                                                        const struct net_addr *destination,
-                                                        const struct net_addr *MappedAddress,
+                                                        const struct sockaddr *source,
+                                                        const struct sockaddr *destination,
+                                                        const struct sockaddr *MappedAddress,
                                                         uint16_t errorResponse,
                                                         StunMsgId transactionId,
                                                         bool useRelay,
@@ -273,9 +273,9 @@ void ICELIB_setCallbackLog(ICELIB_INSTANCE                *pInstance,
 void ICELIB_incommingBindingResponse(ICELIB_INSTANCE         *pInstance,
                                      uint16_t                errorResponse,
                                      StunMsgId               transactionId,
-                                     const struct net_addr   *source,         // From response
-                                     const struct net_addr   *destination,    // From response
-                                     const struct net_addr   *mappedAddress);
+                                     const struct sockaddr   *source,         // From response
+                                     const struct sockaddr   *destination,    // From response
+                                     const struct sockaddr   *mappedAddress);
 
 void ICELIB_incommingTimeout(ICELIB_INSTANCE   *pInstance,
                              StunMsgId          Transactionid);
@@ -290,10 +290,10 @@ void ICELIB_incommingBindingRequest(ICELIB_INSTANCE       *pInstance,
                                     bool                  iceControlled,
                                     uint64_t              tieBreaker,
                                     StunMsgId             transactionId,
-                                    const struct net_addr *source,
-                                    const struct net_addr *destination,
+                                    const struct sockaddr *source,
+                                    const struct sockaddr *destination,
                                     bool                  fromRelay,
-                                    const struct net_addr *peerAddr,
+                                    const struct sockaddr *peerAddr,
                                     uint16_t               componentId);
 
 ICE_TURN_STATE ICELIB_getTurnState(const ICELIB_INSTANCE  *pInstance, 
@@ -317,11 +317,11 @@ uint32_t ICELIB_getRemoteComponentId(const ICELIB_INSTANCE *pInstance,
                                      uint32_t mediaIdx, 
                                      uint32_t candIdx);
 
-struct net_addr const *ICELIB_getLocalConnectionAddr(const ICELIB_INSTANCE *pInstance, 
+struct sockaddr const *ICELIB_getLocalConnectionAddr(const ICELIB_INSTANCE *pInstance, 
                                                      uint32_t mediaIdx, 
                                                      uint32_t candIdx);
     
-struct net_addr const *ICELIB_getRemoteConnectionAddr(const ICELIB_INSTANCE *pInstance, 
+struct sockaddr const *ICELIB_getRemoteConnectionAddr(const ICELIB_INSTANCE *pInstance, 
                                                       uint32_t mediaIdx, 
                                                       uint32_t candIdx);
 
@@ -339,7 +339,7 @@ ICE_MEDIA const *ICELIB_getLocalIceMedia(const ICELIB_INSTANCE *pInstance );
 int32_t ICELIB_addRemoteMediaStream(ICELIB_INSTANCE *pInstance,
                                     char* ufrag, 
                                     char *pwd, 
-                                    struct net_addr *defaultAddr );
+                                    struct sockaddr *defaultAddr );
 
 int32_t ICELIB_addLocalMediaStream(ICELIB_INSTANCE *pInstance,
                                    uint32_t mediaIdx,
@@ -360,8 +360,8 @@ int32_t ICELIB_addRemoteCandidate(ICELIB_INSTANCE *pInstance,
 int32_t ICELIB_addLocalCandidate(ICELIB_INSTANCE *pInstance,
                                  uint32_t mediaIdx,
                                  uint32_t componentId,
-                                 struct net_addr *connectionAddr,
-                                 struct net_addr *relAddr,
+                                 struct sockaddr *connectionAddr,
+                                 struct sockaddr *relAddr,
                                  ICE_CANDIDATE_TYPE candType);
 
 
@@ -379,11 +379,11 @@ bool ICELIB_isRestart(ICELIB_INSTANCE *pInstance, unsigned int mediaIdx,
     
 uint32_t ICELIB_numberOfLocalMediaStreams(ICELIB_INSTANCE *pInstance);
 
-struct net_addr const *ICELIB_getLocalRelayAddr(const ICELIB_INSTANCE *pInstance,
+struct sockaddr const *ICELIB_getLocalRelayAddr(const ICELIB_INSTANCE *pInstance,
                                          uint32_t mediaIdx);
 
-struct net_addr const *ICELIB_getLocalRelayAddrFromHostAddr(const ICELIB_INSTANCE *pInstance,
-                                                            const struct net_addr *hostAddr);
+struct sockaddr const *ICELIB_getLocalRelayAddrFromHostAddr(const ICELIB_INSTANCE *pInstance,
+                                                            const struct sockaddr *hostAddr);
 
 ICE_CANDIDATE const *ICELIB_getActiveCandidate(ICELIB_INSTANCE *pInstance,
                                                int mediaLineId,

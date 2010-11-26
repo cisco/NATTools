@@ -3,16 +3,28 @@
 
 
 
-#include "netaddr.h"
-#include "stunlib.h"
+//#include "netaddr.h"
+//#include "stunlib.h"
 
 #include "icelib_defines.h"
 
+#include <stdbool.h>
 #include <stdint.h>
+#include <netinet/in.h>
+
+
+
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+    //TODO: Remove and link with real STUN library
+#define STUN_MSG_ID_SIZE                 12   
+typedef struct
+{
+    uint8_t octet[STUN_MSG_ID_SIZE];
+} StunMsgId;
 
 
 #define ICE_MAX_UFRAG_LENGTH                (256+1) //zero terminated
@@ -161,20 +173,20 @@ typedef enum {
  *  relAddr         = host addres when sending relayed candidates (Optional, used for debugging)
  */
 typedef struct {
-    char                foundation[ ICE_MAX_FOUNDATION_LENGTH];
-    uint32_t            componentid;
-    uint32_t            priority;
-    struct net_addr     connectionAddr;
-    ICE_CANDIDATE_TYPE  type;
-    struct net_addr     relAddr;
-    uint32_t            userValue1;
-    uint32_t            userValue2;
+    char                    foundation[ ICE_MAX_FOUNDATION_LENGTH];
+    uint32_t                componentid;
+    uint32_t                priority;
+    struct sockaddr_storage connectionAddr;
+    ICE_CANDIDATE_TYPE      type;
+    struct sockaddr_storage relAddr;
+    uint32_t                userValue1;
+    uint32_t                userValue2;
 } ICE_CANDIDATE;
 
 typedef struct {
-    uint32_t            componentId;
-    struct net_addr     connectionAddr;
-    ICE_CANDIDATE_TYPE  type;
+    uint32_t                componentId;
+    struct sockaddr_storage connectionAddr;
+    ICE_CANDIDATE_TYPE      type;
 } ICE_REMOTE_CANDIDATE;
 
 typedef struct {
@@ -186,15 +198,15 @@ typedef struct {
  * ICE candidates for a single media stream
  */
 typedef struct {
-    char                ufrag    [ ICE_MAX_UFRAG_LENGTH];
-    char                passwd   [ ICE_MAX_PASSWD_LENGTH];
-    ICE_CANDIDATE       candidate[ ICE_MAX_CANDIDATES];
-    uint32_t            numberOfCandidates;
-    ICE_TURN_STATE      turnState;
-    uint32_t            userValue1;
-    uint32_t            userValue2;
-    struct net_addr     defaultAddr;
-    ICE_CANDIDATE_TYPE  defaultCandType;
+    char                    ufrag    [ ICE_MAX_UFRAG_LENGTH];
+    char                    passwd   [ ICE_MAX_PASSWD_LENGTH];
+    ICE_CANDIDATE           candidate[ ICE_MAX_CANDIDATES];
+    uint32_t                numberOfCandidates;
+    ICE_TURN_STATE          turnState;
+    uint32_t                userValue1;
+    uint32_t                userValue2;
+    struct sockaddr_storage defaultAddr;
+    ICE_CANDIDATE_TYPE      defaultCandType;
 } ICE_MEDIA_STREAM;
 
 
