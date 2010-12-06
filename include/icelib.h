@@ -377,7 +377,6 @@ void ICELIB_checkListDumpAllLog(const ICELIB_CALLBACK_LOG   *pCallbackLog,
 bool ICELIB_isRestart(ICELIB_INSTANCE *pInstance, unsigned int mediaIdx,
                       const char *ufrag, const char *passwd);
     
-uint32_t ICELIB_numberOfLocalMediaStreams(ICELIB_INSTANCE *pInstance);
 
 struct sockaddr const *ICELIB_getLocalRelayAddr(const ICELIB_INSTANCE *pInstance,
                                          uint32_t mediaIdx);

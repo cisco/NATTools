@@ -223,22 +223,7 @@ bool ICELIB_compareUfragPair(const char *pUfragPair,
 }
 
 
-#if defined (PLATFORM_FANTA)
-// tmcc dislikes __FUNCTION__
-#define ICELIB_log(pCallbacks, level, message) ICELIB_log_(pCallbacks,  \
-                                                           level,       \
-                                                           " ",         \
-                                                           __FILE__,    \
-                                                           __LINE__,    \
-                                                           message)
-#define ICELIB_log1(pCallbacks, level, message, arg1) ICELIB_log_(pCallbacks, \
-                                                                  level, \
-                                                                  " ",  \
-                                                                  __FILE__, \
-                                                                  __LINE__, \
-                                                                  message, \
-                                                                  arg1)
-#else
+
 #define ICELIB_log(pCallbacks, level, message) ICELIB_log_(pCallbacks,  \
                                                            level,       \
                                                            __FUNCTION__, \
@@ -252,7 +237,6 @@ bool ICELIB_compareUfragPair(const char *pUfragPair,
                                                                   __LINE__, \
                                                                   message, \
                                                                   arg1)
-#endif
 
 
 static void ICELIB_changePairState(ICELIB_LIST_PAIR    *pPair,
@@ -363,7 +347,7 @@ void FORMAT_CHECK(6,7) ICELIB_log_(const ICELIB_CALLBACK_LOG *pCallbackLog,
     ICELIB_logString(pCallbackLog, logLevel, str1);
 }
 
-/*
+
 void ICELIB_timerConstructor(ICELIB_TIMER *pTimer,
                              unsigned int tickIntervalMS)
 {
@@ -382,13 +366,13 @@ void ICELIB_timerStart(ICELIB_TIMER *pTimer,
     pTimer->timerState     = ICELIB_timerRunning;
 }
 
-*/
+
 void ICELIB_timerStop(ICELIB_TIMER *pTimer)
 {
     pTimer->timerState = ICELIB_timerStopped;
 }
 
-/*
+
 void ICELIB_timerTick(ICELIB_TIMER *pTimer)
 {
     if (pTimer->timerState == ICELIB_timerRunning) {
@@ -412,7 +396,7 @@ bool ICELIB_timerIsTimedOut(ICELIB_TIMER *pTimer)
 {
     return pTimer->timerState == ICELIB_timerTimeout;
 }
-*/
+
 
 bool ICELIB_veryfyICESupportOnStream(ICELIB_INSTANCE *pInstance,
                                      const ICE_MEDIA_STREAM *stream) {
@@ -811,11 +795,13 @@ void ICELIB_formPairs(ICELIB_CHECKLIST       *pCheckList,
 
 uint64_t ICELIB_pairPriority(uint32_t G, uint32_t D)
 {
+    
     uint64_t  f1 = min(G, D);
     uint64_t  f2 = max(G, D);
     uint64_t  f3 = G > D ? 1 : 0;
-
+    
     return (f1 << 32) | (f2 * 2) | f3;
+    
 }
 
 
