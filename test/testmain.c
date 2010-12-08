@@ -12,8 +12,6 @@ int main(void){
     Suite *s = icelib_suite ();
     SRunner *sr = srunner_create (s);
     srunner_add_suite (sr, sockaddr_suite ());
-
-    //srunner_set_fork_status(sr,CK_NOFORK); 
     srunner_run_all (sr, CK_NORMAL);
     number_failed = srunner_ntests_failed (sr);
     srunner_free (sr);

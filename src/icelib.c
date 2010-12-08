@@ -414,6 +414,14 @@ bool ICELIB_veryfyICESupportOnStream(ICELIB_INSTANCE *pInstance,
     ICELIB_log(&pInstance->callbacks.callbackLog,
                ICELIB_logDebug, "Verify ICE support returned false\n");
 
+    char tmp[256];
+    sockaddr_toString( (struct sockaddr *) &stream->defaultAddr,
+                       tmp,
+                       256,
+                       true );
+    
+    printf("Default addr: %s, \n",tmp);
+
     return false;
 
 }
@@ -5326,8 +5334,8 @@ int32_t ICELIB_addRemoteCandidate(ICELIB_INSTANCE *pInstance,
 
     if (mediaStream->numberOfCandidates >= ICE_MAX_CANDIDATES) {
         ICELIB_log(&pInstance->callbacks.callbackLog,
-                    ICELIB_logDebug, "Failed to add candidate. MAX number of candidates reached\n");
-
+                   ICELIB_logDebug, "Failed to add REMOTE candidate. MAX number of candidates reached");
+        
         return -1;
     }
     iceCand = &mediaStream->candidate[mediaStream->numberOfCandidates];
@@ -5412,7 +5420,7 @@ int32_t ICELIB_addRemoteMediaStream(ICELIB_INSTANCE *pInstance,
                    ICELIB_logDebug, "Failed to add medialine. MAX number of medialines reached\n");
         return -1;
     }
-
+    
     mediaStream = &pInstance->remoteIceMedia.mediaStream[pInstance->remoteIceMedia.numberOfICEMediaLines];
 
     if ((ufrag != NULL) && (pwd != NULL)) {
@@ -5443,7 +5451,6 @@ int32_t ICELIB_addRemoteMediaStream(ICELIB_INSTANCE *pInstance,
     }
 
     pInstance->remoteIceMedia.numberOfICEMediaLines++;
-
 
 
     return pInstance->remoteIceMedia.numberOfICEMediaLines;
