@@ -39,7 +39,11 @@ struct sockaddr_storage *sockaddr_IPv4_any,
                         *sockaddr_IPv4_any_2,
                         *sockaddr_IPv6_any,
                         *sockaddr_IPv6_any_2;
-                
+
+void sockaddr_setup (void);
+void sockaddr_teardown (void);
+Suite * sockaddr_suite (void);
+
 void
 sockaddr_setup (void)
 {
@@ -453,70 +457,72 @@ Suite * sockaddr_suite (void)
 {
   Suite *s = suite_create ("sockaddr");
 
-  /* Core test case */
-  TCase *tc_core = tcase_create ("Core");
-  tcase_add_checked_fixture (tc_core, sockaddr_setup, sockaddr_teardown);
-  tcase_add_test (tc_core, test_sockaddr_create);
-  suite_add_tcase (s, tc_core);
+  {/* Core test case */
+      TCase *tc_core = tcase_create ("Core");
+      tcase_add_checked_fixture (tc_core, sockaddr_setup, sockaddr_teardown);
+      tcase_add_test (tc_core, test_sockaddr_create);
+      suite_add_tcase (s, tc_core);
+  }
+  
+  {/* Sameaddr test case */
+      TCase *tc_sameaddr = tcase_create ("SameAddr");
+      tcase_add_checked_fixture (tc_sameaddr, sockaddr_setup, sockaddr_teardown);
+      tcase_add_test (tc_sameaddr, sockaddr_IPv4_sameaddr);
+      tcase_add_test (tc_sameaddr, sockaddr_IPv6_sameaddr);
+      suite_add_tcase (s, tc_sameaddr);
+  }
+  {/* Sameport test case */
+      TCase *tc_sameport = tcase_create ("SamePort");
+      tcase_add_checked_fixture (tc_sameport, sockaddr_setup, sockaddr_teardown);
+      tcase_add_test (tc_sameport, sockaddr_IPv4_sameport);
+      tcase_add_test (tc_sameport, sockaddr_IPv6_sameport);
+      suite_add_tcase (s, tc_sameport);
+  }
 
-  /* Sameaddr test case */
-  TCase *tc_sameaddr = tcase_create ("SameAddr");
-  tcase_add_checked_fixture (tc_sameaddr, sockaddr_setup, sockaddr_teardown);
-  tcase_add_test (tc_sameaddr, sockaddr_IPv4_sameaddr);
-  tcase_add_test (tc_sameaddr, sockaddr_IPv6_sameaddr);
-  suite_add_tcase (s, tc_sameaddr);
+  {/* Alike test case */
+      TCase *tc_alike = tcase_create ("Alike");
+      tcase_add_checked_fixture (tc_alike, sockaddr_setup, sockaddr_teardown);
+      tcase_add_test (tc_alike, sockaddr_IPv4_alike);
+      tcase_add_test (tc_alike, sockaddr_IPv6_alike);
+      suite_add_tcase (s, tc_alike);
+  }
+  {/* isSet test case */
+      TCase *tc_isSet = tcase_create ("isSet");
+      tcase_add_checked_fixture (tc_isSet, sockaddr_setup, sockaddr_teardown);
+      tcase_add_test (tc_isSet, sockaddr_IPv4_isSet);
+      tcase_add_test (tc_isSet, sockaddr_IPv6_isSet);
+      suite_add_tcase (s, tc_isSet);
+  }
+  {/* isAny test case */
+      TCase *tc_isAny = tcase_create ("isAny");
+      tcase_add_checked_fixture (tc_isAny, sockaddr_setup, sockaddr_teardown);
+      tcase_add_test (tc_isAny, sockaddr_IPv4_isAny);
+      tcase_add_test (tc_isAny, sockaddr_IPv6_isAny);
+      suite_add_tcase (s, tc_isAny);
+  }
+  {/* toString test case */
+      TCase *tc_sockaddr_toString = tcase_create ("sockaddr_toString");
+      tcase_add_checked_fixture (tc_sockaddr_toString, sockaddr_setup, sockaddr_teardown);
+      tcase_add_test (tc_sockaddr_toString, sockaddr_IPv4_toString);
+      tcase_add_test (tc_sockaddr_toString, sockaddr_IPv6_toString);
+      suite_add_tcase (s, tc_sockaddr_toString);
+  }
+  {/* copy test case */
+      TCase *tc_sockaddr_copy = tcase_create ("sockaddr_copy");
+      tcase_add_checked_fixture (tc_sockaddr_copy, sockaddr_setup, sockaddr_teardown);
+      tcase_add_test (tc_sockaddr_copy, sockaddr_IPv4_copy);
+      tcase_add_test (tc_sockaddr_copy, sockaddr_IPv6_copy);
+      suite_add_tcase (s, tc_sockaddr_copy);
 
-  /* Sameport test case */
-  TCase *tc_sameport = tcase_create ("SamePort");
-  tcase_add_checked_fixture (tc_sameport, sockaddr_setup, sockaddr_teardown);
-  tcase_add_test (tc_sameport, sockaddr_IPv4_sameport);
-  tcase_add_test (tc_sameport, sockaddr_IPv6_sameport);
-  suite_add_tcase (s, tc_sameport);
-
-
-  /* Alike test case */
-  TCase *tc_alike = tcase_create ("Alike");
-  tcase_add_checked_fixture (tc_alike, sockaddr_setup, sockaddr_teardown);
-  tcase_add_test (tc_sameaddr, sockaddr_IPv4_alike);
-  tcase_add_test (tc_sameaddr, sockaddr_IPv6_alike);
-  suite_add_tcase (s, tc_alike);
-
-  /* isSet test case */
-  TCase *tc_isSet = tcase_create ("isSet");
-  tcase_add_checked_fixture (tc_isSet, sockaddr_setup, sockaddr_teardown);
-  tcase_add_test (tc_isSet, sockaddr_IPv4_isSet);
-  tcase_add_test (tc_isSet, sockaddr_IPv6_isSet);
-  suite_add_tcase (s, tc_isSet);
-
-  /* isAny test case */
-  TCase *tc_isAny = tcase_create ("isAny");
-  tcase_add_checked_fixture (tc_isAny, sockaddr_setup, sockaddr_teardown);
-  tcase_add_test (tc_isAny, sockaddr_IPv4_isAny);
-  tcase_add_test (tc_isAny, sockaddr_IPv6_isAny);
-  suite_add_tcase (s, tc_isAny);
-
-  /* toString test case */
-  TCase *tc_sockaddr_toString = tcase_create ("sockaddr_toString");
-  tcase_add_checked_fixture (tc_sockaddr_toString, sockaddr_setup, sockaddr_teardown);
-  tcase_add_test (tc_sockaddr_toString, sockaddr_IPv4_toString);
-  tcase_add_test (tc_sockaddr_toString, sockaddr_IPv6_toString);
-  suite_add_tcase (s, tc_sockaddr_toString);
-
-  /* copy test case */
-  TCase *tc_sockaddr_copy = tcase_create ("sockaddr_copy");
-  tcase_add_checked_fixture (tc_sockaddr_copy, sockaddr_setup, sockaddr_teardown);
-  tcase_add_test (tc_sockaddr_copy, sockaddr_IPv4_copy);
-  tcase_add_test (tc_sockaddr_copy, sockaddr_IPv6_copy);
-  suite_add_tcase (s, tc_sockaddr_copy);
-
-
-  /* setPort test case */
-  TCase *tc_sockaddr_setPort = tcase_create ("sockaddr_setPort");
-  tcase_add_checked_fixture (tc_sockaddr_setPort, sockaddr_setup, sockaddr_teardown);
-  tcase_add_test (tc_sockaddr_setPort, sockaddr_IPv4_setPort);
-  tcase_add_test (tc_sockaddr_setPort, sockaddr_IPv6_setPort);
-  suite_add_tcase (s, tc_sockaddr_setPort);
-
+  }
+  
+  {/* setPort test case */
+      TCase *tc_sockaddr_setPort = tcase_create ("sockaddr_setPort");
+      tcase_add_checked_fixture (tc_sockaddr_setPort, sockaddr_setup, sockaddr_teardown);
+      tcase_add_test (tc_sockaddr_setPort, sockaddr_IPv4_setPort);
+      tcase_add_test (tc_sockaddr_setPort, sockaddr_IPv6_setPort);
+      suite_add_tcase (s, tc_sockaddr_setPort);
+  }
 
   return s;
 }

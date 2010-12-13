@@ -219,8 +219,17 @@ void FORMAT_CHECK(3,4) ICELIB_logVaString( const ICELIB_CALLBACK_LOG *pCallbackL
                                            ICELIB_logLevel            logLevel,
                                            const char                *fmt,
                                            ...);
-
-
+//-----------------------------------------------------------------------------
+//
+//----- TEST API Functions
+//
+void ICELIB_timerConstructor(ICELIB_TIMER *pTimer,
+                             unsigned int tickIntervalMS);
+void ICELIB_timerStart(ICELIB_TIMER *pTimer,
+                       unsigned int timeoutMS);
+void ICELIB_timerTick(ICELIB_TIMER *pTimer);
+bool ICELIB_timerIsRunning(ICELIB_TIMER *pTimer);    
+bool ICELIB_timerIsTimedOut(ICELIB_TIMER *pTimer);
 
 
 //-----------------------------------------------------------------------------
@@ -337,8 +346,8 @@ ICE_MEDIA const *ICELIB_getLocalIceMedia(const ICELIB_INSTANCE *pInstance );
 
 
 int32_t ICELIB_addRemoteMediaStream(ICELIB_INSTANCE *pInstance,
-                                    char* ufrag, 
-                                    char *pwd, 
+                                    const char* ufrag, 
+                                    const char *pwd, 
                                     struct sockaddr *defaultAddr );
 
 int32_t ICELIB_addLocalMediaStream(ICELIB_INSTANCE *pInstance,
@@ -349,11 +358,11 @@ int32_t ICELIB_addLocalMediaStream(ICELIB_INSTANCE *pInstance,
 
 int32_t ICELIB_addRemoteCandidate(ICELIB_INSTANCE *pInstance,
                                   uint32_t mediaIdx,
-                                  char* foundation,
+                                  const char* foundation,
                                   uint32_t foundationLen,
                                   uint32_t componentId,
                                   uint32_t priority,
-                                  char *connectionAddr,
+                                  const char *connectionAddr,
                                   uint16_t port,
                                   ICE_CANDIDATE_TYPE candType );
     

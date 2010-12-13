@@ -1,6 +1,8 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <arpa/inet.h>
+
 
 #include "sockaddr_util.h"
 
@@ -254,6 +256,8 @@ const char *sockaddr_toString( const struct sockaddr *sa,
         }
         return dest;
     }
+
+    return NULL;
 }
 
 void sockaddr_copy(struct sockaddr * dst, 

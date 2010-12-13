@@ -19,12 +19,24 @@ static const uint32_t SOCKADDR_MAX_STRLEN = INET6_ADDRSTRLEN + 8; //port, :, [];
  */
 void sockaddr_initAsIPv4Any(struct sockaddr_in * sa);
 
+
+
+void sockaddr_initAsIPv6Any(struct sockaddr_in6 * sa);
+
 /*
  *  Initialize a sockaddr from string.
  *  Remember to putaside enough memeory. (sockaddr_storage)
  */
 bool sockaddr_initFromString( struct sockaddr *sa,
                               const char *addr_str);
+
+
+bool sockaddr_initFromIPv4String(struct sockaddr_in *sa,
+                                 const char *addr_str);
+
+bool sockaddr_initFromIPv6String(struct sockaddr_in6 *sa,
+                                 const char *addr_str);
+
 
 /*
  *  Checks if the address part is the same.

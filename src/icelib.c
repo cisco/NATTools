@@ -414,14 +414,6 @@ bool ICELIB_veryfyICESupportOnStream(ICELIB_INSTANCE *pInstance,
     ICELIB_log(&pInstance->callbacks.callbackLog,
                ICELIB_logDebug, "Verify ICE support returned false\n");
 
-    char tmp[256];
-    sockaddr_toString( (struct sockaddr *) &stream->defaultAddr,
-                       tmp,
-                       256,
-                       true );
-    
-    printf("Default addr: %s, \n",tmp);
-
     return false;
 
 }
@@ -5313,11 +5305,11 @@ int32_t ICELIB_addLocalCandidate(ICELIB_INSTANCE *pInstance,
 
 int32_t ICELIB_addRemoteCandidate(ICELIB_INSTANCE *pInstance,
                                   uint32_t mediaIdx,
-                                  char* foundation,
+                                  const char* foundation,
                                   uint32_t foundationLen,
                                   uint32_t componentId,
                                   uint32_t priority,
-                                  char *connectionAddr,
+                                  const char *connectionAddr,
                                   uint16_t port,
                                   ICE_CANDIDATE_TYPE candType)
 {
@@ -5411,7 +5403,9 @@ int32_t ICELIB_addLocalMediaStream(ICELIB_INSTANCE *pInstance,
 }
 
 int32_t ICELIB_addRemoteMediaStream(ICELIB_INSTANCE *pInstance,
-                                    char* ufrag, char *pwd, struct sockaddr *defaultAddr)
+                                    const char* ufrag, 
+                                    const char *pwd, 
+                                    struct sockaddr *defaultAddr)
 {
     ICE_MEDIA_STREAM *mediaStream;
 

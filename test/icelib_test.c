@@ -4,7 +4,7 @@
 
 #include "icelib.h"
 #include <check.h>
-
+#include "../src/icelib_intern.h"
 
 #define PRIORITY_HOST_1     ( ( 126 << 24) | (65535 << 8) | ( 256 - 1))
 #define PRIORITY_HOST_2     ( ( 126 << 24) | (65535 << 8) | ( 256 - 2))
@@ -21,6 +21,21 @@
 #define FOUNDATION_RELAY    "4"
 #define FOUNDATION_PRFLX    "2"
 
+ICELIB_Result ICELIB_TEST_sendConnectivityCheck( void                    *pUserData,
+                                                 const struct sockaddr   *destination,
+                                                 const struct sockaddr   *source,
+                                                 uint32_t                userValue1,
+                                                 uint32_t                userValue2,
+                                                 uint32_t                componentId,
+                                                 bool                    useRelay,
+                                                 const char              *pUfrag,
+                                                 const char              *pPasswd,
+                                                 uint32_t                peerPriority,
+                                                 bool                    useCandidate,
+                                                 bool                    iceControlling,
+                                                 bool                    iceControlled,
+                                                 uint64_t                tieBreaker,
+                                                 StunMsgId               transactionId);
 
 
 static bool isLegalCharacter( char ch)
@@ -68,6 +83,10 @@ typedef struct{
 
 ConncheckCB connChkCB;
 
+void icelib_setup (void);
+void icelib_teardown (void);
+Suite * icelib_suite (void);
+
 ICELIB_Result ICELIB_TEST_sendConnectivityCheck( void                    *pUserData,
                                                  const struct sockaddr   *destination,
                                                  const struct sockaddr   *source,
@@ -98,6 +117,7 @@ ICELIB_Result ICELIB_TEST_sendConnectivityCheck( void                    *pUserD
     connChkCB.iceControlling = iceControlling;
     connChkCB.iceControlled = iceControlled;
 
+    return 0;
 }
 
 
@@ -126,6 +146,8 @@ icelib_setup (void)
     struct sockaddr_storage localRelayRtp;
     struct sockaddr_storage localRelayRtcp;
 
+    ICELIB_CONFIGURATION iceConfig;     
+
     icelib = (ICELIB_INSTANCE *)malloc(sizeof(ICELIB_INSTANCE));
 
     sockaddr_initFromString( (struct sockaddr *)&localHostRtp,  "192.168.2.10:3456");
@@ -135,7 +157,7 @@ icelib_setup (void)
     sockaddr_initFromString( (struct sockaddr *)&localRelayRtp, "158.38.46.10:2312");
     sockaddr_initFromString( (struct sockaddr *)&localRelayRtcp,"158.38.46.10:4567");
 
-    ICELIB_CONFIGURATION iceConfig;     
+    
     iceConfig.tickIntervalMS = 20;
     iceConfig.keepAliveIntervalS = 15;
     iceConfig.maxCheckListPairs = ICELIB_MAX_PAIRS;
@@ -565,27 +587,26 @@ START_TEST (pairPriority)
     G = 0x12345678;
     D = 0x76543210;
     priority = ICELIB_pairPriority( G, D);
-    expected = 0xFFFFFFFFECA86420LL;
+    
+    expected = 0x12345678eca86420LL;
     fail_unless( priority == expected);
-
-   
 
     G = 0x76543210;
     D = 0x12345678;
     priority = ICELIB_pairPriority( G, D);
-    expected = 0xFFFFFFFFECA86421LL;
+    expected = 0x12345678eca86421LL;
     fail_unless( priority == expected);
 
     G = 0x11111111;
     D = 0x22222222;
     priority = ICELIB_pairPriority( G, D);
-    expected = 0x44444444LL;
+    expected = 0x1111111144444444LL;
     fail_unless( priority == expected);
 
     G = 0x22222222;
     D = 0x11111111;
     priority = ICELIB_pairPriority( G, D);
-    expected = 0x44444445LL;
+    expected = 0x1111111144444445LL;
     fail_unless( priority == expected);
 
 }
@@ -1214,46 +1235,47 @@ Suite * icelib_suite (void)
 {
   Suite *s = suite_create ("ICElib");
 
-  /* Core test case */
-  TCase *tc_core = tcase_create ("Core");
-  tcase_add_test (tc_core, create_ufrag);
-  tcase_add_test (tc_core, create_passwd);
-  tcase_add_test (tc_core, calculate_priority);
-  tcase_add_test (tc_core, create_foundation);
-  tcase_add_test (tc_core, pairPriority);
-  tcase_add_test (tc_core, ice_timer);
+  {/* Core test case */
+      TCase *tc_core = tcase_create ("Core");
+      tcase_add_test (tc_core, create_ufrag);
+      tcase_add_test (tc_core, create_passwd);
+      tcase_add_test (tc_core, calculate_priority);
+      tcase_add_test (tc_core, create_foundation);
+      tcase_add_test (tc_core, pairPriority);
+      tcase_add_test (tc_core, ice_timer);
   
-  suite_add_tcase (s, tc_core);
-  
+      suite_add_tcase (s, tc_core);
+  }
 
-  /* MediaStream test case */
-  TCase *tc_mediaStream = tcase_create ("MediaStream");
-  tcase_add_test (tc_mediaStream, create_localMediaStream);
-  tcase_add_test (tc_mediaStream, create_remoteMediaStream);
-  suite_add_tcase (s, tc_mediaStream);
+  {/* MediaStream test case */
+      TCase *tc_mediaStream = tcase_create ("MediaStream");
+      tcase_add_test (tc_mediaStream, create_localMediaStream);
+      tcase_add_test (tc_mediaStream, create_remoteMediaStream);
+      suite_add_tcase (s, tc_mediaStream);
+  }
 
-  /* TriggeredCheck Queue test case */
-  TCase *tc_trigcheck = tcase_create ("TriggeredCheck Queue");
-  tcase_add_test (tc_trigcheck, triggereedcheck_queue);
-  tcase_add_test (tc_trigcheck, triggereedcheck_queue_ekstra);
-  suite_add_tcase (s, tc_trigcheck);
+  {/* TriggeredCheck Queue test case */
+      TCase *tc_trigcheck = tcase_create ("TriggeredCheck Queue");
+      tcase_add_test (tc_trigcheck, triggereedcheck_queue);
+      tcase_add_test (tc_trigcheck, triggereedcheck_queue_ekstra);
+      suite_add_tcase (s, tc_trigcheck);
+  }
 
-
-  /* Run ICELib test case */
-  TCase *tc_runIcelib = tcase_create ("Run ICELib");
-  tcase_add_checked_fixture (tc_runIcelib, icelib_setup, icelib_teardown);
-
-  tcase_add_test (tc_runIcelib, controlling);
-  tcase_add_test (tc_runIcelib, initialState);
-  tcase_add_test (tc_runIcelib, iceSupportVerified);
-  tcase_add_test (tc_runIcelib, simpleTick);
-  tcase_add_test (tc_runIcelib, checklistInitialState);
-  tcase_add_test (tc_runIcelib, checklistTick);
-  tcase_add_test (tc_runIcelib, conncheck);
-
-
-  suite_add_tcase (s, tc_runIcelib);
-
+  {/* Run ICELib test case */
+      TCase *tc_runIcelib = tcase_create ("Run ICELib");
+      tcase_add_checked_fixture (tc_runIcelib, icelib_setup, icelib_teardown);
+      
+      tcase_add_test (tc_runIcelib, controlling);
+      tcase_add_test (tc_runIcelib, initialState);
+      tcase_add_test (tc_runIcelib, iceSupportVerified);
+      tcase_add_test (tc_runIcelib, simpleTick);
+      tcase_add_test (tc_runIcelib, checklistInitialState);
+      tcase_add_test (tc_runIcelib, checklistTick);
+      tcase_add_test (tc_runIcelib, conncheck);
+      
+      
+      suite_add_tcase (s, tc_runIcelib);
+  }
 
   return s;
 }
