@@ -36,21 +36,57 @@ static unsigned char req[] =
     "\xe5\x7a\x3b\xcf"; //  CRC32 fingerprint
 
      
-/*
+
 static unsigned char respv4[] =
-     "\x01\x01\x00\x3c"
-     "\x21\x12\xa4\x42"
-     "\xb7\xe7\xa7\x01\xbc\x34\xd6\x86\xfa\x87\xdf\xae"
-     "\x80\x22\x00\x0b"
-       "\x74\x65\x73\x74\x20\x76\x65\x63\x74\x6f\x72\x20"
-     "\x00\x20\x00\x08"
-       "\x00\x01\xa1\x47\xe1\x12\xa6\x43"
-     "\x00\x08\x00\x14"
-       "\x2b\x91\xf5\x99\xfd\x9e\x90\xc3\x8c\x74\x89\xf9"
-       "\x2a\xf9\xba\x53\xf0\x6b\xe7\xd7"
-     "\x80\x28\x00\x04"
-       "\xc0\x7d\x4c\x96";
-*/
+    "\x01\x01\x00\x3c"  //     Response type and message length
+    "\x21\x12\xa4\x42"  //     Magic cookie
+    "\xb7\xe7\xa7\x01"  //  }
+    "\xbc\x34\xd6\x86"  //  }  Transaction ID
+    "\xfa\x87\xdf\xae"  //  }
+    "\x80\x22\x00\x0b"  //     SOFTWARE attribute header
+    "\x74\x65\x73\x74"  //  }
+    "\x20\x76\x65\x63"  //  }  UTF-8 server name
+    "\x74\x6f\x72\x20"  //  }
+    "\x00\x20\x00\x08"  //     XOR-MAPPED-ADDRESS attribute header
+    "\x00\x01\xa1\x47"  //     Address family (IPv4) and xor'd mapped port number
+    "\xe1\x12\xa6\x43"  //     Xor'd mapped IPv4 address
+    "\x00\x08\x00\x14"  //     MESSAGE-INTEGRITY attribute header
+    "\x2b\x91\xf5\x99"  //  }
+    "\xfd\x9e\x90\xc3"  //  }
+    "\x8c\x74\x89\xf9"  //  }  HMAC-SHA1 fingerprint
+    "\x2a\xf9\xba\x53"  //  }
+    "\xf0\x6b\xe7\xd7"  //  }
+    "\x80\x28\x00\x04"  //     FINGERPRINT attribute header
+    "\xc0\x7d\x4c\x96"; //     CRC32 fingerprint
+
+
+static unsigned char respv6[] =
+    "\x01\x01\x00\x48"  //     Response type and message length
+    "\x21\x12\xa4\x42"  //     Magic cookie
+    "\xb7\xe7\xa7\x01"  //  }
+    "\xbc\x34\xd6\x86"  //  }  Transaction ID
+    "\xfa\x87\xdf\xae"  //  }
+    "\x80\x22\x00\x0b"  //     SOFTWARE attribute header
+    "\x74\x65\x73\x74"  //  }
+    "\x20\x76\x65\x63"  //  }  UTF-8 server name
+    "\x74\x6f\x72\x20"  //  }
+    "\x00\x20\x00\x14"  //     XOR-MAPPED-ADDRESS attribute header
+    "\x00\x02\xa1\x47"  //     Address family (IPv6) and xor'd mapped port number
+    "\x01\x13\xa9\xfa"  //  }
+    "\xa5\xd3\xf1\x79"  //  }  Xor'd mapped IPv6 address
+    "\xbc\x25\xf4\xb5"  //  }
+    "\xbe\xd2\xb9\xd9"  //  }
+    "\x00\x08\x00\x14"  //     MESSAGE-INTEGRITY attribute header
+    "\xa3\x82\x95\x4e"  //  }
+    "\x4b\xe6\x7b\xf1"  //  }
+    "\x17\x84\xc9\x7c"  //  }  HMAC-SHA1 fingerprint
+    "\x82\x92\xc2\x75"  //  }
+    "\xbf\xe3\xed\x41"  //  }
+    "\x80\x28\x00\x04"  //     FINGERPRINT attribute header
+    "\xc8\xfb\x0b\x4c"; //     CRC32 fingerprint
+
+
+
                                 
 static const char username[] = "evtj:h6vY";
 static char password[] = "VOkJxbRl1RmTxUk/WvJxBt";
@@ -64,7 +100,10 @@ static const uint64_t tieBreaker = 0x932FF9B151263B36LL;
 static const uint32_t xorMapped = 3221225985U; /*192.0.2.1*/
 static const uint16_t port = 32853;
 
+static uint32_t xorMapped_v6[] = {536939960, 305419896, 1122867, 1146447479};
+
 const char *software= "STUN test client\0";
+const char *software_resp= "test vector\0";
 
 
 
@@ -92,7 +131,7 @@ START_TEST (request_decode)
                                         &stunMsg,
                                         NULL,
                                         password,
-                                        true,
+                                        false,
                                         false ));
      
     fail_unless( stunMsg.msgHdr.msgType == STUN_MSG_BindRequestMsg );
@@ -148,11 +187,158 @@ START_TEST (request_encode)
                                        120,
                                        (unsigned char*)password,
                                        strlen(password),
-                                       true, /*verbose */
+                                       false, /*verbose */
                                        false)  /* msice2 */);
 
     
     fail_unless( memcmp(stunBuf, req, 108 ) == 0 );
+
+}
+END_TEST
+
+
+START_TEST (response_decode)
+{
+    StunMessage stunMsg;
+    
+    fail_unless( stunlib_DecodeMessage( respv4,
+                                        80,
+                                        &stunMsg,
+                                        NULL,
+                                        password,
+                                        false,
+                                        false ));
+    
+    fail_unless ( 0 == memcmp(&stunMsg.msgHdr.id.octet,&idOctet,12));
+        
+    fail_unless( stunMsg.msgHdr.msgType == STUN_MSG_BindResponseMsg );
+    
+    fail_unless( stunMsg.hasXorMappedAddress );
+    fail_unless( stunMsg.xorMappedAddress.addr.v4.addr == xorMapped );
+    fail_unless( stunMsg.xorMappedAddress.addr.v4.port == port );
+            
+    fail_unless( stunMsg.hasSoftware);
+    fail_unless( strncmp( stunMsg.software.value, 
+                          software_resp, 
+                          max(stunMsg.software.sizeValue,sizeof(software)) )==0 );
+
+}
+END_TEST
+
+
+START_TEST (response_encode)
+{
+    StunMessage stunMsg;
+    
+    unsigned char stunBuf[120];
+        
+    memset(&stunMsg, 0, sizeof(StunMessage));
+    stunMsg.msgHdr.msgType = STUN_MSG_BindResponseMsg;
+    
+    
+    /*id*/
+    memcpy(&stunMsg.msgHdr.id.octet,&idOctet,12);
+
+    /*Server*/
+    stunMsg.hasSoftware = true;
+    memcpy( stunMsg.software.value, software, strlen(software_resp));
+    
+    stunMsg.software.sizeValue = strlen(software_resp);
+    
+
+    /*Mapped Address*/
+    stunMsg.hasXorMappedAddress = true;        
+    stunMsg.xorMappedAddress.familyType = STUN_ADDR_IPv4Family;
+    stunMsg.xorMappedAddress.addr.v4.addr = xorMapped;
+    stunMsg.xorMappedAddress.addr.v4.port = port;
+
+
+    fail_unless( stunlib_addSoftware(&stunMsg, software_resp, '\x20') );
+    
+    
+        
+    fail_unless( stunlib_encodeMessage(&stunMsg,
+                                       stunBuf,
+                                       80,
+                                       (unsigned char*)password,
+                                       strlen(password),
+                                       false, /*verbose */
+                                       false)  /* msice2 */ );
+                          
+
+    fail_unless( memcmp(stunBuf, respv4, 80)==0 );
+
+}
+END_TEST
+
+
+START_TEST (response_decode_IPv6)
+{
+    StunMessage stunMsg;
+    
+    fail_unless( stunlib_DecodeMessage( respv6,
+                                        96,
+                                        &stunMsg,
+                                        NULL,
+                                        password,
+                                        false,
+                                        false ));
+
+    fail_unless ( 0 == memcmp(&stunMsg.msgHdr.id.octet,&idOctet,12));
+        
+    fail_unless( stunMsg.msgHdr.msgType == STUN_MSG_BindResponseMsg );
+    
+    fail_unless( stunMsg.hasXorMappedAddress );
+    fail_unless( memcmp(&stunMsg.xorMappedAddress.addr.v6.addr, &xorMapped_v6, 4) == 0 );
+    fail_unless( stunMsg.xorMappedAddress.addr.v6.port == port );
+            
+    fail_unless( stunMsg.hasSoftware);
+    fail_unless( strncmp( stunMsg.software.value, 
+                          software_resp, 
+                          max(stunMsg.software.sizeValue,sizeof(software)) )==0 );
+}
+END_TEST
+
+
+START_TEST (response_encode_IPv6)
+{
+    StunMessage stunMsg;
+    
+    unsigned char stunBuf[120];
+        
+    memset(&stunMsg, 0, sizeof(StunMessage));
+    stunMsg.msgHdr.msgType = STUN_MSG_BindResponseMsg;
+    
+    
+    /*id*/
+    memcpy(&stunMsg.msgHdr.id.octet,&idOctet,12);
+
+    /*Server*/
+    stunMsg.hasSoftware = true;
+    memcpy( stunMsg.software.value, software, strlen(software_resp));
+    
+    stunMsg.software.sizeValue = strlen(software_resp);
+    
+
+    /*Mapped Address*/
+    stunMsg.hasXorMappedAddress = true;
+    stunlib_setIP6Address(&stunMsg.xorMappedAddress, xorMapped_v6, port);
+
+    
+    fail_unless( stunlib_addSoftware(&stunMsg, software_resp, '\x20') );
+    
+    
+        
+    fail_unless( stunlib_encodeMessage(&stunMsg,
+                                       stunBuf,
+                                       96,
+                                       (unsigned char*)password,
+                                       strlen(password),
+                                       false, /*verbose */
+                                       false)  /* msice2 */ );
+                          
+
+    fail_unless( memcmp(stunBuf, respv6, 92) == 0 );
 
 }
 END_TEST
@@ -165,14 +351,13 @@ Suite * stunlib_suite (void)
   
   {/* Test Vector */
       
-      TCase *tc_vector = tcase_create ("Test Vector");
+      TCase *tc_vector = tcase_create ("Test Vector (RFC 5769");
       tcase_add_test (tc_vector, request_decode);
       tcase_add_test (tc_vector, request_encode);
-      //tcase_add_test (tc_core, calculate_priority);
-      //tcase_add_test (tc_core, create_foundation);
-      //tcase_add_test (tc_core, pairPriority);
-      //tcase_add_test (tc_core, ice_timer);
-  
+      tcase_add_test (tc_vector, response_decode);
+      tcase_add_test (tc_vector, response_encode);
+      tcase_add_test (tc_vector, response_decode_IPv6);
+      tcase_add_test (tc_vector, response_encode_IPv6);
       suite_add_tcase (s, tc_vector);
       
   }
