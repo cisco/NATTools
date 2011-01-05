@@ -27,9 +27,9 @@
 #ifndef TURN_INTERN_H
 #define TURN_INTERN_H
 
-#ifndef  __WINDOWS__
-#include "ttos_semaphore.h"
-#endif
+//#ifndef  __WINDOWS__
+//#include "ttos_semaphore.h"
+//#endif
 
 #include "stun_os.h"
 

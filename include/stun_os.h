@@ -6,12 +6,12 @@
 #ifndef STUN_OS_H
 #define STUN_OS_H
 
+#include <stdbool.h>
+
 #ifndef  __WINDOWS__
-#if defined(ENV_PLUS)
-#include "ttos_semaphore.h"
+#include <pthread.h>
 #else
-#include "ttos_mutex.h"
-#endif
+#include <windows.h>
 #endif
 
 
@@ -19,22 +19,17 @@
 extern "C" {
 #endif
 
-
 #if defined(__WINDOWS__)
     typedef CRITICAL_SECTION STUN_MUTEX;
-#elif defined (ENV_PLUS)
-    /* nucleus+ .. */
-    typedef  TTOS_SEMAPHORE STUN_MUTEX;  /* had to use a semaphore as mutex on necleus+ does not work with > 1 mutex !!! */
 #else
     /* linux, .. */
-    typedef  TTOS_MUTEX STUN_MUTEX;
+    typedef pthread_mutex_t STUN_MUTEX;
 #endif
-
-
 
 bool Stun_MutexCreate(STUN_MUTEX *m, char *name);
 bool Stun_MutexLock  (STUN_MUTEX *m);
 bool Stun_MutexUnlock(STUN_MUTEX *m);
+bool Stun_MutexDestroy(STUN_MUTEX *m);
 
 
 #ifdef __cplusplus
@@ -43,4 +38,3 @@ bool Stun_MutexUnlock(STUN_MUTEX *m);
 
 
 #endif /* STUN_OS_H */
-
