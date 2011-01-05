@@ -352,9 +352,9 @@ static int TurnClientConstruct(uint32_t threadCtx)
 
 int TurnClient_startAllocateTransaction(uint32_t           threadCtx,
                                         void               *userCtx,
-                                        char               *serverAddr,
-                                        char               *userName,
-                                        char               *password,
+                                        const char         *serverAddr,
+                                        const char         *userName,
+                                        const char         *password,
                                         uint32_t            sockhandle,
                                         STUN_SENDFUNC       sendFunc,
                                         uint32_t           *timeoutList,
@@ -500,7 +500,7 @@ static bool CreatePermReqParamsOk(uint32_t threadCtx,
 bool TurnClient_StartChannelBindReq(uint32_t threadCtx,
                                     int      ctx,
                                     uint32_t channelNumber,
-                                    char     *peerTrnspAddrStr)
+                                    const char     *peerTrnspAddrStr)
 {
     if (ChannelBindReqParamsOk(threadCtx, ctx, channelNumber, peerTrnspAddrStr))
     {

@@ -56,6 +56,7 @@ extern "C" {
 /* Result of  Turn  protocol, returned in callback */
 typedef enum 
 {
+    TurnResult_Empty,                       /* Used for testing */
     TurnResult_AllocOk,                     /* Turn allocation was successful */
     TurnResult_AllocFail,                   /* Turn Allocation failed */
     TurnResult_AllocFailNoAnswer,           /* Turn Allocation failed - no contact with turn server */
@@ -205,9 +206,9 @@ bool TurnClient_Init(uint32_t  threadCtx,
  */
 int  TurnClient_startAllocateTransaction(uint32_t           threadCtx,
                                          void               *userCtx,
-                                         char               *turnServerAddr,
-                                         char               *userName,
-                                         char               *password,
+                                         const char         *turnServerAddr,
+                                         const char         *userName,
+                                         const char         *password,
                                          uint32_t            sockhandle,
                                          STUN_SENDFUNC       sendFunc,
                                          uint32_t           *timeoutList,
@@ -226,7 +227,7 @@ int  TurnClient_startAllocateTransaction(uint32_t           threadCtx,
 bool TurnClient_StartChannelBindReq(uint32_t   threadCtx,
                                     int        ctx,
                                     uint32_t   channelNumber,
-                                    char       *peerTrnspAddrStr);
+                                    const char       *peerTrnspAddrStr);
 
 /*
  * Create a permission in turn server.  i.e. CreatePermission(List of RemotePeers).
