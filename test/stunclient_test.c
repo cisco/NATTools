@@ -528,7 +528,7 @@ START_TEST (Allocated_RefreshOk)
 
 }
 END_TEST
-/*
+
 START_TEST (Allocated_RefreshError)
 {
     int ctx;
@@ -544,14 +544,9 @@ START_TEST (Allocated_RefreshError)
     Sim_RefreshError(ctx, 4, 1, false, false);
     fail_unless (turnResult == TurnResult_RefreshFail);
 
-    
-    TurnClient_Deallocate(TEST_THREAD_CTX, ctx);
-    Sim_RefreshResp(ctx);
-    printf("Result: %i\n", turnResult);
-    fail_unless (turnResult == TurnResult_RelayReleaseComplete);
 }
 END_TEST
-*/
+
 
 START_TEST (Allocated_StaleNonce)
 {
@@ -649,7 +644,7 @@ Suite * stunclient_suite (void)
       tcase_add_test (tc_allocate, WaitAllocResp_Retry);
       tcase_add_test (tc_allocate, Allocated_RefreshOk);
       /* Error in test case, does not clean up? */
-      //tcase_add_test (tc_allocate, Allocated_RefreshError);
+      tcase_add_test (tc_allocate, Allocated_RefreshError);
       tcase_add_test (tc_allocate, Allocated_StaleNonce);
       tcase_add_test (tc_allocate, Allocated_ChanBindReqOk); 
       tcase_add_test (tc_allocate, Allocated_ChanBindErr);
