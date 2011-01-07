@@ -7,6 +7,8 @@
 //#include "stunlib.h"
 
 #include "icelib_defines.h"
+#include "stunlib.h"
+
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -18,13 +20,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-    //TODO: Remove and link with real STUN library
-#define STUN_MSG_ID_SIZE                 12   
-typedef struct
-{
-    uint8_t octet[STUN_MSG_ID_SIZE];
-} StunMsgId;
 
 
 #define ICE_MAX_UFRAG_LENGTH                (256+1) //zero terminated
