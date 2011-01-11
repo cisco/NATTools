@@ -27,8 +27,8 @@ void sockaddr_initAsIPv6Any(struct sockaddr_in6 * sa);
  *  Initialize a sockaddr from string.
  *  Remember to putaside enough memeory. (sockaddr_storage)
  */
-bool sockaddr_initFromString( struct sockaddr *sa,
-                              const char *addr_str);
+bool sockaddr_initFromString(struct sockaddr *sa,
+                             const char *addr_str);
 
 
 bool sockaddr_initFromIPv4String(struct sockaddr_in *sa,
@@ -36,6 +36,26 @@ bool sockaddr_initFromIPv4String(struct sockaddr_in *sa,
 
 bool sockaddr_initFromIPv6String(struct sockaddr_in6 *sa,
                                  const char *addr_str);
+
+
+/*
+ * Initialize IPv4 sockaddr from a int addr and a int port.
+ * (Use htons and htonl if your data is stored in host format)
+ *
+ */
+bool sockaddr_initFromIPv4Int(struct sockaddr_in *sa,
+                              uint32_t addr, 
+                              uint16_t port);
+
+
+/*
+ * Initialize IPv6 sockaddr from a int addr and a int port.
+ * (Use htons and htonl if your data is stored in host format)
+ *
+ */
+bool sockaddr_initFromIPv6Int(struct sockaddr_in6 *sin,
+                              uint8_t ipaddr[16], 
+                              uint16_t port);
 
 
 /*

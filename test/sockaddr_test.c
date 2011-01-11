@@ -132,6 +132,58 @@ START_TEST (test_sockaddr_create )
 }
 END_TEST
 
+START_TEST (test_sockaddr_int_IPv4_init)
+{
+
+    char addr_str[256];
+    uint32_t a = 2653302794UL;
+    uint16_t port = 4567;
+    struct sockaddr_storage a_addr;
+    struct sockaddr_storage b_addr;
+    
+
+    sockaddr_initFromIPv4Int((struct sockaddr_in *)&a_addr, htonl(a), htons(port));
+    sockaddr_initFromIPv4String((struct sockaddr_in *)&b_addr, "158.38.48.10:4567");
+
+    sockaddr_toString( (struct sockaddr *)&a_addr,
+                       addr_str,
+                       256,
+                       true);
+    
+    fail_unless( sockaddr_alike( (struct sockaddr *)&a_addr, (struct sockaddr *)&b_addr) ); 
+
+
+
+}
+END_TEST
+
+
+START_TEST (test_sockaddr_int_IPv6_init)
+{
+
+    char addr_str[256];
+    uint8_t a[16] = {0x20, 0x1, 0x4, 0x70, 0xdc, 0x88, 0x0, 0x2, 0x2, 0x26, 0x18, 0xff, 0xfe, 0x92, 0x6d, 0x53};
+    uint16_t port = 4567;
+    struct sockaddr_storage a_addr;
+    struct sockaddr_storage b_addr;
+    
+    sockaddr_initFromIPv6Int((struct sockaddr_in6 *)&a_addr, a, htons(port));
+    
+    fail_unless(sockaddr_initFromIPv6String((struct sockaddr_in6 *)&b_addr, "[2001:470:dc88:2:226:18ff:fe92:6d53]:4567"));
+
+    sockaddr_toString( (struct sockaddr *)&a_addr,
+                       addr_str,
+                       256,
+                       true);
+    
+    
+    fail_unless( sockaddr_alike( (struct sockaddr *)&a_addr, (struct sockaddr *)&b_addr) ); 
+
+
+
+}
+END_TEST
+
 START_TEST (sockaddr_IPv4_sameaddr)
 {
     
@@ -461,6 +513,8 @@ Suite * sockaddr_suite (void)
       TCase *tc_core = tcase_create ("Core");
       tcase_add_checked_fixture (tc_core, sockaddr_setup, sockaddr_teardown);
       tcase_add_test (tc_core, test_sockaddr_create);
+      tcase_add_test (tc_core, test_sockaddr_int_IPv4_init);
+      tcase_add_test (tc_core, test_sockaddr_int_IPv6_init);
       suite_add_tcase (s, tc_core);
   }
   
@@ -528,16 +582,3 @@ Suite * sockaddr_suite (void)
 }
 
 
-/*
-int main(void){
-    
-    int number_failed;
-    Suite *s = addrinfo_suite ();
-    SRunner *sr = srunner_create (s);
-    srunner_set_fork_status(sr,CK_NOFORK); 
-    srunner_run_all (sr, CK_NORMAL);
-    number_failed = srunner_ntests_failed (sr);
-    srunner_free (sr);
-    return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
-}
-*/

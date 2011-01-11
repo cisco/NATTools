@@ -129,6 +129,30 @@ bool sockaddr_initFromString( struct sockaddr *sa,
 }
 
 
+bool sockaddr_initFromIPv4Int(struct sockaddr_in *sin,
+                              uint32_t ipaddr, 
+                              uint16_t port)
+{
+    
+    sin->sin_family = AF_INET;
+    sin->sin_port = port;
+    sin->sin_addr.s_addr = ipaddr;
+
+    return true;
+}
+
+bool sockaddr_initFromIPv6Int(struct sockaddr_in6 *sin,
+                              uint8_t ipaddr[16], 
+                              uint16_t port)
+{
+    sin->sin6_family = AF_INET6;
+    sin->sin6_port = port;
+    memcpy( &(sin->sin6_addr.s6_addr), ipaddr, 
+            sizeof(struct in6_addr) );
+    
+    return true;
+}
+
 
 bool sockaddr_sameAddr(const struct sockaddr * a, 
                        const struct sockaddr * b)
