@@ -74,13 +74,18 @@
 
  ******************************************************************************/
 
-#include "turnclient.h"
-#include "turn_intern.h"
-#include "stun_os.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+
+
+
+#include "turnclient.h"
+#include "turn_intern.h"
+#include "stun_os.h"
+#include "sockaddr_util.h"
+
 
 /* instance data, dynamically created as required */
 static TURN_INSTANCE_DATA **InstanceData[TURN_MAX_THREAD_CTX];
@@ -181,38 +186,6 @@ static void TurnPrint(uint32_t threadCtx, TurnInfoCategory_T category, const cha
   va_end(ap);
 
 }
-
-/* extract port from  "a.b.c.d:port"  */
-static uint16_t getPortFromAddrStr(const  char *s)
-{
-    uint16_t port=0;
-    char *pPortPos = strchr(s, ':');
-
-    if (pPortPos)
-        sscanf(pPortPos+1, "%hd", &port);
-    return port;
-}
-
-/* Add default port if  port is not present of is set to 0
- *  "a.b.c.d:0"   -->  "a.b.c.d:3478"
- *  "a.b.c.d"     -->  "a.b.c.d:3478"
- *  "a.b.c.d:nnnn -->  "a.b.c.d:nnnn"
- */
-static void FixupPortInAddrStr(char *s)
-{
-    uint16_t port=0;
-    char *pPortPos = strchr(s, ':');
-
-    if (pPortPos)
-    {
-        sscanf(pPortPos+1, "%hd", &port);
-        if (port == 0)
-            sprintf(pPortPos+1, "%d", TURN_DFLT_PORT);
-    }
-    else
-        sprintf(pPortPos, ":%d", TURN_DFLT_PORT);
-}
-
 
 static int TurnRand(void)
 {
@@ -350,17 +323,17 @@ static int TurnClientConstruct(uint32_t threadCtx)
 }
 
 
-int TurnClient_startAllocateTransaction(uint32_t           threadCtx,
-                                        void               *userCtx,
-                                        const char         *serverAddr,
-                                        const char         *userName,
-                                        const char         *password,
-                                        uint32_t            sockhandle,
-                                        STUN_SENDFUNC       sendFunc,
-                                        uint32_t           *timeoutList,
-                                        TURNCB              turnCbFunc,
-                                        TurnCallBackData_T *turnCbData,
-                                        bool                isMsStun)
+int TurnClient_startAllocateTransaction(uint32_t               threadCtx,
+                                        void                  *userCtx,
+                                        const struct sockaddr *serverAddr,
+                                        const char            *userName,
+                                        const char            *password,
+                                        uint32_t               sockhandle,
+                                        STUN_SENDFUNC          sendFunc,
+                                        uint32_t              *timeoutList,
+                                        TURNCB                 turnCbFunc,
+                                        TurnCallBackData_T    *turnCbData,
+                                        bool                   isMsStun)
 {
     TurnAllocateReqStuct m;
     uint32_t i;
@@ -374,8 +347,9 @@ int TurnClient_startAllocateTransaction(uint32_t           threadCtx,
     }
 
     memset(&m, 0, sizeof(m));
-    strncpy(m.serverAddr, serverAddr, sizeof(m.serverAddr));
-    FixupPortInAddrStr(m.serverAddr);
+
+    
+    sockaddr_copy(&m.serverAddr, serverAddr);
     strncpy(m.username, userName, sizeof(m.username));
     strncpy(m.password, password, sizeof(m.password));
     m.sockhandle     = sockhandle;
@@ -383,6 +357,8 @@ int TurnClient_startAllocateTransaction(uint32_t           threadCtx,
     m.userCtx        = userCtx;
     m.threadCtx      = threadCtx;
     m.isMsStun       = isMsStun;
+
+    
 
     /* use default timeout list if none provided */
     pTimeoutList = timeoutList;
@@ -400,35 +376,37 @@ int TurnClient_startAllocateTransaction(uint32_t           threadCtx,
     /* callback and  data (owned by caller) */
     m.turnCbFunc = turnCbFunc;
     m.turnCbData = turnCbData;
+
     ret = TurnClientMain(threadCtx, TURNCLIENT_CTX_UNKNOWN, TURN_SIGNAL_AllocateReq, (uint8_t*)&m);
+
     return ret;
 
 }
 
-char *TurnClientGetActiveTurnServerAddr(uint32_t threadCtx, int turnInst, char *s)
+void TurnClientGetActiveTurnServerAddr(uint32_t threadCtx, int turnInst, struct sockaddr *s)
 {
     TURN_INSTANCE_DATA *pInst;
 
     if ((turnInst < 0) || (turnInst >= CurrentInstances[threadCtx]))
     {
         TurnPrint(threadCtx, TurnInfoCategory_Error, "TurnClientGetActiveTurnServerAddr() invalid inst %d (thread %d)\n",  turnInst, threadCtx);
-        return NULL;
+        return;
     }
     pInst = InstanceData[threadCtx][turnInst];
     if (!pInst)
     {
         TurnPrint(threadCtx, TurnInfoCategory_Error, "TurnClientGetActiveTurnServerAddr() NULL data inst %d (thread %d)\n",  turnInst, threadCtx);
-        return NULL;
+        return;
     }
 
-    if (pInst->turnAllocateReq.serverAddr[0] == '\0')
+    if ( !sockaddr_isSet(&pInst->turnAllocateReq.serverAddr) )
     {
-        TurnPrint(threadCtx, TurnInfoCategory_Error, "TurnClientGetActiveTurnServerAddr() string[0] is 0, inst %d (thread %d)\n",  turnInst, threadCtx);
-        return NULL;
+        TurnPrint(threadCtx, TurnInfoCategory_Error, "TurnClientGetActiveTurnServerAddr() serveraddr not set, inst %d (thread %d)\n",  turnInst, threadCtx);
+        return;
     }
     //TurnPrint(threadCtx, TurnInfoCategory_Trace, "TurnClientGetActiveTurnServerAddr() inst %d (thread %d), server %s\n",  turnInst, threadCtx, pInst->turnAllocateReq.serverAddr); 
-    strncpy(s, pInst->turnAllocateReq.serverAddr, sizeof(pInst->turnAllocateReq.serverAddr));
-    return s;
+    sockaddr_copy(s, &pInst->turnAllocateReq.serverAddr);
+
 }
 
 /* range 0x4000 - 0xFFFF, with channel number 0xFFFF reserved */
@@ -437,14 +415,12 @@ static  bool IsValidBindChannelNumber(uint32_t  chanNum)
     return (chanNum >= 0x4000 && chanNum != 0xFFFF);
 }
 
-static bool ChannelBindReqParamsOk(uint32_t  threadCtx,
-                                   int       ctx,
-                                   uint32_t  channelNumber,
-                                   char      *peerTrnspAddrStr)
+static bool ChannelBindReqParamsOk(uint32_t               threadCtx,
+                                   int                    ctx,
+                                   uint32_t               channelNumber,
+                                   const struct sockaddr *peerTrnspAddr)
 
 {
-    uint16_t  peerTrnspAddrPort;
-
     if (ctx >= CurrentInstances[threadCtx])
     {
         TurnPrint(threadCtx, TurnInfoCategory_Error, "<TURNCLIENT> ChannelBindReq - illegal context %d exceeds %d\n ", ctx, CurrentInstances[threadCtx]-1); 
@@ -456,24 +432,19 @@ static bool ChannelBindReqParamsOk(uint32_t  threadCtx,
         return false;
     }
 
-    if ((peerTrnspAddrStr == NULL) || (*peerTrnspAddrStr == '\0'))
+    if ( !sockaddr_isSet(peerTrnspAddr))
     {
         TurnPrint(threadCtx, TurnInfoCategory_Error, "<TURNCLIENT:%02d> ChannelBindReq - illegal peerTRansport Address\n ", ctx);
         return false;
     }
-    peerTrnspAddrPort = getPortFromAddrStr(peerTrnspAddrStr);
-    if (peerTrnspAddrPort == 0)
-    {
-        TurnPrint(threadCtx, TurnInfoCategory_Error, "<TURNCLIENT:%02d> ChannelBindReq - illegal peerTRansport Port %d\n ", ctx, peerTrnspAddrPort);
-        return false;
-    }
+    
     return true;
 }
 
-static bool CreatePermReqParamsOk(uint32_t threadCtx,
-                                  int       ctx,
-                                  uint32_t  numberOfPeers,
-                                  char      *peerTrnspAddrStr[])
+static bool CreatePermReqParamsOk(uint32_t         threadCtx,
+                                  int              ctx,
+                                  uint32_t         numberOfPeers,
+                                  struct sockaddr *peerTrnspAddr[])
 
 {
     uint32_t i;
@@ -486,7 +457,7 @@ static bool CreatePermReqParamsOk(uint32_t threadCtx,
     }
     for (i=0; i < numberOfPeers; i++)
     {
-        if ((peerTrnspAddrStr[i] == NULL) || (*peerTrnspAddrStr[i] == '\0'))
+        if ( !sockaddr_isSet(peerTrnspAddr[i]) )
         {
             TurnPrint(threadCtx, TurnInfoCategory_Error, "<TURNCLIENT:%02d> CreatePerm - illegal peerTRansport Address\n ", ctx);
             ret = false;
@@ -500,27 +471,28 @@ static bool CreatePermReqParamsOk(uint32_t threadCtx,
 bool TurnClient_StartChannelBindReq(uint32_t threadCtx,
                                     int      ctx,
                                     uint32_t channelNumber,
-                                    const char     *peerTrnspAddrStr)
+                                    const struct sockaddr *peerTrnspAddr)
 {
-    if (ChannelBindReqParamsOk(threadCtx, ctx, channelNumber, peerTrnspAddrStr))
+    if (ChannelBindReqParamsOk(threadCtx, ctx, channelNumber, peerTrnspAddr))
     {
         TurnChannelBindInfo_T msg;
         memset(&msg, 0, sizeof(msg));
 
         msg.channelNumber = channelNumber;
-        strncpy(msg.peerTrnspAddrStr, peerTrnspAddrStr, sizeof(msg.peerTrnspAddrStr));
+        sockaddr_copy((struct sockaddr *)&msg.peerTrnspAddr, 
+                      peerTrnspAddr);
         TurnClientMain(threadCtx, ctx, TURN_SIGNAL_ChannelBindReq, (uint8_t*)&msg);
         return true;
     }
     return false;
 }
 
-bool TurnClient_StartCreatePermissionReq(uint32_t threadCtx,
-                                         int        ctx,
-                                         uint32_t   noOfPeers,
-                                         char       *peerTrnspAddrStr[])
+bool TurnClient_StartCreatePermissionReq(uint32_t         threadCtx,
+                                         int              ctx,
+                                         uint32_t         noOfPeers,
+                                         struct sockaddr *peerTrnspAddr[])
 {
-    if (CreatePermReqParamsOk(threadCtx, ctx, noOfPeers, peerTrnspAddrStr))
+    if (CreatePermReqParamsOk(threadCtx, ctx, noOfPeers, peerTrnspAddr))
     {
         uint32_t i;
         TurnCreatePermissionInfo_T msg;
@@ -528,8 +500,9 @@ bool TurnClient_StartCreatePermissionReq(uint32_t threadCtx,
 
         for (i=0; i < noOfPeers; i++)
         {
-           strncpy(msg.peerTrnspAddrStr[i], peerTrnspAddrStr[i], IPV4_ADDR_LEN_WITH_PORT);
-           msg.numberOfPeers++;
+            sockaddr_copy((struct sockaddr *)&msg.peerTrnspAddr[i], 
+                          peerTrnspAddr[i]);
+            msg.numberOfPeers++;
         }
 
         TurnClientMain(threadCtx, ctx, TURN_SIGNAL_CreatePermissionReq, (uint8_t*)&msg);
@@ -636,28 +609,45 @@ void TurnClient_Deallocate(uint32_t threadCtx, int ctx)
 }
 
 
-int TurnClient_createSendIndication(unsigned char *stunBuf,
-                                    uint8_t *dataBuf, 
-                                    uint32_t maxBufSize,
-                                    uint32_t payloadLength, 
-                                    char    *dstAddr,           /* peer Address (e.g. as received in SDP) */
-                                    uint16_t dstPort,
-                                    bool     isMsStun,
-                                    uint32_t threadCtx,
-                                    int      turnInst)        
+int TurnClient_createSendIndication(unsigned char   *stunBuf,
+                                    uint8_t         *dataBuf, 
+                                    uint32_t         maxBufSize,
+                                    uint32_t         payloadLength, 
+                                    struct sockaddr *dstAddr,           /* peer Address (e.g. as received in SDP) */
+                                    bool             isMsStun,
+                                    uint32_t         threadCtx,
+                                    int              turnInst)        
 {
     StunMessage stunMsg;
     StunIPAddress activeDstAddr; 
     TURN_INSTANCE_DATA *pInst;
     int length = 0;
     
+    if (!sockaddr_isSet(dstAddr)){
+        return -1;
+    }
+
+
     memset(&stunMsg, 0, sizeof(StunMessage));
     stunlib_createId(&stunMsg.msgHdr.id, TurnRand(), 0);
+    
+    if (dstAddr->sa_family == AF_INET){
+        
+        activeDstAddr.familyType =  STUN_ADDR_IPv4Family;
+        activeDstAddr.addr.v4.port = ((struct sockaddr_in *)dstAddr)->sin_port;
+        activeDstAddr.addr.v4.addr = ((struct sockaddr_in *)dstAddr)->sin_addr.s_addr;
 
-    activeDstAddr.familyType   =  STUN_ADDR_IPv4Family;
-    activeDstAddr.addr.v4.port = dstPort;
-    if(!stunlib_ipv4CharToInt(&activeDstAddr.addr.v4.addr, dstAddr))
-        TurnPrint(threadCtx, TurnInfoCategory_Error, "<TURN:Send_Ind> Unable to convert ipaddr str to int ('%s')\n", dstAddr);
+    }else if (dstAddr->sa_family == AF_INET6){
+        activeDstAddr.familyType =  STUN_ADDR_IPv6Family;
+        activeDstAddr.addr.v6.port = ((struct sockaddr_in6 *)dstAddr)->sin6_port;
+        memcpy( activeDstAddr.addr.v6.addr ,
+                ((struct sockaddr_in6 *)dstAddr)->sin6_addr.s6_addr,
+                sizeof(activeDstAddr.addr.v6.addr) );
+        
+    }else{
+
+        return -1;
+    }
 
     if (!isMsStun)
     {
@@ -685,7 +675,7 @@ int TurnClient_createSendIndication(unsigned char *stunBuf,
         if ((pInst == NULL) || (pInst->state == TURN_STATE_Idle))
         {
             TurnPrint(threadCtx, TurnInfoCategory_Error, "<TURN:Send_Ind> MSSTUN,No instance data Ctx %d inst  %d or state is idle\n", threadCtx, turnInst);
-            return false;
+            return -1;
         }
 
         stunMsg.msgHdr.msgType = STUN_MSG_MS2_SendRequestMsg;
@@ -727,19 +717,24 @@ void TurnClientGetStats(TurnStats_T *Stats)
         {
             if (InstanceData[i][j]->state >= TURN_STATE_Allocated)
             {
-                strncpy(TurnStats.instance[TurnStats.CurrentAllocations].AllocResp.rflxAddr, InstanceData[i][j]->rflxAddr, IPV4_ADDR_LEN); 
-                strncpy(TurnStats.instance[TurnStats.CurrentAllocations].AllocResp.relAddr,  InstanceData[i][j]->relAddr,  IPV4_ADDR_LEN);
-                TurnStats.instance[TurnStats.CurrentAllocations].AllocResp.rflxPort =  InstanceData[i][j]->rflxPort; 
-                TurnStats.instance[TurnStats.CurrentAllocations].AllocResp.relPort  =  InstanceData[i][j]->relPort;
+
+                sockaddr_copy((struct sockaddr *)&TurnStats.instance[TurnStats.CurrentAllocations].AllocResp.rflxAddr,
+                              (struct sockaddr *)&InstanceData[i][j]->rflxAddr);
+                
+                sockaddr_copy((struct sockaddr *)&TurnStats.instance[TurnStats.CurrentAllocations].AllocResp.relAddr,
+                              (struct sockaddr *)&InstanceData[i][j]->relAddr);
+
                 TurnStats.instance[TurnStats.CurrentAllocations].channelBound = InstanceData[i][j]->channelBound;
                 if (InstanceData[i][j]->channelBound)
                 {
                     TurnStats.instance[TurnStats.CurrentAllocations].channelNumber = InstanceData[i][j]->channelBindInfo.channelNumber;
-                    strncpy(TurnStats.instance[TurnStats.CurrentAllocations].BoundPeerTrnspAddrStr, InstanceData[i][j]->channelBindInfo.peerTrnspAddrStr, IPV4_ADDR_LEN_WITH_PORT);
+                    sockaddr_copy((struct sockaddr *)&TurnStats.instance[TurnStats.CurrentAllocations].BoundPeerTrnspAddr, 
+                                  (struct sockaddr *)&InstanceData[i][j]->channelBindInfo.peerTrnspAddr);
                     /* a bound channel also creates a permission, so show this  */
                     TurnStats.instance[TurnStats.CurrentAllocations].permissionsInstalled = 1;
                     TurnStats.instance[TurnStats.CurrentAllocations].numberOfPeers = 1;
-                    strncpy(TurnStats.instance[TurnStats.CurrentAllocations].PermPeerTrnspAddrStr[0], InstanceData[i][j]->channelBindInfo.peerTrnspAddrStr, IPV4_ADDR_LEN_WITH_PORT);
+                    sockaddr_copy((struct sockaddr *)&TurnStats.instance[TurnStats.CurrentAllocations].PermPeerTrnspAddr[0], 
+                                  (struct sockaddr *)&InstanceData[i][j]->channelBindInfo.peerTrnspAddr);
                 }
                 else
                 {
@@ -749,8 +744,9 @@ void TurnClientGetStats(TurnStats_T *Stats)
                         uint32_t k;
                         TurnStats.instance[TurnStats.CurrentAllocations].numberOfPeers = InstanceData[i][j]->createPermInfo.numberOfPeers;
                         for (k=0; k <  TurnStats.instance[TurnStats.CurrentAllocations].numberOfPeers; k++)
-                            strncpy(TurnStats.instance[TurnStats.CurrentAllocations].PermPeerTrnspAddrStr[k], InstanceData[i][j]->createPermInfo.peerTrnspAddrStr[k], IPV4_ADDR_LEN_WITH_PORT);
-    
+                            sockaddr_copy((struct sockaddr *)&TurnStats.instance[TurnStats.CurrentAllocations].PermPeerTrnspAddr[k], 
+                                          (struct sockaddr *)&InstanceData[i][j]->createPermInfo.peerTrnspAddr[k]);
+                            
                     }
                 }
                 TurnStats.CurrentAllocations++;
@@ -1018,12 +1014,12 @@ static void StopTimer(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig)
 
 
 
-#if defined(UNITTEST)
+
 int  TurnClientSimulateSig(uint32_t threadCtx, int ctx, TURN_SIGNAL sig)
 {
     return TurnClientMain(threadCtx, ctx, sig, NULL);
 }
-#endif
+
 
 static int  TurnClientMain(uint32_t threadCtx, int ctx, TURN_SIGNAL sig, uint8_t *payload)
 {
@@ -1046,6 +1042,7 @@ static int  TurnClientMain(uint32_t threadCtx, int ctx, TURN_SIGNAL sig, uint8_t
         if (ctx >= 0)
         {
             TurnClientFsm(InstanceData[threadCtx][ctx], sig, payload);
+
             ret = ctx; /* returns context */
         }
         else
@@ -1142,15 +1139,27 @@ static bool StoreRealmAndNonce(TURN_INSTANCE_DATA *pInst, StunMessage *pResp)
 
 static bool StoreServerReflexiveAddress(TURN_INSTANCE_DATA *pInst, StunMessage *stunRespMsg)
 {
-    char addr[IPV4_ADDR_LEN];
+    struct sockaddr_storage addr;
 
     if (stunRespMsg->hasXorMappedAddress)
     {
-        stunlib_ipv4IntToChar(addr, stunRespMsg->xorMappedAddress.addr.v4.addr);
-        strncpy(pInst->rflxAddr,
-                addr,
-                IPV4_ADDR_LEN);
-        pInst->rflxPort = stunRespMsg->xorMappedAddress.addr.v4.port;
+
+        if (stunRespMsg->xorMappedAddress.familyType == STUN_ADDR_IPv4Family){
+            sockaddr_initFromIPv4Int((struct sockaddr_in *)&addr, 
+                                     stunRespMsg->xorMappedAddress.addr.v4.addr,
+                                     stunRespMsg->xorMappedAddress.addr.v4.port);
+        }
+        else if (stunRespMsg->xorMappedAddress.familyType == STUN_ADDR_IPv6Family){
+            sockaddr_initFromIPv6Int((struct sockaddr_in6 *)&addr, 
+                                     stunRespMsg->xorMappedAddress.addr.v6.addr,
+                                     stunRespMsg->xorMappedAddress.addr.v6.port);
+        }
+        
+
+
+        sockaddr_copy((struct sockaddr *)&pInst->rflxAddr,
+                      (struct sockaddr *)&addr);
+        
         return true;
     }
     else
@@ -1163,15 +1172,27 @@ static bool StoreServerReflexiveAddress(TURN_INSTANCE_DATA *pInst, StunMessage *
 
 static bool StoreRelayAddressStd(TURN_INSTANCE_DATA *pInst, StunMessage *stunRespMsg)
 {
-    char addr[IPV4_ADDR_LEN];
+    struct sockaddr_storage addr;
 
     if (stunRespMsg->hasXorRelayAddress)
     {
-        stunlib_ipv4IntToChar(addr, stunRespMsg->xorRelayAddress.addr.v4.addr);
-        strncpy(pInst->relAddr,
-                addr,
-                IPV4_ADDR_LEN);
-        pInst->relPort = stunRespMsg->xorRelayAddress.addr.v4.port;
+
+        if (stunRespMsg->xorRelayAddress.familyType == STUN_ADDR_IPv4Family){
+            sockaddr_initFromIPv4Int((struct sockaddr_in *)&addr, 
+                                     stunRespMsg->xorRelayAddress.addr.v4.addr,
+                                     stunRespMsg->xorRelayAddress.addr.v4.port);
+        }
+        else if (stunRespMsg->xorRelayAddress.familyType == STUN_ADDR_IPv6Family){
+            sockaddr_initFromIPv6Int((struct sockaddr_in6 *)&addr, 
+                                     stunRespMsg->xorRelayAddress.addr.v6.addr,
+                                     stunRespMsg->xorRelayAddress.addr.v6.port);
+        }
+        
+
+
+        sockaddr_copy((struct sockaddr *)&pInst->relAddr,
+                      (struct sockaddr *)&addr);
+        
         return true;
     } 
     else 
@@ -1183,15 +1204,25 @@ static bool StoreRelayAddressStd(TURN_INSTANCE_DATA *pInst, StunMessage *stunRes
 
 static bool StoreRelayAddressMs2(TURN_INSTANCE_DATA *pInst, StunMessage *stunRespMsg)
 {
-    char addr[IPV4_ADDR_LEN];
+    struct sockaddr_storage addr;
 
     if (stunRespMsg->hasMappedAddress)
     {
-        stunlib_ipv4IntToChar(addr, stunRespMsg->mappedAddress.addr.v4.addr);
-        strncpy(pInst->relAddr,
-                addr,
-                IPV4_ADDR_LEN);
-        pInst->relPort = stunRespMsg->mappedAddress.addr.v4.port;
+        if (stunRespMsg->mappedAddress.familyType == STUN_ADDR_IPv4Family){
+            sockaddr_initFromIPv4Int((struct sockaddr_in *)&addr, 
+                                     stunRespMsg->mappedAddress.addr.v4.addr,
+                                     stunRespMsg->mappedAddress.addr.v4.port);
+        }
+        else if (stunRespMsg->xorRelayAddress.familyType == STUN_ADDR_IPv6Family){
+            sockaddr_initFromIPv6Int((struct sockaddr_in6 *)&addr, 
+                                     stunRespMsg->mappedAddress.addr.v6.addr,
+                                     stunRespMsg->mappedAddress.addr.v6.port);
+        }
+        
+
+        
+        sockaddr_copy((struct sockaddr *)&pInst->relAddr,
+                      (struct sockaddr *)&addr);
         return true;
     } 
     else 
@@ -1342,19 +1373,27 @@ static void  BuildRefreshAllocateReq(TURN_INSTANCE_DATA *pInst, StunMessage  *pR
 static void BuildChannelBindReq(TURN_INSTANCE_DATA *pInst, StunMessage  *pReq)
 {
     StunIPAddress peerTrnspAddr;
+    struct sockaddr * peerAddr = (struct sockaddr *)&pInst->channelBindInfo.peerTrnspAddr;
 
     memset(pReq, 0, sizeof(StunMessage));
     pReq->msgHdr.msgType = STUN_MSG_ChannelBindRequestMsg;
     stunlib_createId(&pReq->msgHdr.id, TurnRand(), 0);
 
-    /* peer address */
-    peerTrnspAddr.familyType   =  STUN_ADDR_IPv4Family;
-    peerTrnspAddr.addr.v4.port =  getPortFromAddrStr(pInst->channelBindInfo.peerTrnspAddrStr); 
-    
-    if(!stunlib_ipv4CharToInt(&peerTrnspAddr.addr.v4.addr, pInst->channelBindInfo.peerTrnspAddrStr))
-    {
-        TurnPrint(pInst->threadCtx, TurnInfoCategory_Error, "<TURNCLIENT:%02d> Unable to convert ipaddr str to int ('%s')", pInst->inst, pInst->channelBindInfo.peerTrnspAddrStr);
+    if (peerAddr->sa_family == AF_INET){
+        
+        peerTrnspAddr.familyType =  STUN_ADDR_IPv4Family;
+        peerTrnspAddr.addr.v4.port = ((struct sockaddr_in *)peerAddr)->sin_port;
+        peerTrnspAddr.addr.v4.addr = ((struct sockaddr_in *)peerAddr)->sin_addr.s_addr;
+
+    }else if (peerAddr->sa_family == AF_INET6){
+        peerTrnspAddr.familyType =  STUN_ADDR_IPv6Family;
+        peerTrnspAddr.addr.v6.port = ((struct sockaddr_in6 *)peerAddr)->sin6_port;
+        memcpy( peerTrnspAddr.addr.v6.addr ,
+                ((struct sockaddr_in6 *)peerAddr)->sin6_addr.s6_addr,
+                sizeof(peerTrnspAddr.addr.v6.addr) );
+        
     }
+
     memcpy(&pReq->xorPeerAddress[0], &peerTrnspAddr, sizeof(StunIPAddress));
     pReq->xorPeerAddrEntries=1;
 
@@ -1374,6 +1413,8 @@ static void BuildCreatePermReq(TURN_INSTANCE_DATA *pInst, StunMessage  *pReq)
     StunIPAddress peerTrnspAddr;
     uint32_t i;
 
+    struct sockaddr *peerAddr;
+
     memset(pReq, 0, sizeof(StunMessage));
     pReq->msgHdr.msgType = STUN_MSG_CreatePermissionRequestMsg;
     stunlib_createId(&pReq->msgHdr.id, TurnRand(), 0);
@@ -1381,13 +1422,23 @@ static void BuildCreatePermReq(TURN_INSTANCE_DATA *pInst, StunMessage  *pReq)
     /* peer address(es) */
     for (i = 0; i < pInst->createPermInfo.numberOfPeers; i++)
     {
-        peerTrnspAddr.familyType   =  STUN_ADDR_IPv4Family;
-        peerTrnspAddr.addr.v4.port =  getPortFromAddrStr(pInst->createPermInfo.peerTrnspAddrStr[i]); 
-    
-        if(!stunlib_ipv4CharToInt(&peerTrnspAddr.addr.v4.addr, pInst->createPermInfo.peerTrnspAddrStr[i]))
-        {
-            TurnPrint(pInst->threadCtx, TurnInfoCategory_Error, "<TURNCLIENT:%02d> Unable to convert ipaddr str to int ('%s')", pInst->inst, pInst->createPermInfo.peerTrnspAddrStr[i]);
+        peerAddr = (struct sockaddr *)&pInst->createPermInfo.peerTrnspAddr[i];
+
+        if (peerAddr->sa_family == AF_INET){
+            
+            peerTrnspAddr.familyType =  STUN_ADDR_IPv4Family;
+            peerTrnspAddr.addr.v4.port = ((struct sockaddr_in *)peerAddr)->sin_port;
+            peerTrnspAddr.addr.v4.addr = ((struct sockaddr_in *)peerAddr)->sin_addr.s_addr;
+            
+        }else if (peerAddr->sa_family == AF_INET6){
+            peerTrnspAddr.familyType =  STUN_ADDR_IPv6Family;
+            peerTrnspAddr.addr.v6.port = ((struct sockaddr_in6 *)peerAddr)->sin6_port;
+            memcpy( peerTrnspAddr.addr.v6.addr ,
+                    ((struct sockaddr_in6 *)peerAddr)->sin6_addr.s6_addr,
+                sizeof(peerTrnspAddr.addr.v6.addr) );
+            
         }
+
         memcpy(&pReq->xorPeerAddress[i], &peerTrnspAddr, sizeof(StunIPAddress));
         pReq->xorPeerAddrEntries++;
     }
@@ -1407,20 +1458,32 @@ static void BuildCreatePermReq(TURN_INSTANCE_DATA *pInst, StunMessage  *pReq)
 static void BuildSetActiveDestReq(TURN_INSTANCE_DATA *pInst, StunMessage  *pReq)
 {
     StunIPAddress peerTrnspAddr;
-
+    struct sockaddr *peerAddr;
+    
     memset(pReq, 0, sizeof(StunMessage));
     pReq->msgHdr.msgType = STUN_MSG_MS2_SetActiveDestReqMsg;
     stunlib_createId(&pReq->msgHdr.id, TurnRand(), 0);
     stunlib_addMsCookie(pReq);
     stunlib_addMsVersion(pReq, STUN_MS2_VERSION);
 
-    peerTrnspAddr.familyType   =  STUN_ADDR_IPv4Family;
-    peerTrnspAddr.addr.v4.port =  getPortFromAddrStr(pInst->channelBindInfo.peerTrnspAddrStr); 
+    peerAddr = (struct sockaddr *)&pInst->channelBindInfo.peerTrnspAddr;
 
-    if(!stunlib_ipv4CharToInt(&peerTrnspAddr.addr.v4.addr, pInst->channelBindInfo.peerTrnspAddrStr))
-    {
-        TurnPrint(pInst->threadCtx, TurnInfoCategory_Error, "<TURNCLIENT:%02d> Unable to convert ipaddr str to int ('%s')", pInst->inst, pInst->channelBindInfo.peerTrnspAddrStr);
+    if (peerAddr->sa_family == AF_INET){
+            
+            peerTrnspAddr.familyType =  STUN_ADDR_IPv4Family;
+            peerTrnspAddr.addr.v4.port = ((struct sockaddr_in *)peerAddr)->sin_port;
+            peerTrnspAddr.addr.v4.addr = ((struct sockaddr_in *)peerAddr)->sin_addr.s_addr;
+            
+        }else if (peerAddr->sa_family == AF_INET6){
+            peerTrnspAddr.familyType =  STUN_ADDR_IPv6Family;
+            peerTrnspAddr.addr.v6.port = ((struct sockaddr_in6 *)peerAddr)->sin6_port;
+            memcpy( peerTrnspAddr.addr.v6.addr ,
+                    ((struct sockaddr_in6 *)peerAddr)->sin6_addr.s6_addr,
+                sizeof(peerTrnspAddr.addr.v6.addr) );
+            
     }
+    
+    
     pReq->hasDestinationAddress = true;
     memcpy(&pReq->destinationAddress, &peerTrnspAddr, sizeof(StunIPAddress));
 
@@ -1456,7 +1519,7 @@ static void SendStunKeepAlive(TURN_INSTANCE_DATA *pInst)
     pInst->turnAllocateReq.sendFunc(pInst->turnAllocateReq.sockhandle,
                                     buf,
                                     encLen,
-                                    pInst->turnAllocateReq.serverAddr,
+                                    &pInst->turnAllocateReq.serverAddr,
                                     pInst->turnAllocateReq.userCtx);
 }
 
@@ -1465,19 +1528,23 @@ static bool GetServerAddrFromAltServer(TURN_INSTANCE_DATA *pInst, StunMessage *p
 {
     if (pResp->hasAlternateServer)
     {
-        uint32_t addr;
-        uint16_t port;
-
         if (pResp->alternateServer.familyType == STUN_ADDR_IPv4Family)
         {
-            addr = pResp->alternateServer.addr.v4.addr; /* host format */
-            port = pResp->alternateServer.addr.v4.port;
     
-            /* convert to format  a.b.c.d:port */
-            sprintf(pInst->turnAllocateReq.serverAddr, "%d.%d.%d.%d:%d", (addr>>24)&0xFF,  (addr>>16)&0xFF, (addr>>8)&0xFF, addr&0xFF, port);
+            sockaddr_initFromIPv4Int((struct sockaddr_in *)&pInst->turnAllocateReq.serverAddr,
+                                     pResp->alternateServer.addr.v4.addr, 
+                                     pResp->alternateServer.addr.v4.port);
 
+            
             return true;
         }
+        else if (pResp->alternateServer.familyType == STUN_ADDR_IPv6Family){
+            sockaddr_initFromIPv6Int((struct sockaddr_in6 *)&pInst->turnAllocateReq.serverAddr,
+                                     pResp->alternateServer.addr.v6.addr,
+                                     pResp->alternateServer.addr.v6.port);
+
+        }
+
         else
         {
             TurnPrint(pInst->threadCtx, TurnInfoCategory_Error, "<TURNCLIENT:%02d> Alternative Server %d not supported in AllocRespErr", pInst->inst, pResp->alternateServer.familyType);
@@ -1489,6 +1556,7 @@ static bool GetServerAddrFromAltServer(TURN_INSTANCE_DATA *pInst, StunMessage *p
         TurnPrint(pInst->threadCtx, TurnInfoCategory_Error, "<TURNCLIENT:%02d> Missing Alternative Server in AllocRespErr", pInst->inst);
         return false;
     }
+    return false;
 }
 
 
@@ -1538,16 +1606,30 @@ static void  AllocateResponseCallback(TURN_INSTANCE_DATA *pInst)
 
     if (pRes)
     {
+        char rflxaddr[SOCKADDR_MAX_STRLEN];
+        char reladdr[SOCKADDR_MAX_STRLEN];
+        char activeaddr[SOCKADDR_MAX_STRLEN];
+
         pData = &pInst->turnAllocateReq.turnCbData->TurnResultData.AllocResp;
         pRes->turnResult = TurnResult_AllocOk;
-        strncpy(pData->activeTurnServerAddr, pInst->turnAllocateReq.serverAddr, sizeof(pData->activeTurnServerAddr));
-        memcpy(pData->relAddr,  pInst->relAddr,  sizeof(pData->relAddr));
-        memcpy(pData->rflxAddr, pInst->rflxAddr, sizeof(pData->rflxAddr));
-        pData->relPort  = pInst->relPort;
-        pData->rflxPort = pInst->rflxPort;
-
-        TurnPrint(pInst->threadCtx, TurnInfoCategory_Info, "<TURNCLIENT:%02d> AllocResp Relay: %s:%d  Rflx: %s:%d lifetime %d sec from Server %s",
-                pInst->inst, pData->relAddr, pData->relPort, pData->rflxAddr, pData->rflxPort, pInst->lifetime, pData->activeTurnServerAddr);
+        sockaddr_copy((struct sockaddr *)&pData->activeTurnServerAddr, 
+                      (struct sockaddr *)&pInst->turnAllocateReq.serverAddr);
+                      
+        sockaddr_copy((struct sockaddr *)&pData->relAddr,  
+                      (struct sockaddr *)&pInst->relAddr);
+            
+        sockaddr_copy((struct sockaddr *)&pData->rflxAddr, 
+                      (struct sockaddr *)&pInst->rflxAddr);
+        
+        TurnPrint(pInst->threadCtx, 
+                  TurnInfoCategory_Info, 
+                  "<TURNCLIENT:%02d> AllocResp Relay: %s  Rflx: %s lifetime %d sec from Server %s",
+                  pInst->inst, 
+                  sockaddr_toString((struct sockaddr *)&pData->relAddr, reladdr,SOCKADDR_MAX_STRLEN, true),
+                  sockaddr_toString((struct sockaddr *)&pData->rflxAddr, rflxaddr, SOCKADDR_MAX_STRLEN, true),
+                  pInst->lifetime, 
+                  sockaddr_toString((struct sockaddr *)&pData->activeTurnServerAddr, 
+                                    activeaddr, SOCKADDR_MAX_STRLEN, true));
     }
 
     if (pInst->turnAllocateReq.turnCbFunc)
@@ -1571,7 +1653,8 @@ static void InitRetryCounters(TURN_INSTANCE_DATA *pInst)
 static bool  SendTurnReq(TURN_INSTANCE_DATA *pInst, StunMessage  *stunReqMsg)
 {
     int len;
-
+    char addrStr[SOCKADDR_MAX_STRLEN];
+    
     len = stunlib_encodeMessage(stunReqMsg,
                             (unsigned char*) (pInst->stunReqMsgBuf),
                             STUN_MAX_PACKET_SIZE, 
@@ -1581,24 +1664,29 @@ static bool  SendTurnReq(TURN_INSTANCE_DATA *pInst, StunMessage  *stunReqMsg)
                             pInst->turnAllocateReq.isMsStun);
     pInst->stunReqMsgBufLen = len;
 
+    
     if (!len )
     {
         TurnPrint(pInst->threadCtx, TurnInfoCategory_Error, "<TURNCLIENT:%02d>  SendTurnReq(), failed encode", pInst->inst);
         return false;
     }
 
-    TurnPrint(pInst->threadCtx, TurnInfoCategory_Trace, "<TURNCLIENT:%02d> %02x..%02x OUT-->STUN: %s sockh=%d Len=%i to %s",
-            pInst->inst,
-            stunReqMsg->msgHdr.id.octet[0], stunReqMsg->msgHdr.id.octet[11],
-            stunlib_getMessageName(stunReqMsg->msgHdr.msgType), 
-            pInst->turnAllocateReq.sockhandle,
-            len, 
-            pInst->turnAllocateReq.serverAddr); 
-
+    TurnPrint(pInst->threadCtx, TurnInfoCategory_Trace, 
+              "<TURNCLIENT:%02d> %02x..%02x OUT-->STUN: %s sockh=%d Len=%i to %s",
+              pInst->inst,
+              stunReqMsg->msgHdr.id.octet[0], stunReqMsg->msgHdr.id.octet[11],
+              stunlib_getMessageName(stunReqMsg->msgHdr.msgType), 
+              pInst->turnAllocateReq.sockhandle,
+              len, 
+              sockaddr_toString((struct sockaddr *)&pInst->turnAllocateReq.serverAddr, 
+                                addrStr, 
+                                SOCKADDR_MAX_STRLEN, 
+                                true)); 
+    
     pInst->turnAllocateReq.sendFunc(pInst->turnAllocateReq.sockhandle,
                                     pInst->stunReqMsgBuf,
                                     pInst->stunReqMsgBufLen,
-                                    pInst->turnAllocateReq.serverAddr,
+                                    &pInst->turnAllocateReq.serverAddr,
                                     pInst->turnAllocateReq.userCtx);
 
     /* store transaction id, so we can match the response */
@@ -1612,7 +1700,7 @@ static void RetransmitLastReq(TURN_INSTANCE_DATA *pInst)
     pInst->turnAllocateReq.sendFunc(pInst->turnAllocateReq.sockhandle,
                                     pInst->stunReqMsgBuf,
                                     pInst->stunReqMsgBufLen,
-                                    pInst->turnAllocateReq.serverAddr,
+                                    &pInst->turnAllocateReq.serverAddr,
                                     pInst->turnAllocateReq.userCtx);
 
 }
@@ -1749,7 +1837,10 @@ static void  TurnClientFsm(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uint8_t *
 {
     if (pInst->state < TURN_STATE_End)
     {
-        TurnPrint(pInst->threadCtx, TurnInfoCategory_Trace, "<TURNCLIENT:%02d> IN <-- %s (state %s)", pInst->inst, TurnsigToStr(sig), StateTable[pInst->state].StateStr);
+        TurnPrint(pInst->threadCtx, TurnInfoCategory_Trace, 
+                  "<TURNCLIENT:%02d> IN <-- %s (state %s)", 
+                  pInst->inst, TurnsigToStr(sig), 
+                  StateTable[pInst->state].StateStr);
         MutexLock(pInst->threadCtx, pInst->inst);
         (StateTable[pInst->state].Statefunc)(pInst, sig, payload);
         MutexUnlock(pInst->threadCtx, pInst->inst);
@@ -1798,12 +1889,15 @@ static void  TurnState_Idle(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uint8_t 
 
             /* */
             BuildInitialAllocateReq(pInst, &stunReqMsg);
-
+            
             InitRetryCounters(pInst);
 
             SendTurnReq(pInst, &stunReqMsg);
+            
             StartFirstRetransmitTimer(pInst);
+            
             SetNextState(pInst, TURN_STATE_WaitAllocRespNotAuth);
+            
         }
         break;
 
@@ -2008,6 +2102,8 @@ static void  TurnState_WaitAllocResp(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig,
         {
             StunMessage *pResp = (StunMessage*)payload;
 
+            
+
             StopTimer(pInst, TURN_SIGNAL_TimerRetransmit);
             if (HandleStunAllocateResponseMsg(pInst, pResp))
             {
@@ -2015,6 +2111,7 @@ static void  TurnState_WaitAllocResp(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig,
                 //StartStunKeepAliveTimer(pInst);
                 SetNextState(pInst, TURN_STATE_Allocated);
                 AllocateResponseCallback(pInst);
+                
             }
             else
             {
@@ -2056,6 +2153,7 @@ static void  TurnState_Allocated(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uin
         {
             uint32_t i;
             TurnCreatePermissionInfo_T *pMsgIn = (TurnCreatePermissionInfo_T *)payload;
+            char addrStr[SOCKADDR_MAX_STRLEN];
 
             StoreCreatePermReq(pInst, pMsgIn);
 
@@ -2065,7 +2163,10 @@ static void  TurnState_Allocated(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uin
             for (i = 0; i < pMsgIn->numberOfPeers; i++)
                 TurnPrint(pInst->threadCtx, TurnInfoCategory_Info, "<TURNCLIENT:%02d> CreatePermReq Peer %s", 
                           pInst->inst, 
-                          pMsgIn->peerTrnspAddrStr[i]); 
+                          sockaddr_toString((struct sockaddr *)&pMsgIn->peerTrnspAddr[i],
+                                            addrStr,
+                                            SOCKADDR_MAX_STRLEN,
+                                            true)); 
 
             BuildCreatePermReq(pInst, &stunReqMsg);
             SendTurnReq(pInst, &stunReqMsg);
@@ -2077,9 +2178,17 @@ static void  TurnState_Allocated(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uin
         case TURN_SIGNAL_ChannelBindReq:
         {
             TurnChannelBindInfo_T *pMsgIn = (TurnChannelBindInfo_T *)payload;
+            char addrStr[SOCKADDR_MAX_STRLEN];
             StoreChannelBindReq(pInst, pMsgIn);
-            TurnPrint(pInst->threadCtx, TurnInfoCategory_Info, "<TURNCLIENT:%02d> ChannelBindReq chan: %d Peer %s", 
-                      pInst->inst, pMsgIn->channelNumber, pMsgIn->peerTrnspAddrStr); 
+            TurnPrint(pInst->threadCtx, 
+                      TurnInfoCategory_Info, 
+                      "<TURNCLIENT:%02d> ChannelBindReq chan: %d Peer %s", 
+                      pInst->inst, 
+                      pMsgIn->channelNumber, 
+                      sockaddr_toString((struct sockaddr *)&pMsgIn->peerTrnspAddr,
+                                            addrStr,
+                                            SOCKADDR_MAX_STRLEN,
+                                            true)); 
 
             if (isMsStun(pInst))
                 BuildSetActiveDestReq(pInst, &stunReqMsg);

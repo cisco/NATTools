@@ -21,6 +21,8 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdarg.h>
+#include <netinet/in.h>
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -259,7 +261,7 @@ typedef struct
 typedef struct
 {
     uint16_t port;
-    uint32_t addr[4];
+    uint8_t addr[16];
 } StunAddress6;
 
 typedef struct
@@ -477,11 +479,11 @@ typedef struct
 } StunMessage;
 
 /* Defines how a user of stun sends data on e.g. socket */
-typedef int (*STUN_SENDFUNC)(int      sockHandle,    /* context - e.g. socket handle */
-                             uint8_t *buffer,        /* ptr to buffer to send */
-                             int      bufLen,        /* length of send buffer */
-                             char    *dstAddr,       /* Format "a.b.c.d:port". Optional, if connected to socket */
-                             void    *userCtxData);  /* User context data. Optional */
+typedef int (*STUN_SENDFUNC)(int              sockHandle,    /* context - e.g. socket handle */
+                             uint8_t         *buffer,        /* ptr to buffer to send */
+                             int              bufLen,        /* length of send buffer */
+                             struct sockaddr *dstAddr,       /* Optional, if connected to socket */
+                             void            *userCtxData);  /* User context data. Optional */
 
 
 /* Defines how errors are reported */
@@ -658,7 +660,7 @@ char const *stunlib_getErrorReason(uint16_t errorClass, uint16_t errorNumber);
 
 void stunlib_setIP4Address(StunIPAddress* pIpAdr, uint32_t addr, uint16_t port);
 /* Addr is 4 long. With most significant DWORD in pos 0 */
-void stunlib_setIP6Address(StunIPAddress *pIpAdr, uint32_t addr[], uint16_t port);
+void stunlib_setIP6Address(StunIPAddress *pIpAdr, uint8_t addr[16], uint16_t port);
 int stunlib_compareIPAddresses(StunIPAddress *pS1, StunIPAddress *pS2);
 
 
@@ -696,9 +698,6 @@ void stunlib_createMD5Key(unsigned char *md5key, char *userName, char *realm, ch
 /* helpers */
 char *stunlib_transactionIdtoStr(char* s, StunMsgId tId);
 void  stunlib_transactionIdDump(StunMsgId tId);
-
-void stunlib_ipv4IntToChar(char *str, uint32_t addr);
-bool stunlib_ipv4CharToInt(uint32_t *addr, const char *str);
 
 
 #if 0

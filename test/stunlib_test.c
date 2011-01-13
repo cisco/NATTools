@@ -4,6 +4,7 @@
 #include <check.h>
 
 #include "stunlib.h"
+#include "sockaddr_util.h"
 
 static unsigned char req[] =
     "\x00\x01\x00\x58"  //   Request type and message length
@@ -101,8 +102,6 @@ static const uint32_t priority = 1845494271;
 static const uint64_t tieBreaker = 0x932FF9B151263B36LL;
 static const uint32_t xorMapped = 3221225985U; /*192.0.2.1*/
 static const uint16_t port = 32853;
-
-static uint32_t xorMapped_v6[] = {536939960, 305419896, 1122867, 1146447479};
 
 const char *software= "STUN test client\0";
 const char *software_resp= "test vector\0";
@@ -269,6 +268,12 @@ END_TEST
 START_TEST (response_decode_IPv6)
 {
     StunMessage stunMsg;
+    struct sockaddr_storage a;
+    struct sockaddr_storage b;
+
+    sockaddr_initFromString((struct sockaddr*)&b, "[2001:db8:1234:5678:11:2233:4455:6677]:32853");
+
+    
 
     fail_unless( stunlib_DecodeMessage( respv6,
                                         96,
@@ -283,7 +288,14 @@ START_TEST (response_decode_IPv6)
     fail_unless( stunMsg.msgHdr.msgType == STUN_MSG_BindResponseMsg );
 
     fail_unless( stunMsg.hasXorMappedAddress );
-    fail_unless( memcmp(&stunMsg.xorMappedAddress.addr.v6.addr, &xorMapped_v6, 4) == 0 );
+    
+    sockaddr_initFromIPv6Int((struct sockaddr_in6 *)&a,
+                             stunMsg.xorMappedAddress.addr.v6.addr, 
+                             htons(stunMsg.xorMappedAddress.addr.v6.port));
+    
+    fail_unless( sockaddr_alike((struct sockaddr *)&a,
+                                (struct sockaddr *)&b) );
+    
     fail_unless( stunMsg.xorMappedAddress.addr.v6.port == port );
 
     fail_unless( stunMsg.hasSoftware);
@@ -299,6 +311,11 @@ START_TEST (response_encode_IPv6)
     StunMessage stunMsg;
 
     unsigned char stunBuf[120];
+
+    struct sockaddr_storage b;
+
+    sockaddr_initFromString((struct sockaddr*)&b, "[2001:db8:1234:5678:11:2233:4455:6677]:32853");
+
 
     memset(&stunMsg, 0, sizeof(StunMessage));
     stunMsg.msgHdr.msgType = STUN_MSG_BindResponseMsg;
@@ -316,7 +333,7 @@ START_TEST (response_encode_IPv6)
 
     /*Mapped Address*/
     stunMsg.hasXorMappedAddress = true;
-    stunlib_setIP6Address(&stunMsg.xorMappedAddress, xorMapped_v6, port);
+    stunlib_setIP6Address(&stunMsg.xorMappedAddress, ((struct sockaddr_in6 *)&b)->sin6_addr.s6_addr, port);
 
 
     fail_unless( stunlib_addSoftware(&stunMsg, software_resp, '\x20') );
@@ -344,7 +361,7 @@ START_TEST (keepalive_resp_encode)
     StunMessage stunMsg;
     StunMsgId transId;
     StunIPAddress ipAddr;
-    uint32_t ip6Addr[] = {0x11223344,0x55667788,0x99AABBCC,0xDDEEFF00};
+    uint8_t ip6Addr[16] = {0x20, 0x1, 0x4, 0x70, 0xdc, 0x88, 0x0, 0x2, 0x2, 0x26, 0x18, 0xff, 0xfe, 0x92, 0x6d, 0x53};
     uint32_t i;
     uint8_t encBuf[STUN_MAX_PACKET_SIZE];
     int encLen;
@@ -568,7 +585,7 @@ START_TEST( xor_encode_decode )
     StunMessage stunMsg;
     unsigned char stunBuf[STUN_MAX_PACKET_SIZE];
     int encLen;
-    uint32_t ip6Addr[] = {0x11223344,0x55667788,0x99AABBCC,0xDDEEFF00};
+    uint8_t ip6Addr[] = {0x20, 0x1, 0x4, 0x70, 0xdc, 0x88, 0x0, 0x2, 0x2, 0x26, 0x18, 0xff, 0xfe, 0x92, 0x6d, 0x53};
 
     memset(&stunMsg, 0, sizeof(StunMessage));
     stunMsg.msgHdr.msgType = STUN_MSG_AllocateRequestMsg;

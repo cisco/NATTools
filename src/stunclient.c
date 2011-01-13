@@ -42,6 +42,8 @@
 
 #include "turnclient.h"
 
+#include "sockaddr_util.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -135,18 +137,6 @@ static void StunPrint(uint32_t threadCtx, StunInfoCategory_T category, const cha
     
     va_end(ap);
 }
-
-/* extract port from  "a.b.c.d:port"  */
-static uint16_t getPortFromAddrStr(const  char *s)
-{
-    uint16_t port=0;
-    char *pPortPos = strchr(s, ':');
-
-    if (pPortPos)
-        sscanf(pPortPos+1, "%hd", &port);
-    return port;
-}
-
 
 /* debug,trace */
 static STUN_SIGNAL StunMsgToInternalStunSig(uint32_t threadCtx, StunMessage *msg)
@@ -270,24 +260,24 @@ void StunClient_HandleTick(uint32_t threadCtx)
 }
 
 
-int  StunClient_startBindTransaction(uint32_t           threadCtx,
+int  StunClient_startBindTransaction(uint32_t            threadCtx,
                                      void               *userCtx,
-                                     char               *serverAddr,
-                                     char               *baseAddr,
-                                     bool               useRelay,
+                                     struct sockaddr    *serverAddr,
+                                     struct sockaddr    *baseAddr,
+                                     bool                useRelay,
                                      char               *ufrag,
                                      char               *password,
-                                     uint32_t           peerPriority,
-                                     bool               useCandidate,
-                                     bool               iceControlling,
-                                     uint64_t           tieBreaker,
-                                     StunMsgId          transactionId,
-                                     uint32_t           sockhandle,
-                                     STUN_SENDFUNC      sendFunc,
+                                     uint32_t            peerPriority,
+                                     bool                useCandidate,
+                                     bool                iceControlling,
+                                     uint64_t            tieBreaker,
+                                     StunMsgId           transactionId,
+                                     uint32_t            sockhandle,
+                                     STUN_SENDFUNC       sendFunc,
                                      uint32_t           *timeoutList,
-                                     STUNCB             stunCbFunc,
+                                     STUNCB              stunCbFunc,
                                      StunCallBackData_T *stunCbData,
-                                     int                turnInst)
+                                     int                 turnInst)
 {
 
     StunBindReqStuct m;
@@ -303,8 +293,8 @@ int  StunClient_startBindTransaction(uint32_t           threadCtx,
     memset(&m, 0, sizeof(m));
     m.threadCtx = threadCtx;
     m.userCtx        = userCtx;
-    strncpy(m.serverAddr, serverAddr, sizeof(m.serverAddr));
-    strncpy(m.baseAddr, baseAddr, sizeof(m.baseAddr));
+    sockaddr_copy((struct sockaddr *)&m.serverAddr, serverAddr);
+    sockaddr_copy((struct sockaddr *)&m.baseAddr, baseAddr);
     strncpy(m.ufrag, ufrag, sizeof(m.ufrag));
     strncpy(m.password,   password, sizeof(m.password));
     m.useRelay = useRelay;
@@ -336,7 +326,7 @@ int  StunClient_startBindTransaction(uint32_t           threadCtx,
 }
 
 
-int  StunClient_HandleIncResp(uint32_t threadCtx, StunMessage *msg, char *srcAddrStr)
+int  StunClient_HandleIncResp(uint32_t threadCtx, StunMessage *msg, struct sockaddr *srcAddr)
 {
     int i;
 
@@ -352,7 +342,7 @@ int  StunClient_HandleIncResp(uint32_t threadCtx, StunMessage *msg, char *srcAdd
         {
             StunRespStruct m;
             memcpy(&m.stunRespMessage, msg, sizeof(m.stunRespMessage));
-            strncpy(m.srcAddr, srcAddrStr, sizeof(m.srcAddr));
+            sockaddr_copy((struct sockaddr *)&m.srcAddr, srcAddr);
             StunClientMain(threadCtx,i, StunMsgToInternalStunSig(threadCtx, msg), (void*)&m);
             return i;
         }
@@ -404,23 +394,35 @@ static bool CreateConnectivityBindingResp(uint32_t threadCtx,
                                           StunMessage *stunMsg,
                                           StunMsgId transactionId,
                                           char *userName,
-                                          char *mappedAddrStr,
-                                          uint16_t mappedPort)
+                                          struct sockaddr *mappedSockAddr)
 {
     StunIPAddress mappedAddr;
+
+
+    if (!sockaddr_isSet((struct sockaddr *)mappedSockAddr)){
+        return false;
+    }
 
     memset(stunMsg, 0, sizeof(StunMessage));
     stunMsg->msgHdr.msgType = STUN_MSG_BindResponseMsg;
     
-    mappedAddr.familyType =  STUN_ADDR_IPv4Family;
-    mappedAddr.addr.v4.port = mappedPort;
+    if (mappedSockAddr->sa_family == AF_INET){
 
-    if(!stunlib_ipv4CharToInt(&mappedAddr.addr.v4.addr, mappedAddrStr))
-    {
-        StunPrint(threadCtx, StunInfoCategory_Error, "<STUNCLIENT>  CreateConnectivityBindingResp Unable to convert ipaddr str to int ('%s')\n", mappedAddrStr);
+        mappedAddr.familyType =  STUN_ADDR_IPv4Family;
+        mappedAddr.addr.v4.port = ((struct sockaddr_in *)mappedSockAddr)->sin_port;
+        mappedAddr.addr.v4.addr = ((struct sockaddr_in *)mappedSockAddr)->sin_addr.s_addr;
+
+    }else if (mappedSockAddr->sa_family == AF_INET6){
+        mappedAddr.familyType =  STUN_ADDR_IPv6Family;
+        mappedAddr.addr.v6.port = ((struct sockaddr_in6 *)mappedSockAddr)->sin6_port;
+        memcpy( mappedAddr.addr.v6.addr ,
+                ((struct sockaddr_in6 *)mappedSockAddr)->sin6_addr.s6_addr,
+                sizeof(mappedAddr.addr.v6.addr) );
+        
+    }else{
+
         return false;
     }
-
 
     /*id*/
     stunMsg->msgHdr.id = transactionId;
@@ -460,15 +462,15 @@ void StunClientClearStats(void)
 
 
 
-static bool SendConnectivityBindResponse(uint32_t    threadCtx, 
-                                         int32_t     globalSocketId,
-                                         StunMessage *stunRespMsg, 
-                                         char        *password,
-                                         char        *dstAddr,
-                                         void        *userData,
-                                         STUN_SENDFUNC sendFunc,
-                                         bool        useRelay,
-                                         int         turnInst)
+static bool SendConnectivityBindResponse(uint32_t         threadCtx, 
+                                         int32_t          globalSocketId,
+                                         StunMessage     *stunRespMsg, 
+                                         char            *password,
+                                         struct sockaddr *dstAddr,
+                                         void            *userData,
+                                         STUN_SENDFUNC    sendFunc,
+                                         bool             useRelay,
+                                         int              turnInst)
 {
     uint8_t stunBuff[STUN_MAX_PACKET_SIZE];
     int stunLen;
@@ -493,7 +495,8 @@ static bool SendConnectivityBindResponse(uint32_t    threadCtx,
     {
         /* tunnel the BindResp in a Turn SendInd */
         uint8_t TxBuff[STUN_MAX_PACKET_SIZE];
-        char    TurnServerAddr[IPV4_ADDR_LEN_WITH_PORT];
+        struct sockaddr_storage TurnServerAddr;
+        char turnservaddrStr[SOCKADDR_MAX_STRLEN];
         int turnLen;
 
         /* encode a turn SendIndication, put the BindReq in the data attribute */
@@ -502,20 +505,31 @@ static bool SendConnectivityBindResponse(uint32_t    threadCtx,
                                               STUN_MAX_PACKET_SIZE,
                                               stunLen,                      /* len of encoded DataAttr (BindReq) */
                                               dstAddr,                      /* peer address */  
-                                              getPortFromAddrStr(dstAddr),  /* peer port */
                                               false,                        /* no  MsStun yet TBD ..*/
                                               RTP_STUN_THREAD_CTX,          /* no  MsStun yet TBD ..*/
                                               turnInst);                    /* turninst, only msStun */
 
-        StunPrint(threadCtx, StunInfoCategory_Trace, "<STUNCLIENT> OUT --> STUN: %s Len=%i to %s", 
-                  stunlib_getMessageName(stunRespMsg->msgHdr.msgType), turnLen, TurnClientGetActiveTurnServerAddr(RTP_STUN_THREAD_CTX, turnInst, TurnServerAddr));  
-
+        TurnClientGetActiveTurnServerAddr( RTP_STUN_THREAD_CTX, 
+                                           turnInst, 
+                                           (struct sockaddr *)&TurnServerAddr);
+        
+        StunPrint(threadCtx, 
+                  StunInfoCategory_Trace, 
+                  "<STUNCLIENT> OUT --> STUN: %s Len=%i to %s", 
+                  stunlib_getMessageName(stunRespMsg->msgHdr.msgType), 
+                  turnLen, 
+                  sockaddr_toString((struct sockaddr *)&TurnServerAddr, 
+                                    turnservaddrStr, 
+                                    SOCKADDR_MAX_STRLEN,
+                                    true));  
+        
         /* send to turn server */
         sendFunc(globalSocketId,
                  TxBuff,
                  turnLen,
-                 TurnClientGetActiveTurnServerAddr(RTP_STUN_THREAD_CTX, turnInst, TurnServerAddr),
+                 (struct sockaddr *)&TurnServerAddr,
                  userData);
+    
         StunClientStats.BindRespSent_ViaRelay++;
     }
     else
@@ -531,25 +545,27 @@ static bool SendConnectivityBindResponse(uint32_t    threadCtx,
 }
 
 /********* Server handling of STUN BIND RESP *************/
-void StunServer_SendConnectivityBindingResp(uint32_t     threadCtx,
-                                                int32_t      globalSocketId,
-                                                StunMsgId    transactionId,
-                                                char         *username,
-                                                char         *password,
-                                                char         *mappedAddrStr,
-                                                uint16_t      mappedPort,
-                                                char         *dstAddr,
-                                                void         *userData,
-                                                STUN_SENDFUNC sendFunc,
-                                                bool         useRelay,
-                                                int          turnInst)
+void StunServer_SendConnectivityBindingResp(uint32_t             threadCtx,
+                                            int32_t          globalSocketId,
+                                            StunMsgId        transactionId,
+                                            char            *username,
+                                            char            *password,
+                                            struct sockaddr *mappedAddr,
+                                            struct sockaddr *dstAddr,
+                                            void            *userData,
+                                            STUN_SENDFUNC    sendFunc,
+                                            bool             useRelay,
+                                            int              turnInst)
                                             
 {
     StunMessage stunRespMsg;
 
     /* format */
-    if (CreateConnectivityBindingResp(threadCtx, &stunRespMsg, transactionId, username, 
-                                      mappedAddrStr, mappedPort))
+    if (CreateConnectivityBindingResp(threadCtx, 
+                                      &stunRespMsg, 
+                                      transactionId, 
+                                      username, 
+                                      mappedAddr))
     {
         /* encode and send */
         SendConnectivityBindResponse(threadCtx, globalSocketId, &stunRespMsg, password, 
@@ -872,8 +888,9 @@ static bool  SendStunReq(STUN_INSTANCE_DATA *pInst, StunMessage  *stunReqMsg)
 
     if (pInst->stunBindReq.useRelay)
     {
-        uint8_t TxBuff[STUN_MAX_PACKET_SIZE];
-        char    TurnServerAddr[IPV4_ADDR_LEN_WITH_PORT];
+        uint8_t                    TxBuff[STUN_MAX_PACKET_SIZE];
+        struct sockaddr_storage    TurnServerAddr;
+        char                       TurnServerAddrStr[SOCKADDR_MAX_STRLEN];
         int len;
         
         /* encode a turn SendIndication, put the BindReq in the data attribute */
@@ -881,17 +898,34 @@ static bool  SendStunReq(STUN_INSTANCE_DATA *pInst, StunMessage  *stunReqMsg)
                                               (uint8_t*)pInst->stunReqMsgBuf, /* DataAttr=encoded BindReq */
                                               STUN_MAX_PACKET_SIZE,
                                               pInst->stunReqMsgBufLen,        /* len of encoded DataAttr (BindReq) */
-                                              pInst->stunBindReq.serverAddr,  /* peer address */  
-                                              getPortFromAddrStr(pInst->stunBindReq.serverAddr),
+                                              (struct sockaddr *)&pInst->stunBindReq.serverAddr,  /* peer address */  
                                               false,                        /* no MsStun yet  TBD ..*/
                                               RTP_STUN_THREAD_CTX,          /* no  MsStun yet TBD ..*/
                                               pInst->stunBindReq.turnInst); /* turnInst */
 
-        StunPrint(pInst->threadCtx, StunInfoCategory_Trace, "<STUNCLIENT:%02d> OUT --> STUN: %s Len=%i to peer %s via %s", 
-                  pInst->inst, stunlib_getMessageName(stunReqMsg->msgHdr.msgType), pInst->stunReqMsgBufLen, pInst->stunBindReq.serverAddr,
-                  TurnClientGetActiveTurnServerAddr(RTP_STUN_THREAD_CTX, pInst->stunBindReq.turnInst, TurnServerAddr)); 
+        TurnClientGetActiveTurnServerAddr(RTP_STUN_THREAD_CTX, 
+                                          pInst->stunBindReq.turnInst, 
+                                          (struct sockaddr *)&TurnServerAddr);
 
-        strncpy(pInst->stunBindReq.serverAddr, TurnClientGetActiveTurnServerAddr(RTP_STUN_THREAD_CTX, pInst->stunBindReq.turnInst, TurnServerAddr), sizeof(pInst->stunBindReq.serverAddr));
+        StunPrint(pInst->threadCtx, 
+                  StunInfoCategory_Trace, 
+                  "<STUNCLIENT:%02d> OUT --> STUN: %s Len=%i to peer %s via %s", 
+                  pInst->inst, 
+                  stunlib_getMessageName(stunReqMsg->msgHdr.msgType), 
+                  pInst->stunReqMsgBufLen, 
+                  pInst->stunBindReq.serverAddr,
+                  sockaddr_toString((struct sockaddr *)&TurnServerAddr, 
+                                    TurnServerAddrStr,
+                                    SOCKADDR_MAX_STRLEN, 
+                                    true));  
+        
+        
+
+
+        sockaddr_copy((struct sockaddr *)&pInst->stunBindReq.serverAddr, 
+                      (struct sockaddr *)&TurnServerAddr);
+
+
         memcpy(pInst->stunReqMsgBuf, TxBuff, len); 
         pInst->stunReqMsgBufLen = len;
         StunClientStats.BindReqSent_ViaRelay++;
@@ -903,7 +937,7 @@ static bool  SendStunReq(STUN_INSTANCE_DATA *pInst, StunMessage  *stunReqMsg)
     pInst->stunBindReq.sendFunc(pInst->stunBindReq.sockhandle,
                                 pInst->stunReqMsgBuf,
                                 pInst->stunReqMsgBufLen,
-                                pInst->stunBindReq.serverAddr,
+                                (struct sockaddr *)&pInst->stunBindReq.serverAddr,
                                 pInst->stunBindReq.userCtx);
     
     StunClientStats.BindReqSent++;
@@ -930,7 +964,7 @@ static void RetransmitLastReq(STUN_INSTANCE_DATA *pInst)
     pInst->stunBindReq.sendFunc(pInst->stunBindReq.sockhandle,
                                 pInst->stunReqMsgBuf,
                                 pInst->stunReqMsgBufLen,
-                                pInst->stunBindReq.serverAddr,
+                                (struct sockaddr *)&pInst->stunBindReq.serverAddr,
                                 pInst->stunBindReq.userCtx);
 }
 
@@ -1007,15 +1041,23 @@ static void InitRetryCounters(STUN_INSTANCE_DATA *pInst)
 
 static bool StoreBindResp(STUN_INSTANCE_DATA *pInst, StunMessage *pResp)
 {
-    char addr[IPV4_ADDR_LEN];
+    struct sockaddr_storage addr;
 
     if (pResp->hasXorMappedAddress)
     {
-        stunlib_ipv4IntToChar(addr, pResp->xorMappedAddress.addr.v4.addr);
-        strncpy(pInst->rflxAddr,
-                addr,
-                IPV4_ADDR_LEN);
-        pInst->rflxPort = pResp->xorMappedAddress.addr.v4.port;
+        if (pResp->xorMappedAddress.familyType == STUN_ADDR_IPv4Family){
+            sockaddr_initFromIPv4Int((struct sockaddr_in *)&addr, 
+                                     pResp->xorMappedAddress.addr.v4.addr,
+                                     pResp->xorMappedAddress.addr.v4.port);
+        }
+        else if (pResp->xorMappedAddress.familyType == STUN_ADDR_IPv6Family){
+            sockaddr_initFromIPv6Int((struct sockaddr_in6 *)&addr, 
+                                     pResp->xorMappedAddress.addr.v6.addr,
+                                     pResp->xorMappedAddress.addr.v6.port);
+        }
+        sockaddr_copy((struct sockaddr *)&pInst->rflxAddr,
+                      (struct sockaddr *)&addr);
+        
         return true;
     }
     else
@@ -1025,7 +1067,7 @@ static bool StoreBindResp(STUN_INSTANCE_DATA *pInst, StunMessage *pResp)
     }
 }
 
-static void  BindRespCallback(STUN_INSTANCE_DATA *pInst, char *srcAddr)
+static void  BindRespCallback(STUN_INSTANCE_DATA *pInst, struct sockaddr *srcAddr)
 {
     StunCallBackData_T *pRes = pInst->stunBindReq.stunCbData;
     StunBindResp       *pData;
@@ -1040,9 +1082,11 @@ static void  BindRespCallback(STUN_INSTANCE_DATA *pInst, char *srcAddr)
         memcpy(pData->rflxAddr, pInst->rflxAddr, sizeof(pData->rflxAddr));
         pData->rflxPort = pInst->rflxPort;
         
-        strncpy(pRes->srcAddrStr, srcAddr, sizeof(pRes->srcAddrStr));
+        sockaddr_copy((struct sockaddr *)&pRes->srcAddrStr, 
+                      srcAddr);
 
-        strncpy(pRes->dstBaseAddrStr, pInst->stunBindReq.baseAddr, sizeof(pRes->dstBaseAddrStr));
+        sockaddr_copy((struct sockaddr*)&pRes->dstBaseAddrStr, 
+                      (struct sockaddr*)&pInst->stunBindReq.baseAddr);
         //printf("<stunclient> Response base addr: '%s'\n", pInst->stunBindReq.baseAddr );
 
         StunPrint(pInst->threadCtx, StunInfoCategory_Info, "<STUNCLIENT:%02d> BindResp Rflx: %s:%d from src: %s",
@@ -1126,7 +1170,7 @@ static void  StunState_WaitBindResp(STUN_INSTANCE_DATA *pInst, STUN_SIGNAL sig, 
             StopTimer(pInst, STUN_SIGNAL_TimerRetransmit);
             if (StoreBindResp(pInst, pResp))
             {
-                BindRespCallback(pInst, pMsgIn->srcAddr); 
+                BindRespCallback(pInst, (struct sockaddr *)&pMsgIn->srcAddr); 
             }
             else
             {
@@ -1190,7 +1234,7 @@ static void  StunState_Cancelled(STUN_INSTANCE_DATA *pInst, STUN_SIGNAL sig, uin
             StopTimer(pInst, STUN_SIGNAL_TimerRetransmit);
             if (StoreBindResp(pInst, pResp))
             {
-                BindRespCallback(pInst, pMsgIn->srcAddr); 
+                BindRespCallback(pInst, (struct sockaddr *)&pMsgIn->srcAddr); 
             }
             else
             {

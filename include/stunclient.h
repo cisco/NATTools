@@ -69,11 +69,11 @@ typedef struct
 /* Signalled back to the caller as a paramter in the TURN callback (see TURNCB) */
 typedef struct
 {
-    StunMsgId       msgId;
-    StunResult_T    stunResult;
-    StunBindResp    bindResp;
-    char            srcAddrStr[IPV4_ADDR_LEN_WITH_PORT];
-    char            dstBaseAddrStr[IPV4_ADDR_LEN_WITH_PORT]; //The destination seen from the sender of the response
+    StunMsgId               msgId;
+    StunResult_T            stunResult;
+    StunBindResp            bindResp;
+    struct sockaddr_storage srcAddrStr;
+    struct sockaddr_storage dstBaseAddrStr; //The destination seen from the sender of the response
 } StunCallBackData_T;
 
 
@@ -193,24 +193,24 @@ bool StunClient_Init(uint32_t threadCtx,
  *         
  *     returns          -  Turn instance/context. Application should store this in further calls to TurnClient_StartChannelBindReq(), TurnClient_HandleIncResp(). 
  */
-int  StunClient_startBindTransaction(uint32_t           threadCtx,
+int  StunClient_startBindTransaction(uint32_t            threadCtx,
                                      void               *userCtx,
-                                     char               *serverAddr,
-                                     char               *baseAddr,
-                                     bool               useRelay,
+                                     struct sockaddr    *serverAddr,
+                                     struct sockaddr    *baseAddr,
+                                     bool                useRelay,
                                      char               *ufrag,
                                      char               *password,
-                                     uint32_t           peerPriority,
-                                     bool               useCandidate,
-                                     bool               iceControlling,
-                                     uint64_t           tieBreaker,
-                                     StunMsgId          transactionId,
-                                     uint32_t           sockhandle,
-                                     STUN_SENDFUNC      sendFunc,
+                                     uint32_t            peerPriority,
+                                     bool                useCandidate,
+                                     bool                iceControlling,
+                                     uint64_t            tieBreaker,
+                                     StunMsgId           transactionId,
+                                     uint32_t            sockhandle,
+                                     STUN_SENDFUNC       sendFunc,
                                      uint32_t           *timeoutList,
-                                     STUNCB             stunCbFunc,
+                                     STUNCB              stunCbFunc,
                                      StunCallBackData_T *stunCbData,
-                                     int                turnInst);
+                                     int                 turnInst);
 
 
 
@@ -229,7 +229,7 @@ void StunClient_HandleTick(uint32_t threadCtx);
  * return - instance/ctx. 
  *
  */
-int StunClient_HandleIncResp(uint32_t threadCtx, StunMessage *msg, char *srcAddrStr);
+int StunClient_HandleIncResp(uint32_t threadCtx, StunMessage *msg, struct sockaddr *srcAddr);
 
 
 /*  
@@ -250,18 +250,17 @@ int StunClient_cancelBindingTransaction(uint32_t threadCtx, StunMsgId transactio
 
 
 /********* Server handling: send STUN BIND RESP *************/
-void StunServer_SendConnectivityBindingResp(uint32_t     threadCtx,
-                                                int32_t      globalSocketId,
-                                                StunMsgId    transactionId,
-                                                char         *username,
-                                                char         *password,
-                                                char         *mappedAddrStr,
-                                                uint16_t      mappedPort,
-                                                char         *dstAddr,
-                                                void         *userData,
-                                                STUN_SENDFUNC sendFunc,
-                                                bool         useRelay,
-                                                int          turnInst);
+void StunServer_SendConnectivityBindingResp(uint32_t         threadCtx,
+                                            int32_t          globalSocketId,
+                                            StunMsgId        transactionId,
+                                            char            *username,
+                                            char            *password,
+                                            struct sockaddr *mappedAddrStr,
+                                            struct sockaddr *dstAddr,
+                                            void            *userData,
+                                            STUN_SENDFUNC    sendFunc,
+                                            bool             useRelay,
+                                            int          turnInst);
 
 /********** Server handling:  incoming STUN BIND REQ **********/
 bool StunServer_HandleStunIncomingBindReqMsg(uint32_t     threadCtx,

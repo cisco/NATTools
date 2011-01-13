@@ -50,32 +50,32 @@ typedef enum {
 
 /* Internal message formats */          
 typedef struct {
-    uint32_t           threadCtx;
-    void               *userCtx;
-    char               serverAddr[IPV4_ADDR_LEN_WITH_PORT];
-    char               baseAddr[IPV4_ADDR_LEN_WITH_PORT];
-    bool               useRelay;
-    char               ufrag[300];    //TBD  =  ICE_MAX_UFRAG_LENGTH
-    char               password[300]; // TBD = ICE_MAX_PASSWD_LENGTH
-    uint32_t           peerPriority;
-    bool               useCandidate;
-    bool               iceControlling;
-    uint64_t           tieBreaker;
-    StunMsgId          transactionId;
-    uint32_t           sockhandle;
-    STUN_SENDFUNC      sendFunc;
-    uint32_t           *timeoutList;
-    STUNCB             stunCbFunc;
-    StunCallBackData_T *stunCbData;
-    uint32_t           stunTimeoutList[STUNCLIENT_MAX_RETRANSMITS];
-    int                turnInst;
+    uint32_t                 threadCtx;
+    void                    *userCtx;
+    struct sockaddr_storage  serverAddr;
+    struct sockaddr_storage  baseAddr;
+    bool                     useRelay;
+    char                     ufrag[300];    //TBD  =  ICE_MAX_UFRAG_LENGTH
+    char                     password[300]; // TBD = ICE_MAX_PASSWD_LENGTH
+    uint32_t                 peerPriority;
+    bool                     useCandidate;
+    bool                     iceControlling;
+    uint64_t                 tieBreaker;
+    StunMsgId                transactionId;
+    uint32_t                 sockhandle;
+    STUN_SENDFUNC            sendFunc;
+    uint32_t                *timeoutList;
+    STUNCB                   stunCbFunc;
+    StunCallBackData_T      *stunCbData;
+    uint32_t                 stunTimeoutList[STUNCLIENT_MAX_RETRANSMITS];
+    int                      turnInst;
 } StunBindReqStuct;
 
 
 typedef struct
 {
-    char               srcAddr[IPV4_ADDR_LEN_WITH_PORT];
-    StunMessage        stunRespMessage;
+    struct sockaddr_storage srcAddr;
+    StunMessage             stunRespMessage;
 }
 StunRespStruct;
 

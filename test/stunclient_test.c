@@ -6,6 +6,7 @@
 
 #include "turnclient.h"
 #include "turn_intern.h"
+#include "sockaddr_util.h"
 
 Suite * stunclient_suite (void);
 
@@ -54,11 +55,11 @@ static void  PrintTurnInfo(TurnInfoCategory_T category, char *ErrStr)
 }
 
 
-static int SendRawStun(int globalSocketId, 
-                       uint8_t *buffer, 
-                       int      bufLen, 
-                       char    *dstAddr,  /* format  "a.b.c.d:port" */ 
-                       void    *userData)
+static int SendRawStun(int              globalSocketId, 
+                       uint8_t         *buffer, 
+                       int              bufLen, 
+                       struct sockaddr *dstAddr,
+                       void            *userData)
 {
     /* find the transaction id  so we can use this in the simulated resp */
     memcpy(&LastTransId, &buffer[8], STUN_MSG_ID_SIZE); 
@@ -68,15 +69,24 @@ static int SendRawStun(int globalSocketId,
 
 static int StartAllocateTransaction(int n)
 {
+    struct sockaddr_storage addr;
+
     CurrAppCtx.a =  AppCtx[n].a = 100+n;
     CurrAppCtx.b =  AppCtx[n].b = 200+n;
+    
+
+
+    sockaddr_initFromString((struct sockaddr*)&addr, "193.200.93.152:3478");
+    
+
+
 
     /* kick off turn */
     return TurnClient_startAllocateTransaction(TEST_THREAD_CTX,
                                                &AppCtx[n],
-                                              "193.200.93.152:3478",
-                                              "pem",
-                                              "pem",
+                                               (struct sockaddr *)&addr,
+                                               "pem",
+                                               "pem",
                                                0,                       /* socket */
                                                SendRawStun,             /* send func */
                                                StunDefaultTimeoutList,  /* timeout list */
@@ -98,7 +108,7 @@ static void SimAllocResp(int ctx, bool relay, bool xorMappedAddr, bool lifetime)
     if (relay)
     {
         m.hasXorRelayAddress = true,
-        stunlib_ipv4CharToInt(&m.xorRelayAddress.addr.v4.addr, "193.200.99.152");
+            m.xorRelayAddress.addr.v4.addr = 3251135384UL;// "193.200.99.152"
         m.xorRelayAddress.addr.v4.port = 42000;
     }
 
@@ -106,7 +116,7 @@ static void SimAllocResp(int ctx, bool relay, bool xorMappedAddr, bool lifetime)
     if (xorMappedAddr)
     {
         m.hasXorMappedAddress = true;
-        stunlib_ipv4CharToInt(&m.xorMappedAddress.addr.v4.addr, "60.44.43.22");
+        m.xorMappedAddress.addr.v4.addr = 1009527574UL;// "60.44.43.22");
         m.xorMappedAddress.addr.v4.port = 43000;
     }
 
@@ -574,9 +584,12 @@ END_TEST
 
 START_TEST (Allocated_ChanBindReqOk)
 {
-    const char *peerIpStr = "192.168.5.22:1234";
-    int ctx = GotoAllocatedState(12);
-    TurnClient_StartChannelBindReq(TEST_THREAD_CTX, ctx, 0x4001, peerIpStr);
+    struct sockaddr_storage peerIp;
+    int ctx;
+    sockaddr_initFromString((struct sockaddr *)&peerIp,"192.168.5.22:1234");
+
+    ctx = GotoAllocatedState(12);
+    TurnClient_StartChannelBindReq(TEST_THREAD_CTX, ctx, 0x4001, (struct sockaddr *)&peerIp);
     TurnClient_HandleTick(TEST_THREAD_CTX);
     Sim_ChanBindResp(ctx, STUN_MSG_ChannelBindResponseMsg, 0, 0);
     TurnClient_HandleTick(TEST_THREAD_CTX);
@@ -591,9 +604,12 @@ END_TEST
 
 START_TEST (Allocated_ChanBindErr)
 {
-    const char *peerIpStr = "192.168.5.22:1234";
-    int ctx = GotoAllocatedState(12);
-    TurnClient_StartChannelBindReq(TEST_THREAD_CTX, ctx, 0x4001, peerIpStr);
+    struct sockaddr_storage peerIp;
+    int ctx;
+    sockaddr_initFromString((struct sockaddr *)&peerIp,"192.168.5.22:1234");
+
+    ctx = GotoAllocatedState(12);
+    TurnClient_StartChannelBindReq(TEST_THREAD_CTX, ctx, 0x4001, (struct sockaddr *)&peerIp);
     TurnClient_HandleTick(TEST_THREAD_CTX);
     Sim_ChanBindResp(ctx, STUN_MSG_ChannelBindErrorResponseMsg, 4, 4);
     TurnClient_HandleTick(TEST_THREAD_CTX);
@@ -643,7 +659,6 @@ Suite * stunclient_suite (void)
       tcase_add_test (tc_allocate, WaitAllocResp_AllocRespErr); 
       tcase_add_test (tc_allocate, WaitAllocResp_Retry);
       tcase_add_test (tc_allocate, Allocated_RefreshOk);
-      /* Error in test case, does not clean up? */
       tcase_add_test (tc_allocate, Allocated_RefreshError);
       tcase_add_test (tc_allocate, Allocated_StaleNonce);
       tcase_add_test (tc_allocate, Allocated_ChanBindReqOk); 

@@ -109,6 +109,14 @@ static void write_64(uint8_t **bufPtr, const uint64_t v)
     (*bufPtr)++;
 }
 
+static void write_8_xor(uint8_t **bufPtr, const uint8_t v, uint8_t *xorId)
+{
+
+    **bufPtr = v ^ xorId[0];
+    (*bufPtr)++;
+}
+
+
 static void write_16_xor(uint8_t **bufPtr, const uint16_t v, uint8_t *xorId)
 {
     **bufPtr = ((v >> 8) & 0xff) ^ xorId[0];
@@ -181,6 +189,15 @@ static void read_64(uint8_t **bufPtr, uint64_t *v)
     *v |= ((uint64_t)**bufPtr)         & 0x0FF; 
     (*bufPtr)++;
 }
+
+
+static void read_8_xor(uint8_t **bufPtr, uint8_t *v, uint8_t *xorId)
+{
+    *v = **bufPtr ^ xorId[0];
+    (*bufPtr)++;
+
+}
+
 
 static void read_16_xor(uint8_t **bufPtr, uint16_t *v, uint8_t *xorId)
 {
@@ -340,10 +357,26 @@ stunEncodeIP6AddrAtr(StunAddress6 *pAddr, uint16_t attrtype, uint8_t **pBuf, int
     write_16(pBuf, 20);        /* Lenght */
     write_16(pBuf, STUN_ADDR_IPv6Family);      /* 8 bit non used, 8 bit for Family */
     write_16(pBuf, pAddr->port);
-    write_32(pBuf, pAddr->addr[0]);
-    write_32(pBuf, pAddr->addr[1]);
-    write_32(pBuf, pAddr->addr[2]);
-    write_32(pBuf, pAddr->addr[3]);
+    //write_32(pBuf, pAddr->addr[0]);
+    //write_32(pBuf, pAddr->addr[1]);
+    //write_32(pBuf, pAddr->addr[2]);
+    //write_32(pBuf, pAddr->addr[3]);
+    write_8(pBuf, pAddr->addr[0]);
+    write_8(pBuf, pAddr->addr[1]);
+    write_8(pBuf, pAddr->addr[2]);
+    write_8(pBuf, pAddr->addr[3]);
+    write_8(pBuf, pAddr->addr[4]);
+    write_8(pBuf, pAddr->addr[5]);
+    write_8(pBuf, pAddr->addr[6]);
+    write_8(pBuf, pAddr->addr[7]);
+    write_8(pBuf, pAddr->addr[8]);
+    write_8(pBuf, pAddr->addr[9]);
+    write_8(pBuf, pAddr->addr[10]);
+    write_8(pBuf, pAddr->addr[11]);
+    write_8(pBuf, pAddr->addr[12]);
+    write_8(pBuf, pAddr->addr[13]);
+    write_8(pBuf, pAddr->addr[14]);
+    write_8(pBuf, pAddr->addr[15]);
     *nBufLen -= 24;
     return true;
 }
@@ -360,10 +393,23 @@ stunEncodeIP6AddrAtrXOR(StunAddress6 *pAddr, uint16_t attrtype, uint8_t **pBuf, 
     write_16(pBuf, 20);        /* Lenght */
     write_16(pBuf, STUN_ADDR_IPv6Family);      /* 8 bit non used, 8 bit for Family (always IPv4) or? */
     write_16_xor(pBuf, pAddr->port, xorId);
-    write_32_xor(pBuf, pAddr->addr[0], xorId);
-    write_32_xor(pBuf, pAddr->addr[1], xorId+4);
-    write_32_xor(pBuf, pAddr->addr[2], xorId+8);
-    write_32_xor(pBuf, pAddr->addr[3], xorId+12);
+    write_8_xor(pBuf, pAddr->addr[0], xorId);
+    write_8_xor(pBuf, pAddr->addr[1], xorId +1);
+    write_8_xor(pBuf, pAddr->addr[2], xorId +2);
+    write_8_xor(pBuf, pAddr->addr[3], xorId +3);
+    write_8_xor(pBuf, pAddr->addr[4], xorId +4);
+    write_8_xor(pBuf, pAddr->addr[5], xorId +5);
+    write_8_xor(pBuf, pAddr->addr[6], xorId +6);
+    write_8_xor(pBuf, pAddr->addr[7], xorId +7);
+    write_8_xor(pBuf, pAddr->addr[8], xorId +8);
+    write_8_xor(pBuf, pAddr->addr[9], xorId +9);
+    write_8_xor(pBuf, pAddr->addr[10], xorId +10);
+    write_8_xor(pBuf, pAddr->addr[11], xorId +11);
+    write_8_xor(pBuf, pAddr->addr[12], xorId +12);
+    write_8_xor(pBuf, pAddr->addr[13], xorId +13);
+    write_8_xor(pBuf, pAddr->addr[14], xorId +14);
+    write_8_xor(pBuf, pAddr->addr[15], xorId +15);
+        
     *nBufLen -= 24;
     return true;
 }
@@ -787,10 +833,27 @@ stunDecodeIPAddrAtr(StunIPAddress *pAddr, uint8_t **pBuf, int *nBufLen)
     {
         if (*nBufLen < 18) return false;
         read_16(pBuf, &pAddr->addr.v6.port);
-        read_32(pBuf, &pAddr->addr.v6.addr[0]);
-        read_32(pBuf, &pAddr->addr.v6.addr[1]);
-        read_32(pBuf, &pAddr->addr.v6.addr[2]);
-        read_32(pBuf, &pAddr->addr.v6.addr[3]);
+        //read_32(pBuf, &pAddr->addr.v6.addr[0]);
+        //read_32(pBuf, &pAddr->addr.v6.addr[1]);
+        //read_32(pBuf, &pAddr->addr.v6.addr[2]);
+        //read_32(pBuf, &pAddr->addr.v6.addr[3]);
+        read_8(pBuf, &pAddr->addr.v6.addr[0]);
+        read_8(pBuf, &pAddr->addr.v6.addr[1]);
+        read_8(pBuf, &pAddr->addr.v6.addr[2]);
+        read_8(pBuf, &pAddr->addr.v6.addr[3]);
+        read_8(pBuf, &pAddr->addr.v6.addr[4]);
+        read_8(pBuf, &pAddr->addr.v6.addr[5]);
+        read_8(pBuf, &pAddr->addr.v6.addr[6]);
+        read_8(pBuf, &pAddr->addr.v6.addr[7]);
+        read_8(pBuf, &pAddr->addr.v6.addr[8]);
+        read_8(pBuf, &pAddr->addr.v6.addr[9]);
+        read_8(pBuf, &pAddr->addr.v6.addr[10]);
+        read_8(pBuf, &pAddr->addr.v6.addr[11]);
+        read_8(pBuf, &pAddr->addr.v6.addr[12]);
+        read_8(pBuf, &pAddr->addr.v6.addr[13]);
+        read_8(pBuf, &pAddr->addr.v6.addr[14]);
+        read_8(pBuf, &pAddr->addr.v6.addr[15]);
+
         *nBufLen -= 20;
     }
     else
@@ -824,10 +887,26 @@ stunDecodeIPAddrAtrXOR(StunIPAddress *pAddr, uint8_t **pBuf, int *nBufLen, StunM
     {
         if (*nBufLen < 18) return false;
         read_16_xor(pBuf, &pAddr->addr.v6.port, xorId);
-        read_32_xor(pBuf, &pAddr->addr.v6.addr[0], xorId);
-        read_32_xor(pBuf, &pAddr->addr.v6.addr[1], (xorId+4));
-        read_32_xor(pBuf, &pAddr->addr.v6.addr[2], (xorId+8));
-        read_32_xor(pBuf, &pAddr->addr.v6.addr[3], (xorId+12));
+        //read_32_xor(pBuf, &pAddr->addr.v6.addr[0], xorId);
+        //read_32_xor(pBuf, &pAddr->addr.v6.addr[1], (xorId+4));
+        //read_32_xor(pBuf, &pAddr->addr.v6.addr[2], (xorId+8));
+        //read_32_xor(pBuf, &pAddr->addr.v6.addr[3], (xorId+12));
+        read_8_xor(pBuf, &pAddr->addr.v6.addr[0], xorId);
+        read_8_xor(pBuf, &pAddr->addr.v6.addr[1], xorId +1);
+        read_8_xor(pBuf, &pAddr->addr.v6.addr[2], xorId +2);
+        read_8_xor(pBuf, &pAddr->addr.v6.addr[3], xorId +3);
+        read_8_xor(pBuf, &pAddr->addr.v6.addr[4], xorId +4);
+        read_8_xor(pBuf, &pAddr->addr.v6.addr[5], xorId +5);
+        read_8_xor(pBuf, &pAddr->addr.v6.addr[6], xorId +6);
+        read_8_xor(pBuf, &pAddr->addr.v6.addr[7], xorId +7);
+        read_8_xor(pBuf, &pAddr->addr.v6.addr[8], xorId +8);
+        read_8_xor(pBuf, &pAddr->addr.v6.addr[9], xorId +9);
+        read_8_xor(pBuf, &pAddr->addr.v6.addr[10], xorId +10);
+        read_8_xor(pBuf, &pAddr->addr.v6.addr[11], xorId +11);
+        read_8_xor(pBuf, &pAddr->addr.v6.addr[12], xorId +12);
+        read_8_xor(pBuf, &pAddr->addr.v6.addr[13], xorId +13);
+        read_8_xor(pBuf, &pAddr->addr.v6.addr[14], xorId +14);
+        read_8_xor(pBuf, &pAddr->addr.v6.addr[15], xorId +15);
         *nBufLen -= 20;
     }
     else
@@ -946,16 +1025,24 @@ stun_printIP4Address(char const * szHead, StunAddress4 * pAdr)
 static void
 stun_printIP6Address(char const * szHead, StunAddress6 *pAdr)
 {
-    printError("  %s \t= {%04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x - %d}\n", szHead,
-           pAdr->addr[0] >> 16 & 0xffff,
-           pAdr->addr[0] & 0xffff,
-           pAdr->addr[1] >> 16 & 0xffff,
-           pAdr->addr[1] & 0xffff,
-           pAdr->addr[2] >> 16 & 0xffff,
-           pAdr->addr[2] & 0xffff,
-           pAdr->addr[3] >> 16 & 0xffff,
-           pAdr->addr[3] & 0xffff,
-           pAdr->port);
+    printError("  %s \t= { %02x%02x : %02x%02x : %02x%02x : %02x%02x : %02x%02x : %02x%02x : %02x%02x : %02x%02x - %d}\n", szHead,
+               pAdr->addr[0],
+               pAdr->addr[1],
+               pAdr->addr[2],
+               pAdr->addr[3],
+               pAdr->addr[4],
+               pAdr->addr[5],
+               pAdr->addr[6],
+               pAdr->addr[7],
+               pAdr->addr[8],
+               pAdr->addr[9],
+               pAdr->addr[10],
+               pAdr->addr[11],
+               pAdr->addr[12],
+               pAdr->addr[13],
+               pAdr->addr[14],
+               pAdr->addr[15],
+               pAdr->port);
 }
 
 
@@ -2186,15 +2273,14 @@ void stunlib_setIP4Address(StunIPAddress *pIpAddr, uint32_t addr, uint16_t port)
 }
 
 
-void stunlib_setIP6Address(StunIPAddress *pIpAddr, uint32_t addr[], uint16_t port)
+void stunlib_setIP6Address(StunIPAddress *pIpAddr, uint8_t addr[16], uint16_t port)
 {
-    int i;
     if (pIpAddr)
     {
         pIpAddr->familyType = STUN_ADDR_IPv6Family;
         pIpAddr->addr.v6.port = port;
-        for (i = 0; i < 4; i++)
-            pIpAddr->addr.v6.addr[i] = addr[i];
+                
+        memcpy(&pIpAddr->addr.v6.addr, addr, sizeof(pIpAddr->addr.v6.addr));
     }
 }
 
@@ -2281,34 +2367,5 @@ void stunlib_createMD5Key(unsigned char *md5key, char *userName, char *realm, ch
     MD5((uint8_t *)keyStr, bytes_written , md5key);
 }
 
-void stunlib_ipv4IntToChar(char *str, uint32_t addr){
-
-    uint32_t oct1, oct2, oct3, oct4;
-
-    oct1 = ( (addr>>24) & 0x000000FF);
-    oct2 = ( (addr>>16) & 0x000000FF);
-    oct3 = ( (addr>>8) & 0x000000FF);
-    oct4 = (addr & 0x000000FF);
-
-    sprintf(str, "%u.%u.%u.%u", oct1, oct2, oct3, oct4);
-
-}
-
-bool stunlib_ipv4CharToInt(uint32_t *addr, const char *str)
-{
-    uint32_t oct1, oct2, oct3, oct4;
-
-    int er_no = sscanf(str, "%d.%d.%d.%d", &oct1, &oct2, &oct3, &oct4);
-
-    if ( er_no!=4 || oct1>255 || oct2>255 || oct3>255 || oct4>255 ) return false;
-
-    *addr = (oct1<<24);
-    *addr |= (oct2<<16);
-    *addr |= (oct3<<8);
-    *addr |= oct4;
-
-
-    return true;
-}
 
 

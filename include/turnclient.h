@@ -31,6 +31,8 @@
 
 #include <string.h>
 
+#include <netinet/in.h>
+
 #include "stunlib.h"   /* stun enc/dec and msg formats*/
 
 #ifdef __cplusplus
@@ -88,11 +90,9 @@ typedef enum
  */
 typedef struct
 {
-    char activeTurnServerAddr[IPV4_ADDR_LEN_WITH_PORT];
-    char rflxAddr[IPV4_ADDR_LEN];
-    int  rflxPort;
-    char relAddr[IPV4_ADDR_LEN];
-    int  relPort;
+    struct sockaddr_storage activeTurnServerAddr;
+    struct sockaddr_storage rflxAddr;
+    struct sockaddr_storage relAddr;
 } TurnAllocResp;
 
 
@@ -137,8 +137,8 @@ typedef struct
         uint32_t channelNumber;
         uint32_t expiry;
         bool permissionsInstalled;
-        char BoundPeerTrnspAddrStr[IPV4_ADDR_LEN_WITH_PORT];
-        char PermPeerTrnspAddrStr[TURN_MAX_PERMISSION_PEERS][IPV4_ADDR_LEN_WITH_PORT];
+        struct sockaddr_storage BoundPeerTrnspAddr;
+        struct sockaddr_storage PermPeerTrnspAddr[TURN_MAX_PERMISSION_PEERS];
         uint32_t numberOfPeers; /* in permission */
     } instance[50];
 }
@@ -204,17 +204,17 @@ bool TurnClient_Init(uint32_t  threadCtx,
  *         
  *     returns          -  Turn instance/context. Application should store this in further calls to TurnClient_StartChannelBindReq(), TurnClient_HandleIncResp(). 
  */
-int  TurnClient_startAllocateTransaction(uint32_t           threadCtx,
-                                         void               *userCtx,
-                                         const char         *turnServerAddr,
-                                         const char         *userName,
-                                         const char         *password,
-                                         uint32_t            sockhandle,
-                                         STUN_SENDFUNC       sendFunc,
-                                         uint32_t           *timeoutList,
-                                         TURNCB              TurnCbFunc,
-                                         TurnCallBackData_T *TurnCbData,
-                                         bool                isMsStun);
+int  TurnClient_startAllocateTransaction(uint32_t               threadCtx,
+                                         void                  *userCtx,
+                                         const struct sockaddr *turnServerAddr,
+                                         const char            *userName,
+                                         const char            *password,
+                                         uint32_t               sockhandle,
+                                         STUN_SENDFUNC          sendFunc,
+                                         uint32_t              *timeoutList,
+                                         TURNCB                 TurnCbFunc,
+                                         TurnCallBackData_T    *TurnCbData,
+                                         bool                   isMsStun);
 
 /*
  * Bind Channel Number to peer transport adreess.
@@ -224,10 +224,10 @@ int  TurnClient_startAllocateTransaction(uint32_t           threadCtx,
  *     peerTrnspAddrStr - Peer string in format "a.b.c.d:port"
  *
  */
-bool TurnClient_StartChannelBindReq(uint32_t   threadCtx,
-                                    int        ctx,
-                                    uint32_t   channelNumber,
-                                    const char       *peerTrnspAddrStr);
+bool TurnClient_StartChannelBindReq(uint32_t               threadCtx,
+                                    int                    ctx,
+                                    uint32_t               channelNumber,
+                                    const struct sockaddr *peerTrnspAddr);
 
 /*
  * Create a permission in turn server.  i.e. CreatePermission(List of RemotePeers).
@@ -239,10 +239,10 @@ bool TurnClient_StartChannelBindReq(uint32_t   threadCtx,
  *     peerTrnspAddrStr - Pointer to array of strings in format "a.b.c.d:port". Note - Port is not used in create permission.
  *
  */
-bool TurnClient_StartCreatePermissionReq(uint32_t threadCtx,
-                                         int        ctx,
-                                         uint32_t   noOfPeers,
-                                         char       *peerTrnspAddrStr[]);
+bool TurnClient_StartCreatePermissionReq(uint32_t         threadCtx,
+                                         int              ctx,
+                                         uint32_t         noOfPeers,
+                                         struct sockaddr *peerTrnspAddr[]);
 
 
 /* 
@@ -276,15 +276,14 @@ int TurnClient_HandleIncResp(uint32_t     threadCtx,
  * \param  turnInst         Only reelvant when isMsStun=true. Used to find SeqNr and Username attributes. 
  * Returns encoded length of packet 
  */
-int TurnClient_createSendIndication(unsigned char *stunBuf,
-                                    uint8_t *dataBuf,
-                                    uint32_t maxBufSize,
-                                    uint32_t payloadLength, 
-                                    char     *dstAddr,
-                                    uint16_t dstPort,
-                                    bool     isMsStun,
-                                    uint32_t threadCtx,
-                                    int      turnInst);  
+int TurnClient_createSendIndication(unsigned char   *stunBuf,
+                                    uint8_t         *dataBuf,
+                                    uint32_t         maxBufSize,
+                                    uint32_t         payloadLength, 
+                                    struct sockaddr *dstAddr,
+                                    bool             isMsStun,
+                                    uint32_t         threadCtx,
+                                    int              turnInst);  
 
 
 /* TURN will be active for the duration of the Call Session. 
@@ -294,8 +293,8 @@ int TurnClient_createSendIndication(unsigned char *stunBuf,
  */
 void TurnClient_Deallocate(uint32_t threadCtx, int ctx);
 
-/* Return copy of Active TurnServer address in format  a.b.c.d:port */
-char *TurnClientGetActiveTurnServerAddr(uint32_t threadCtx, int turnInst, char *s);
+/* Store a copy of Active TurnServer address in s */
+void TurnClientGetActiveTurnServerAddr(uint32_t threadCtx, int turnInst, struct sockaddr *s);
 
 /* return header length of SendRequest  (MSSTUN only) */
 uint32_t TurnClientGetSendReqHdrSize(uint32_t threadCtx, int turnInst);

@@ -78,7 +78,7 @@ typedef enum {
 
 /* Internal message formats */
 typedef struct {
-    char                serverAddr[IPV4_ADDR_LEN_WITH_PORT];
+    struct sockaddr     serverAddr;
     char                username[STUN_MSG_MAX_USERNAME_LENGTH];
     char                password[STUN_MSG_MAX_PASSWORD_LENGTH];
     uint32_t            sockhandle;
@@ -116,7 +116,7 @@ typedef enum {
 typedef struct
 {
     uint32_t                 channelNumber;
-    char                     peerTrnspAddrStr[IPV4_ADDR_LEN_WITH_PORT];
+    struct sockaddr_storage  peerTrnspAddr;
     bool                     createPermission;
 }
 TurnChannelBindInfo_T;
@@ -124,7 +124,7 @@ TurnChannelBindInfo_T;
 typedef struct
 {
     uint32_t                 numberOfPeers;
-    char                     peerTrnspAddrStr[TURN_MAX_PERMISSION_PEERS][IPV4_ADDR_LEN_WITH_PORT];
+    struct sockaddr_storage  peerTrnspAddr[TURN_MAX_PERMISSION_PEERS];
 }
 TurnCreatePermissionInfo_T;
 
@@ -147,10 +147,10 @@ typedef struct
     bool channelBound;
 
     /* returned in allocate resp */
-    char  rflxAddr[IPV4_ADDR_LEN];
-    int   rflxPort;
-    char  relAddr[IPV4_ADDR_LEN];
-    int   relPort;
+    
+    struct sockaddr_storage  rflxAddr;
+    struct sockaddr_storage  relAddr;
+    
     uint32_t lifetime;               /* Seconds */
     uint32_t bandwidthKbps;          /* kbps */
     bool   hasMsSeqNr;               /* MS2: Sequence number must be used */
