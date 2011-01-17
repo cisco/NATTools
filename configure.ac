@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.65])
-AC_INIT([FULL-PACKAGE-NAME], [VERSION], [BUG-REPORT-ADDRESS])
+AC_INIT([stunlib], [0.1], [palmarti@cisco.com])
 AC_CONFIG_SRCDIR([include/stunlib.h])
 AC_CONFIG_HEADERS([config.h])
 
