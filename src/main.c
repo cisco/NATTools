@@ -11,9 +11,7 @@
 
 
 #include "turnclient.h"
-
-#define SERVERPORT "4950"    // the port users will be connecting to
-
+#include "sockaddr_util.h"
 
 #define PORT "5793"
 #define  TEST_THREAD_CTX 1
@@ -52,8 +50,7 @@ static int createLocalUDPSocket(int ai_family){
             close(sockfd);
             continue;
         }
-        
-        break;
+            break;
     }
 
     
@@ -65,14 +62,20 @@ static int createLocalUDPSocket(int ai_family){
 
 
 
-static int sendRawUDP(int sockfd, const void *buf, size_t len, struct addrinfo * p){
+static int sendRawUDP(int sockfd, 
+                      const void *buf, 
+                      size_t len, 
+                      struct sockaddr * p, 
+                      socklen_t t){
     
     int numbytes;
-    printf("Sending Raw\n");
+    char addr[256];
+
+    sockaddr_toString(p, addr, 256, true); 
     numbytes = sendto(sockfd, buf, len, 0,
-                      p->ai_addr, p->ai_addrlen); 
+                      p , t); 
                       
-    
+    printf("Sending Raw (To: '%s'(%i), Bytes:%i)\n", addr, t, numbytes);
     return numbytes;
 
 }
@@ -81,30 +84,11 @@ static int sendRawUDP(int sockfd, const void *buf, size_t len, struct addrinfo *
 static int SendRawStun(int sockfd, 
                        uint8_t *buf, 
                        int len, 
-                       char *addr, 
+                       struct sockaddr *addr,
+                       socklen_t t,
                        void *userdata){
 
-
-    struct addrinfo hints, *servinfo;
-    int rv;
-    int numSendt;
-
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_DGRAM;
-
-    printf("Sending to %s\n", addr);
-
-    if ((rv = getaddrinfo("192.168.4.5", SERVERPORT, &hints, &servinfo)) != 0) {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        return -1;
-    }
-
-    numSendt = sendRawUDP(sockfd, buf, len, servinfo);
-
-    freeaddrinfo(servinfo);
-
-    return numSendt;
+    return  sendRawUDP(sockfd, buf, len, addr, t);
 
 }
 
@@ -125,6 +109,7 @@ int main(int argc, char *argv[])
 {
     int sockfd;
     int numbytes;
+    struct sockaddr_storage ss_addr;
     static TurnCallBackData_T TurnCbData;
 
     if (argc != 4) {
@@ -139,9 +124,12 @@ int main(int argc, char *argv[])
     //Turn setup
     TurnClient_Init(TEST_THREAD_CTX, 50, 50, PrintTurnInfo, false, "TestIce");
 
+    sockaddr_initFromString((struct sockaddr *)&ss_addr, 
+                            argv[1]);
+
     TurnClient_startAllocateTransaction(TEST_THREAD_CTX,
                                         NULL,
-                                        "192.268.41.2:3478",
+                                        (struct sockaddr *)&ss_addr,
                                         argv[2],
                                         argv[3],
                                         sockfd,                       /* socket */
@@ -150,13 +138,10 @@ int main(int argc, char *argv[])
                                         TurnStatusCallBack,
                                         &TurnCbData,
                                         false);
-
-
-    //numbytes = sendTo(sockfd, argv[2], sizeof(argv[2]), servinfo);
     
-    
+        
 
-    printf("talker: sent %d bytes to %s\n", numbytes, argv[1]);
+    
     close(sockfd);
 
     return 0;
