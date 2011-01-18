@@ -249,7 +249,12 @@ static void StorePrevRespTransId(TURN_INSTANCE_DATA *pInst, StunMessage  *stunRe
 
 
 
-bool TurnClient_Init(uint32_t threadCtx, int instances, uint32_t tMsec, TURN_INFO_FUNC_PTR InfoFuncPtr, bool MultipleThreadAccess, const char *SwVerStr)
+bool TurnClient_Init(uint32_t threadCtx, 
+                     int instances, 
+                     uint32_t tMsec, 
+                     TURN_INFO_FUNC_PTR InfoFuncPtr, 
+                     bool MultipleThreadAccess, 
+                     const char *SwVerStr)
 {
     MutexLockRequired[threadCtx] = MultipleThreadAccess;
 
@@ -1520,6 +1525,7 @@ static void SendStunKeepAlive(TURN_INSTANCE_DATA *pInst)
                                     buf,
                                     encLen,
                                     &pInst->turnAllocateReq.serverAddr,
+                                    sizeof(pInst->turnAllocateReq.serverAddr),
                                     pInst->turnAllocateReq.userCtx);
 }
 
@@ -1687,6 +1693,7 @@ static bool  SendTurnReq(TURN_INSTANCE_DATA *pInst, StunMessage  *stunReqMsg)
                                     pInst->stunReqMsgBuf,
                                     pInst->stunReqMsgBufLen,
                                     &pInst->turnAllocateReq.serverAddr,
+                                    sizeof(pInst->turnAllocateReq.serverAddr),
                                     pInst->turnAllocateReq.userCtx);
 
     /* store transaction id, so we can match the response */
@@ -1701,6 +1708,7 @@ static void RetransmitLastReq(TURN_INSTANCE_DATA *pInst)
                                     pInst->stunReqMsgBuf,
                                     pInst->stunReqMsgBufLen,
                                     &pInst->turnAllocateReq.serverAddr,
+                                    sizeof(pInst->turnAllocateReq.serverAddr),
                                     pInst->turnAllocateReq.userCtx);
 
 }

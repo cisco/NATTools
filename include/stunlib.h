@@ -483,6 +483,7 @@ typedef int (*STUN_SENDFUNC)(int              sockHandle,    /* context - e.g. s
                              uint8_t         *buffer,        /* ptr to buffer to send */
                              int              bufLen,        /* length of send buffer */
                              struct sockaddr *dstAddr,       /* Optional, if connected to socket */
+                             socklen_t       t,             /* length of dstAddr */
                              void            *userCtxData);  /* User context data. Optional */
 
 

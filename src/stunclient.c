@@ -467,6 +467,7 @@ static bool SendConnectivityBindResponse(uint32_t         threadCtx,
                                          StunMessage     *stunRespMsg, 
                                          char            *password,
                                          struct sockaddr *dstAddr,
+                                         socklen_t       t,
                                          void            *userData,
                                          STUN_SENDFUNC    sendFunc,
                                          bool             useRelay,
@@ -528,6 +529,7 @@ static bool SendConnectivityBindResponse(uint32_t         threadCtx,
                  TxBuff,
                  turnLen,
                  (struct sockaddr *)&TurnServerAddr,
+                 t,
                  userData);
     
         StunClientStats.BindRespSent_ViaRelay++;
@@ -536,7 +538,7 @@ static bool SendConnectivityBindResponse(uint32_t         threadCtx,
     {
 
         /* send */
-        sendFunc(globalSocketId, stunBuff, stunLen, dstAddr, userData);
+        sendFunc(globalSocketId, stunBuff, stunLen, dstAddr, t,userData);
     }
 
     StunClientStats.BindRespSent++;
@@ -551,7 +553,9 @@ void StunServer_SendConnectivityBindingResp(uint32_t             threadCtx,
                                             char            *username,
                                             char            *password,
                                             struct sockaddr *mappedAddr,
+                                            socklen_t        mappedAddrlen,
                                             struct sockaddr *dstAddr,
+                                            socklen_t        dstAddrLen,
                                             void            *userData,
                                             STUN_SENDFUNC    sendFunc,
                                             bool             useRelay,
@@ -568,8 +572,16 @@ void StunServer_SendConnectivityBindingResp(uint32_t             threadCtx,
                                       mappedAddr))
     {
         /* encode and send */
-        SendConnectivityBindResponse(threadCtx, globalSocketId, &stunRespMsg, password, 
-                                     dstAddr, userData, sendFunc, useRelay, turnInst);
+        SendConnectivityBindResponse(threadCtx, 
+                                     globalSocketId, 
+                                     &stunRespMsg, 
+                                     password, 
+                                     dstAddr, 
+                                     dstAddrLen, 
+                                     userData, 
+                                     sendFunc, 
+                                     useRelay, 
+                                     turnInst);
     }
 }
 
@@ -938,6 +950,7 @@ static bool  SendStunReq(STUN_INSTANCE_DATA *pInst, StunMessage  *stunReqMsg)
                                 pInst->stunReqMsgBuf,
                                 pInst->stunReqMsgBufLen,
                                 (struct sockaddr *)&pInst->stunBindReq.serverAddr,
+                                sizeof(pInst->stunBindReq.serverAddr),
                                 pInst->stunBindReq.userCtx);
     
     StunClientStats.BindReqSent++;
@@ -965,6 +978,7 @@ static void RetransmitLastReq(STUN_INSTANCE_DATA *pInst)
                                 pInst->stunReqMsgBuf,
                                 pInst->stunReqMsgBufLen,
                                 (struct sockaddr *)&pInst->stunBindReq.serverAddr,
+                                sizeof(pInst->stunBindReq.serverAddr),
                                 pInst->stunBindReq.userCtx);
 }
 

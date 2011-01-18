@@ -5,3 +5,5 @@ include_HEADERS = ../include/stunclient.h ../include/stun_intern.h ../include/st
 
 lib_LTLIBRARIES = libstun.la
 libstun_la_SOURCES = stunclient.c stunfifo.c stunlib.c stun_os.c turnclient.c
+libstun_la_LDFLAGS = -version-info 1:0:0
+
