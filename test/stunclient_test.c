@@ -30,7 +30,7 @@ static AppCtx_T CurrAppCtx;
 static uint32_t       StunDefaultTimeoutList[STUNCLIENT_MAX_RETRANSMITS] = {100, 0};
 static StunMsgId      LastTransId;
 static struct sockaddr_storage LastAddress;
-
+static bool runningAsIPv6;
 
 static  const uint8_t StunCookie[]   = STUN_MAGIC_COOKIE_ARRAY;
 
@@ -46,7 +46,7 @@ static void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData)
 {
 
     turnResult = retData->turnResult;
-    //printf("Got TURN status callback\n");
+    //printf("Got TURN status callback (Result (%i)\n", retData->turnResult);
 
 }
 
@@ -103,7 +103,7 @@ static int StartAllocateTransaction(int n)
 
 
 
-static void SimAllocResp(int ctx, bool relay, bool xorMappedAddr, bool lifetime)
+static void SimAllocResp(int ctx, bool relay, bool xorMappedAddr, bool lifetime, bool IPv6)
 {
     StunMessage m;
     memset(&m, 0, sizeof(m));
@@ -114,17 +114,33 @@ static void SimAllocResp(int ctx, bool relay, bool xorMappedAddr, bool lifetime)
     /* relay */
     if (relay)
     {
-        m.hasXorRelayAddress = true,
+        if(IPv6){
+            uint8_t addr[16] = {0x20, 0x1, 0x4, 0x70, 0xdc, 0x88, 0x0, 0x2, 0x2, 0x26, 0x18, 0xff, 0xfe, 0x92, 0x6d, 0x53};
+            m.hasXorRelayAddress = true;
+            stunlib_setIP6Address(&m.xorRelayAddress, addr, 0x4200);
+
+            
+        }else{
+            m.hasXorRelayAddress = true;
             m.xorRelayAddress.addr.v4.addr = 3251135384UL;// "193.200.99.152"
-        m.xorRelayAddress.addr.v4.port = 42000;
+            m.xorRelayAddress.addr.v4.port = 42000;
+        }
     }
 
     /* XOR mapped addr*/
     if (xorMappedAddr)
     {
-        m.hasXorMappedAddress = true;
-        m.xorMappedAddress.addr.v4.addr = 1009527574UL;// "60.44.43.22");
-        m.xorMappedAddress.addr.v4.port = 43000;
+        if(IPv6){
+            uint8_t addr[16] = {0x20, 0x1, 0x4, 0x70, 0xdc, 0x88, 0x1, 0x22, 0x21, 0x26, 0x18, 0xff, 0xfe, 0x92, 0x6d, 0x53};
+            m.hasXorMappedAddress = true;
+            stunlib_setIP6Address(&m.xorMappedAddress, addr, 0x4200);
+
+        }else{
+            
+            m.hasXorMappedAddress = true;
+            m.xorMappedAddress.addr.v4.addr = 1009527574UL;// "60.44.43.22");
+            m.xorMappedAddress.addr.v4.port = 43000;
+        }
     }
 
     /* lifetime */
@@ -159,7 +175,7 @@ static void  Sim_ChanBindResp(int ctx, uint16_t msgType, uint32_t errClass, uint
 
 
 static void SimInitialAllocRespErr(int ctx, bool hasErrCode, uint32_t errClass, uint32_t errNumber, 
-                                   bool hasRealm, bool hasNonce, bool hasAltServer, const char *ip4Str)
+                                   bool hasRealm, bool hasNonce, bool hasAltServer)
 {
     StunMessage m;
 
@@ -194,16 +210,20 @@ static void SimInitialAllocRespErr(int ctx, bool hasErrCode, uint32_t errClass, 
 
 
     /* alternate server */
-    if (hasAltServer && ip4Str) 
+    if (hasAltServer) 
     {
         m.hasAlternateServer = true;
+        if(runningAsIPv6){
+            uint8_t addr[16] = {0x20, 0x1, 0x4, 0x70, 0xdc, 0x88, 0x0, 0x2, 0x2, 0x26, 0x18, 0xff, 0xfe, 0x92, 0x6d, 0x53};
+            stunlib_setIP6Address(&m.alternateServer, addr, 0x4200);
+            
+
+        }else{
+
         m.alternateServer.familyType = STUN_ADDR_IPv4Family;
-
-
-    //    inet_pton(AF_INET, ip4Str, &m.alternateServer.addr.v4.addr);
-    //    m.alternateServer.addr.v4.addr = ntohl(m.alternateServer.addr.v4.addr);
         m.alternateServer.addr.v4.addr = 0x12345678;
         m.alternateServer.addr.v4.port = 3478;
+        }
     }
 
 
@@ -256,9 +276,9 @@ static int GotoAllocatedState(int appCtx)
 {
     int ctx = StartAllocateTransaction(appCtx);
     TurnClient_HandleTick(TEST_THREAD_CTX);
-    SimInitialAllocRespErr(ctx, true, 4, 1, true, true, false, NULL); /* 401, has realm has nonce */
+    SimInitialAllocRespErr(ctx, true, 4, 1, true, true, false); /* 401, has realm has nonce */
     TurnClient_HandleTick(TEST_THREAD_CTX);
-    SimAllocResp(ctx, true, true, true);
+    SimAllocResp(ctx, true, true, true, runningAsIPv6);
     return ctx;
 }
 
@@ -272,6 +292,7 @@ static void  Sim_TimerRefreshAlloc(int ctx)
 
 static void setup (void)
 {
+    runningAsIPv6 = false;
     TurnClient_Init(TEST_THREAD_CTX, 50, 50, PrintTurnInfo, false, "UnitTestSofware");
     sockaddr_initFromString((struct sockaddr*)&turnServerAddr, "193.200.93.152:3478");
 
@@ -285,6 +306,7 @@ static void teardown (void)
 
 static void setupIPv6 (void)
 {
+    runningAsIPv6 = true;
     TurnClient_Init(TEST_THREAD_CTX, 50, 50, PrintTurnInfo, false, "UnitTestSofware");
     sockaddr_initFromString((struct sockaddr*)&turnServerAddr, "[2001:470:dc88:2:226:18ff:fe92:6d53]:3478");
 
@@ -341,7 +363,7 @@ START_TEST (WaitAllocRespNotAut_AllocRspOk)
     int ctx;
     ctx = StartAllocateTransaction(5);
     TurnClient_HandleTick(TEST_THREAD_CTX);
-    SimAllocResp(ctx, true, true, true);
+    SimAllocResp(ctx, true, true, true, runningAsIPv6);
     fail_unless (turnResult == TurnResult_AllocOk);
 
     TurnClient_Deallocate(TEST_THREAD_CTX, ctx);
@@ -356,15 +378,15 @@ START_TEST (WaitAllocRespNotAut_AllocRspErr_AltServer)
     int ctx;
     ctx = StartAllocateTransaction(11);
     TurnClient_HandleTick(TEST_THREAD_CTX);
-    SimInitialAllocRespErr(ctx, true, 3, 0, false, false, true, "192.168.6.7");  /* 300, alt server */
+    SimInitialAllocRespErr(ctx, true, 3, 0, false, false, true);  /* 300, alt server */
     fail_unless (turnResult == TurnResult_Empty);
 
     TurnClient_HandleTick(TEST_THREAD_CTX);
-    SimInitialAllocRespErr(ctx, true, 4, 1, true, true, false, NULL); /* 401, has realm and nonce */
+    SimInitialAllocRespErr(ctx, true, 4, 1, true, true, false); /* 401, has realm and nonce */
     fail_unless (turnResult == TurnResult_Empty);
 
     TurnClient_HandleTick(TEST_THREAD_CTX);
-    SimAllocResp(ctx, true, true, true);
+    SimAllocResp(ctx, true, true, true, runningAsIPv6);
     fail_unless (turnResult == TurnResult_AllocOk);
     
     TurnClient_Deallocate(TEST_THREAD_CTX, ctx);
@@ -380,7 +402,7 @@ START_TEST (WaitAllocRespNotAut_AllocRsp_Malf1)
     int ctx;
     ctx = StartAllocateTransaction(5);
     TurnClient_HandleTick(TEST_THREAD_CTX);
-    SimAllocResp(ctx, false, true, true);
+    SimAllocResp(ctx, false, true, true, runningAsIPv6);
     fail_unless (turnResult == TurnResult_MalformedRespWaitAlloc);
     TurnClient_Deallocate(TEST_THREAD_CTX, ctx);
 
@@ -393,7 +415,7 @@ START_TEST (WaitAllocRespNotAut_AllocRsp_Malf2)
     int ctx;
     ctx = StartAllocateTransaction(5);
     TurnClient_HandleTick(TEST_THREAD_CTX);
-    SimAllocResp(ctx, true, false, true);
+    SimAllocResp(ctx, true, false, true, runningAsIPv6);
     fail_unless (turnResult == TurnResult_MalformedRespWaitAlloc);
     TurnClient_Deallocate(TEST_THREAD_CTX, ctx);
 
@@ -406,7 +428,7 @@ START_TEST (WaitAllocRespNotAut_AllocRsp_Malf3)
     int ctx;
     ctx = StartAllocateTransaction(5);
     TurnClient_HandleTick(TEST_THREAD_CTX);
-    SimAllocResp(ctx, true, true, false);
+    SimAllocResp(ctx, true, true, false, runningAsIPv6);
     fail_unless (turnResult == TurnResult_MalformedRespWaitAlloc);
     TurnClient_Deallocate(TEST_THREAD_CTX, ctx);
 
@@ -419,11 +441,11 @@ START_TEST (WaitAllocRespNotAut_AllocRspErr_Ok)
     int ctx;
     ctx = StartAllocateTransaction(9);
     TurnClient_HandleTick(TEST_THREAD_CTX);
-    SimInitialAllocRespErr(ctx, true, 4, 1, true, true, false, NULL); /* 401, has realm and nonce */
+    SimInitialAllocRespErr(ctx, true, 4, 1, true, true, false); /* 401, has realm and nonce */
     fail_unless (turnResult == TurnResult_Empty);
 
     TurnClient_HandleTick(TEST_THREAD_CTX);
-    SimAllocResp(ctx, true, true, true);
+    SimAllocResp(ctx, true, true, true, runningAsIPv6);
     fail_unless (turnResult == TurnResult_AllocOk);
 
     TurnClient_Deallocate(TEST_THREAD_CTX, ctx);
@@ -437,7 +459,7 @@ START_TEST (WaitAllocRespNotAut_AllocRspErr_ErrNot401)
     int ctx;
     ctx = StartAllocateTransaction(15);
     TurnClient_HandleTick(TEST_THREAD_CTX);
-    SimInitialAllocRespErr(ctx, true, 4, 4, false, false, false, NULL); /* 404, no realm, no nonce */
+    SimInitialAllocRespErr(ctx, true, 4, 4, false, false, false); /* 404, no realm, no nonce */
     TurnClient_HandleTick(TEST_THREAD_CTX);
     fail_unless (turnResult == TurnResult_MalformedRespWaitAlloc);
     TurnClient_Deallocate(TEST_THREAD_CTX, ctx);
@@ -451,7 +473,7 @@ START_TEST (WaitAllocRespNotAut_AllocRspErr_Err_malf1)
     int ctx;
     ctx = StartAllocateTransaction(15);
     TurnClient_HandleTick(TEST_THREAD_CTX);
-    SimInitialAllocRespErr(ctx, true, 4, 1, false, true, false, NULL); /* 401, no realm, nonce */
+    SimInitialAllocRespErr(ctx, true, 4, 1, false, true, false); /* 401, no realm, nonce */
     TurnClient_HandleTick(TEST_THREAD_CTX);
     fail_unless (turnResult == TurnResult_MalformedRespWaitAlloc);
     TurnClient_Deallocate(TEST_THREAD_CTX, ctx);
@@ -463,7 +485,7 @@ START_TEST (WaitAllocRespNotAut_AllocRspErr_Err_malf2)
     int ctx;
     ctx = StartAllocateTransaction(15);
     TurnClient_HandleTick(TEST_THREAD_CTX);
-    SimInitialAllocRespErr(ctx, true, 4, 1, true, false, false, NULL); /* 401, realm, no nonce */
+    SimInitialAllocRespErr(ctx, true, 4, 1, true, false, false); /* 401, realm, no nonce */
     TurnClient_HandleTick(TEST_THREAD_CTX);
     fail_unless (turnResult == TurnResult_MalformedRespWaitAlloc);
     TurnClient_Deallocate(TEST_THREAD_CTX, ctx);
@@ -477,7 +499,7 @@ START_TEST (WaitAllocRespNotAut_AllocRspErr_Err_malf3)
     int ctx;
     ctx = StartAllocateTransaction(11);
     TurnClient_HandleTick(TEST_THREAD_CTX);
-    SimInitialAllocRespErr(ctx, true, 3, 0, false, false, false, NULL);  /* 300, missing alt server */
+    SimInitialAllocRespErr(ctx, true, 3, 0, false, false, false);  /* 300, missing alt server */
     TurnClient_HandleTick(TEST_THREAD_CTX);
     fail_unless (turnResult == TurnResult_MalformedRespWaitAlloc);
     TurnClient_Deallocate(TEST_THREAD_CTX, ctx);
@@ -490,9 +512,9 @@ START_TEST (WaitAllocResp_AllocRespOk)
     int ctx;
     ctx = StartAllocateTransaction(9);
     TurnClient_HandleTick(TEST_THREAD_CTX);
-    SimInitialAllocRespErr(ctx, true, 4, 1, true, true, false, NULL); /* 401, has realm and nonce */
+    SimInitialAllocRespErr(ctx, true, 4, 1, true, true, false); /* 401, has realm and nonce */
     TurnClient_HandleTick(TEST_THREAD_CTX);
-    SimAllocResp(ctx, true, true, true);
+    SimAllocResp(ctx, true, true, true, runningAsIPv6);
     fail_unless (turnResult == TurnResult_AllocOk);
     TurnClient_Deallocate(TEST_THREAD_CTX, ctx);
     Sim_RefreshResp(ctx);
@@ -507,12 +529,12 @@ START_TEST (WaitAllocResp_AllocRespErr)
     int ctx;
     ctx = StartAllocateTransaction(9);
     TurnClient_HandleTick(TEST_THREAD_CTX);
-    SimInitialAllocRespErr(ctx, true, 4, 1, true, true, false, NULL);    /* 401, has realm and nonce */
+    SimInitialAllocRespErr(ctx, true, 4, 1, true, true, false);    /* 401, has realm and nonce */
     fail_unless (turnResult == TurnResult_Empty);
     
 
     TurnClient_HandleTick(TEST_THREAD_CTX);
-    SimInitialAllocRespErr(ctx, true, 4, 4, false, false, false, NULL);  /* 404, no realm and no nonce */
+    SimInitialAllocRespErr(ctx, true, 4, 4, false, false, false);  /* 404, no realm and no nonce */
 
 
     fail_unless (turnResult == TurnResult_AllocUnauthorised);
@@ -527,7 +549,7 @@ START_TEST (WaitAllocResp_Retry)
     int ctx, i;
     ctx = StartAllocateTransaction(9);
     TurnClient_HandleTick(TEST_THREAD_CTX);
-    SimInitialAllocRespErr(ctx, true, 4, 1, true, true, false, NULL);    /* 401, has realm and nonce */
+    SimInitialAllocRespErr(ctx, true, 4, 1, true, true, false);    /* 401, has realm and nonce */
     fail_unless (turnResult == TurnResult_Empty);
     for (i=0; i < 4; i++)
         TurnClient_HandleTick(TEST_THREAD_CTX);
@@ -664,9 +686,9 @@ Suite * stunclient_suite (void)
       TCase *tc_allocate = tcase_create ("Turnclient Allocate");
 
       tcase_add_checked_fixture (tc_allocate, setup, teardown);
-
+      
       tcase_add_test (tc_allocate, WaitAllocRespNotAut_Timeout);
-      tcase_add_test (tc_allocate, WaitAllocRespNotAut_AllocRspOk);
+      tcase_add_test (tc_allocate, WaitAllocRespNotAut_AllocRspOk);     
       tcase_add_test (tc_allocate, WaitAllocRespNotAut_AllocRspErr_AltServer);
       tcase_add_test (tc_allocate, WaitAllocRespNotAut_AllocRsp_Malf1);
       tcase_add_test (tc_allocate, WaitAllocRespNotAut_AllocRsp_Malf2);
@@ -684,6 +706,7 @@ Suite * stunclient_suite (void)
       tcase_add_test (tc_allocate, Allocated_StaleNonce);
       tcase_add_test (tc_allocate, Allocated_ChanBindReqOk); 
       tcase_add_test (tc_allocate, Allocated_ChanBindErr);
+      
       suite_add_tcase (s, tc_allocate);
 
   }
@@ -696,24 +719,24 @@ Suite * stunclient_suite (void)
       tcase_add_checked_fixture (tc_allocateIPv6, setupIPv6, teardownIPv6);
 
       tcase_add_test (tc_allocateIPv6, WaitAllocRespNotAut_Timeout);
-      //tcase_add_test (tc_allocate, WaitAllocRespNotAut_AllocRspOk);
-      //tcase_add_test (tc_allocate, WaitAllocRespNotAut_AllocRspErr_AltServer);
-      //tcase_add_test (tc_allocate, WaitAllocRespNotAut_AllocRsp_Malf1);
-      //tcase_add_test (tc_allocate, WaitAllocRespNotAut_AllocRsp_Malf2);
-      //tcase_add_test (tc_allocate, WaitAllocRespNotAut_AllocRsp_Malf3);
-      //tcase_add_test (tc_allocate, WaitAllocRespNotAut_AllocRspErr_Ok);
-      //tcase_add_test (tc_allocate, WaitAllocRespNotAut_AllocRspErr_ErrNot401);
-      //tcase_add_test (tc_allocate, WaitAllocRespNotAut_AllocRspErr_Err_malf1);
-      //tcase_add_test (tc_allocate, WaitAllocRespNotAut_AllocRspErr_Err_malf2);
-      //tcase_add_test (tc_allocate, WaitAllocRespNotAut_AllocRspErr_Err_malf3);
-      //tcase_add_test (tc_allocate, WaitAllocResp_AllocRespOk);
-      //tcase_add_test (tc_allocate, WaitAllocResp_AllocRespErr); 
-      //tcase_add_test (tc_allocate, WaitAllocResp_Retry);
-      //tcase_add_test (tc_allocate, Allocated_RefreshOk);
-      //tcase_add_test (tc_allocate, Allocated_RefreshError);
-      //tcase_add_test (tc_allocate, Allocated_StaleNonce);
-      //tcase_add_test (tc_allocate, Allocated_ChanBindReqOk); 
-      //tcase_add_test (tc_allocate, Allocated_ChanBindErr);
+      tcase_add_test (tc_allocateIPv6, WaitAllocRespNotAut_AllocRspOk);
+      tcase_add_test (tc_allocateIPv6, WaitAllocRespNotAut_AllocRspErr_AltServer);
+      tcase_add_test (tc_allocateIPv6, WaitAllocRespNotAut_AllocRsp_Malf1);
+      tcase_add_test (tc_allocateIPv6, WaitAllocRespNotAut_AllocRsp_Malf2);
+      tcase_add_test (tc_allocateIPv6, WaitAllocRespNotAut_AllocRsp_Malf3);
+      tcase_add_test (tc_allocateIPv6, WaitAllocRespNotAut_AllocRspErr_Ok);
+      tcase_add_test (tc_allocateIPv6, WaitAllocRespNotAut_AllocRspErr_ErrNot401);
+      tcase_add_test (tc_allocateIPv6, WaitAllocRespNotAut_AllocRspErr_Err_malf1);
+      tcase_add_test (tc_allocateIPv6, WaitAllocRespNotAut_AllocRspErr_Err_malf2);
+      tcase_add_test (tc_allocateIPv6, WaitAllocRespNotAut_AllocRspErr_Err_malf3);
+      tcase_add_test (tc_allocateIPv6, WaitAllocResp_AllocRespOk);
+      tcase_add_test (tc_allocateIPv6, WaitAllocResp_AllocRespErr); 
+      tcase_add_test (tc_allocateIPv6, WaitAllocResp_Retry);
+      tcase_add_test (tc_allocateIPv6, Allocated_RefreshOk);
+      tcase_add_test (tc_allocateIPv6, Allocated_RefreshError);
+      tcase_add_test (tc_allocateIPv6, Allocated_StaleNonce);
+      tcase_add_test (tc_allocateIPv6, Allocated_ChanBindReqOk); 
+      tcase_add_test (tc_allocateIPv6, Allocated_ChanBindErr);
       suite_add_tcase (s, tc_allocateIPv6);
 
   }

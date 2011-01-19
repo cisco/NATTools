@@ -1547,6 +1547,7 @@ static bool GetServerAddrFromAltServer(TURN_INSTANCE_DATA *pInst, StunMessage *p
             sockaddr_initFromIPv6Int((struct sockaddr_in6 *)&pInst->turnAllocateReq.serverAddr,
                                      pResp->alternateServer.addr.v6.addr,
                                      pResp->alternateServer.addr.v6.port);
+            return true;
 
         }
 
@@ -1600,6 +1601,7 @@ static bool HandleStunAllocateResponseMsg(TURN_INSTANCE_DATA *pInst, StunMessage
     && StoreLifetime(pInst, pResp)
     && StoreSequenceNum(pInst, pResp)) 
         return true;
+
     return false;
 }
 
