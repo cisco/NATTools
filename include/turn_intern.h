@@ -78,17 +78,17 @@ typedef enum {
 
 /* Internal message formats */
 typedef struct {
-    struct sockaddr     serverAddr;
-    char                username[STUN_MSG_MAX_USERNAME_LENGTH];
-    char                password[STUN_MSG_MAX_PASSWORD_LENGTH];
-    uint32_t            sockhandle;
-    uint32_t            stunTimeoutList[STUNCLIENT_MAX_RETRANSMITS];
-    STUN_SENDFUNC       sendFunc;
-    void               *userCtx;
-    TURNCB              turnCbFunc;
-    TurnCallBackData_T *turnCbData;
-    uint32_t            threadCtx;
-    bool                isMsStun;
+    struct sockaddr_storage  serverAddr;
+    char                     username[STUN_MSG_MAX_USERNAME_LENGTH];
+    char                     password[STUN_MSG_MAX_PASSWORD_LENGTH];
+    uint32_t                 sockhandle;
+    uint32_t                 stunTimeoutList[STUNCLIENT_MAX_RETRANSMITS];
+    STUN_SENDFUNC            sendFunc;
+    void                    *userCtx;
+    TURNCB                   turnCbFunc;
+    TurnCallBackData_T      *turnCbData;
+    uint32_t                 threadCtx;
+    bool                     isMsStun;
 } TurnAllocateReqStuct;
 
 

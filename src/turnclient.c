@@ -344,7 +344,7 @@ int TurnClient_startAllocateTransaction(uint32_t               threadCtx,
     uint32_t i;
     uint32_t *pTimeoutList;
     int ret;
-
+    
     if (InstanceData[threadCtx] == NULL)
     {
         TurnPrint(threadCtx, TurnInfoCategory_Error, "<TURNCLIENT> startAllocateTransaction failed,  Not initialised or  no memory, threadCtx %d", threadCtx);
@@ -354,7 +354,7 @@ int TurnClient_startAllocateTransaction(uint32_t               threadCtx,
     memset(&m, 0, sizeof(m));
 
     
-    sockaddr_copy(&m.serverAddr, serverAddr);
+    sockaddr_copy((struct sockaddr *)&m.serverAddr, serverAddr);
     strncpy(m.username, userName, sizeof(m.username));
     strncpy(m.password, password, sizeof(m.password));
     m.sockhandle     = sockhandle;
@@ -364,7 +364,6 @@ int TurnClient_startAllocateTransaction(uint32_t               threadCtx,
     m.isMsStun       = isMsStun;
 
     
-
     /* use default timeout list if none provided */
     pTimeoutList = timeoutList;
     if (pTimeoutList == NULL)

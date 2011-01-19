@@ -29,11 +29,14 @@ static AppCtx_T CurrAppCtx;
 //static int            TestNo;
 static uint32_t       StunDefaultTimeoutList[STUNCLIENT_MAX_RETRANSMITS] = {100, 0};
 static StunMsgId      LastTransId;
+static struct sockaddr_storage LastAddress;
+
+
 static  const uint8_t StunCookie[]   = STUN_MAGIC_COOKIE_ARRAY;
 
 TurnResult_T turnResult;
 
-
+struct sockaddr_storage turnServerAddr;
 
 
 
@@ -59,32 +62,35 @@ static int SendRawStun(int              globalSocketId,
                        uint8_t         *buffer, 
                        int              bufLen, 
                        struct sockaddr *dstAddr,
+                       socklen_t        t,
                        void            *userData)
 {
+    char addr_str[SOCKADDR_MAX_STRLEN];
     /* find the transaction id  so we can use this in the simulated resp */
-    memcpy(&LastTransId, &buffer[8], STUN_MSG_ID_SIZE); 
+    memcpy(&LastTransId, &buffer[8], STUN_MSG_ID_SIZE);
+    sockaddr_copy((struct sockaddr *)&LastAddress, dstAddr);
+    
+    sockaddr_toString(dstAddr, addr_str, SOCKADDR_MAX_STRLEN, true);
+                      
+    //printf("Sendto: '%s'\n", addr_str);
+
     return 1;
 }
 
 
 static int StartAllocateTransaction(int n)
 {
-    struct sockaddr_storage addr;
+    //struct sockaddr_storage addr;
 
     CurrAppCtx.a =  AppCtx[n].a = 100+n;
     CurrAppCtx.b =  AppCtx[n].b = 200+n;
     
 
 
-    sockaddr_initFromString((struct sockaddr*)&addr, "193.200.93.152:3478");
-    
-
-
-
     /* kick off turn */
     return TurnClient_startAllocateTransaction(TEST_THREAD_CTX,
                                                &AppCtx[n],
-                                               (struct sockaddr *)&addr,
+                                               (struct sockaddr *)&turnServerAddr,
                                                "pem",
                                                "pem",
                                                0,                       /* socket */
@@ -94,6 +100,7 @@ static int StartAllocateTransaction(int n)
                                                &TurnCbData[n],
                                                false);
 }
+
 
 
 static void SimAllocResp(int ctx, bool relay, bool xorMappedAddr, bool lifetime)
@@ -266,12 +273,28 @@ static void  Sim_TimerRefreshAlloc(int ctx)
 static void setup (void)
 {
     TurnClient_Init(TEST_THREAD_CTX, 50, 50, PrintTurnInfo, false, "UnitTestSofware");
+    sockaddr_initFromString((struct sockaddr*)&turnServerAddr, "193.200.93.152:3478");
+
 }
 
 static void teardown (void)
 {
     turnResult = TurnResult_Empty; 
 }
+
+
+static void setupIPv6 (void)
+{
+    TurnClient_Init(TEST_THREAD_CTX, 50, 50, PrintTurnInfo, false, "UnitTestSofware");
+    sockaddr_initFromString((struct sockaddr*)&turnServerAddr, "[2001:470:dc88:2:226:18ff:fe92:6d53]:3478");
+
+}
+
+static void teardownIPv6 (void)
+{
+    turnResult = TurnResult_Empty; 
+}
+
 
 
 
@@ -289,13 +312,12 @@ START_TEST (WaitAllocRespNotAut_Timeout)
 {
     int ctx;
 
-    //ret = TurnClient_Init(TEST_THREAD_CTX, 50, 50, PrintTurnInfo, false, "UnitTestSofware");
-
     ctx = StartAllocateTransaction(0);
     /* 1 Tick */
     TurnClient_HandleTick(TEST_THREAD_CTX);
     fail_unless (turnResult == TurnResult_Empty);
-
+    fail_unless (sockaddr_alike((struct sockaddr *)&LastAddress, 
+                                (struct sockaddr *)&turnServerAddr));
     /* 2 Tick */
     TurnClient_HandleTick(TEST_THREAD_CTX);
     fail_unless (turnResult == TurnResult_Empty);
@@ -312,7 +334,6 @@ START_TEST (WaitAllocRespNotAut_Timeout)
 
 }
 END_TEST
-
 
 
 START_TEST (WaitAllocRespNotAut_AllocRspOk)
@@ -666,6 +687,37 @@ Suite * stunclient_suite (void)
       suite_add_tcase (s, tc_allocate);
 
   }
+
+
+  {/* allocate IPv6 */
+
+      TCase *tc_allocateIPv6 = tcase_create ("Turnclient Allocate IPv6");
+
+      tcase_add_checked_fixture (tc_allocateIPv6, setupIPv6, teardownIPv6);
+
+      tcase_add_test (tc_allocateIPv6, WaitAllocRespNotAut_Timeout);
+      //tcase_add_test (tc_allocate, WaitAllocRespNotAut_AllocRspOk);
+      //tcase_add_test (tc_allocate, WaitAllocRespNotAut_AllocRspErr_AltServer);
+      //tcase_add_test (tc_allocate, WaitAllocRespNotAut_AllocRsp_Malf1);
+      //tcase_add_test (tc_allocate, WaitAllocRespNotAut_AllocRsp_Malf2);
+      //tcase_add_test (tc_allocate, WaitAllocRespNotAut_AllocRsp_Malf3);
+      //tcase_add_test (tc_allocate, WaitAllocRespNotAut_AllocRspErr_Ok);
+      //tcase_add_test (tc_allocate, WaitAllocRespNotAut_AllocRspErr_ErrNot401);
+      //tcase_add_test (tc_allocate, WaitAllocRespNotAut_AllocRspErr_Err_malf1);
+      //tcase_add_test (tc_allocate, WaitAllocRespNotAut_AllocRspErr_Err_malf2);
+      //tcase_add_test (tc_allocate, WaitAllocRespNotAut_AllocRspErr_Err_malf3);
+      //tcase_add_test (tc_allocate, WaitAllocResp_AllocRespOk);
+      //tcase_add_test (tc_allocate, WaitAllocResp_AllocRespErr); 
+      //tcase_add_test (tc_allocate, WaitAllocResp_Retry);
+      //tcase_add_test (tc_allocate, Allocated_RefreshOk);
+      //tcase_add_test (tc_allocate, Allocated_RefreshError);
+      //tcase_add_test (tc_allocate, Allocated_StaleNonce);
+      //tcase_add_test (tc_allocate, Allocated_ChanBindReqOk); 
+      //tcase_add_test (tc_allocate, Allocated_ChanBindErr);
+      suite_add_tcase (s, tc_allocateIPv6);
+
+  }
+
 
 
 
