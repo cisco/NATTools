@@ -75,7 +75,8 @@ static int sendRawUDP(int sockfd,
     numbytes = sendto(sockfd, buf, len, 0,
                       p , t); 
                       
-    printf("Sending Raw (To: '%s'(%i), Bytes:%i)\n", addr, t, numbytes);
+    printf("Sending Raw (To: '%s'(%i), Bytes:%i/%i  )\n", addr, t, numbytes, len);
+    
     return numbytes;
 
 }
@@ -107,7 +108,7 @@ static void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData)
 
 int main(int argc, char *argv[])
 {
-    int sockfd;
+    int sockfd_4, sockfd_6, sockfd;
     int numbytes;
     struct sockaddr_storage ss_addr;
     static TurnCallBackData_T TurnCbData;
@@ -118,7 +119,8 @@ int main(int argc, char *argv[])
     }
     
 
-    sockfd = createLocalUDPSocket(AF_INET);
+    sockfd_4 = createLocalUDPSocket(AF_INET);
+    sockfd_6 = createLocalUDPSocket(AF_INET6);
 
 
     //Turn setup
@@ -126,6 +128,13 @@ int main(int argc, char *argv[])
 
     sockaddr_initFromString((struct sockaddr *)&ss_addr, 
                             argv[1]);
+
+    if(ss_addr.ss_family == AF_INET){
+        sockfd = sockfd_4;
+    }else if(ss_addr.ss_family == AF_INET6){
+        sockfd = sockfd_6;
+    }
+
 
     TurnClient_startAllocateTransaction(TEST_THREAD_CTX,
                                         NULL,
