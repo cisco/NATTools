@@ -8,13 +8,19 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-
+#include <time.h>
+#include <gsasl.h>
 
 #include "turnclient.h"
 #include "sockaddr_util.h"
 
+
+
 #define PORT "5793"
-#define  TEST_THREAD_CTX 1
+//#define  TEST_THREAD_CTX 1
+#define MAXBUFLEN 1024
+
+static const uint32_t TEST_THREAD_CTX = 1;
 
 static int createLocalUDPSocket(int ai_family){
     int sockfd;
@@ -52,9 +58,6 @@ static int createLocalUDPSocket(int ai_family){
         }
             break;
     }
-
-    
-
     return sockfd;
 }
 
@@ -103,21 +106,60 @@ static void  PrintTurnInfo(TurnInfoCategory_T category, char *ErrStr)
 
 static void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData)
 {
-    printf("Got TURN status callback\n");
+    printf("Got TURN status callback (%i)\n", retData->turnResult);
 }
+
+
+void *tickTurn(void *ptr){
+    struct timespec timer;
+    struct timespec remaining;
+    uint32_t  *ctx = (uint32_t *)ptr;
+    
+    timer.tv_sec = 0;
+    timer.tv_nsec = 50000000;
+    
+    for(;;){
+        nanosleep(&timer, &remaining);               
+        TurnClient_HandleTick(*ctx);
+    }
+}
+
 
 int main(int argc, char *argv[])
 {
     int sockfd_4, sockfd_6, sockfd;
-    int numbytes;
+    int sendt_numbytes, rcv_numbytes;;
+    struct sockaddr_storage remote_addr;
+    char buf[MAXBUFLEN];
+    socklen_t addr_len;
+    char s[INET6_ADDRSTRLEN];
+    bool isMsSTUN;
+    int stunCtx;
     struct sockaddr_storage ss_addr;
     static TurnCallBackData_T TurnCbData;
+
+    pthread_t turnTickThread;
+    pthread_t recieveThread;
+
+    char key[] = "pem";
+    char *key_saslprep;;
+    
+    
 
     if (argc != 4) {
         fprintf(stderr,"usage: ice  [ip:port] user pass\n");
         exit(1);
     }
     
+    if ( gsasl_saslprep(key, 
+                        GSASL_ALLOW_UNASSIGNED, 
+                        (char **)&key_saslprep, 
+                        NULL) == GSASL_SASLPREP_ERROR){
+        printf("saslprep failed!\n");
+        exit(1);
+    }
+        
+    printf("Key:'%s' saslprep:'%s'\n", key, key_saslprep);
 
     sockfd_4 = createLocalUDPSocket(AF_INET);
     sockfd_6 = createLocalUDPSocket(AF_INET6);
@@ -136,21 +178,54 @@ int main(int argc, char *argv[])
     }
 
 
-    TurnClient_startAllocateTransaction(TEST_THREAD_CTX,
-                                        NULL,
-                                        (struct sockaddr *)&ss_addr,
-                                        argv[2],
-                                        argv[3],
-                                        sockfd,                       /* socket */
-                                        SendRawStun,             /* send func */
-                                        NULL,  /* timeout list */
-                                        TurnStatusCallBack,
-                                        &TurnCbData,
-                                        false);
+    stunCtx = TurnClient_startAllocateTransaction(TEST_THREAD_CTX,
+                                                  NULL,
+                                                  (struct sockaddr *)&ss_addr,
+                                                  argv[2],
+                                                  argv[3],
+                                                  sockfd,                       /* socket */
+                                                  SendRawStun,             /* send func */
+                                                  NULL,  /* timeout list */
+                                                  TurnStatusCallBack,
+                                                  &TurnCbData,
+                                                  false);
     
-        
+    pthread_create( &turnTickThread, NULL, tickTurn, (void*) &TEST_THREAD_CTX);
 
-    
+        
+    addr_len = sizeof remote_addr;
+    while(1){
+        if ((rcv_numbytes = recvfrom(sockfd, buf, MAXBUFLEN-1 , 0,
+                                     (struct sockaddr *)&remote_addr, &addr_len)) == -1) {
+            perror("recvfrom");
+            exit(1);
+        }
+        
+        printf("listener: got packet from %s\n",
+               sockaddr_toString((struct sockaddr *)&remote_addr, s, sizeof s, true));
+        printf("listener: packet is %d bytes long\n", rcv_numbytes);
+        
+        
+        if ( stunlib_isStunMsg(buf, rcv_numbytes, &isMsSTUN) ){
+            printf("GOT stun packet...\n", buf);
+            StunMessage msg;
+            char pass[128] = "pem:medianetworkservices.com:";
+            strcat(pass, key_saslprep);
+            
+            stunlib_DecodeMessage(buf,
+                                  rcv_numbytes,
+                                  &msg,
+                                  NULL,
+                                  pass,
+                                  false,
+                                  false);
+            
+            TurnClient_HandleIncResp(TEST_THREAD_CTX,
+                                     stunCtx, 
+                                     &msg);
+            
+        }
+    }
     close(sockfd);
 
     return 0;

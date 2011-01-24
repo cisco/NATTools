@@ -6,6 +6,12 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
+/* Define to 1 if you have the `gsasl' library (-lgsasl). */
+#undef HAVE_LIBGSASL
+
+/* Define to 1 if you have the `pthread' library (-lpthread). */
+#undef HAVE_LIBPTHREAD
+
 /* Define to 1 if you have the `sockaddrutil' library (-lsockaddrutil). */
 #undef HAVE_LIBSOCKADDRUTIL
 
@@ -53,6 +59,9 @@
 
 /* Define to 1 if you have the <sys/types.h> header file. */
 #undef HAVE_SYS_TYPES_H
+
+/* Define to 1 if you have the <timer.h> header file. */
+#undef HAVE_TIMER_H
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
