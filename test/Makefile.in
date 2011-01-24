@@ -48,8 +48,9 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am_check_stunlib_OBJECTS = check_stunlib-stunclient_test.$(OBJEXT) \
-	check_stunlib-stunlib_test.$(OBJEXT) \
+am_check_stunlib_OBJECTS = check_stunlib-turnclienttest.$(OBJEXT) \
+	check_stunlib-testvector.$(OBJEXT) \
+	check_stunlib-turn_message.$(OBJEXT) \
 	check_stunlib-testmain.$(OBJEXT)
 check_stunlib_OBJECTS = $(am_check_stunlib_OBJECTS)
 check_stunlib_DEPENDENCIES = $(top_builddir)/src/libstun.la
@@ -192,7 +193,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I../include
-check_stunlib_SOURCES = stunclient_test.c stunlib_test.c testmain.c
+check_stunlib_SOURCES = turnclienttest.c testvector.c  turn_message.c testmain.c
 check_stunlib_CFLAGS = @CHECK_CFLAGS@  
 check_stunlib_LDADD = $(top_builddir)/src/libstun.la @CHECK_LIBS@
 all: all-am
@@ -248,9 +249,10 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_stunlib-stunclient_test.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_stunlib-stunlib_test.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_stunlib-testmain.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_stunlib-testvector.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_stunlib-turn_message.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_stunlib-turnclienttest.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -273,33 +275,47 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
 
-check_stunlib-stunclient_test.o: stunclient_test.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_stunlib_CFLAGS) $(CFLAGS) -MT check_stunlib-stunclient_test.o -MD -MP -MF $(DEPDIR)/check_stunlib-stunclient_test.Tpo -c -o check_stunlib-stunclient_test.o `test -f 'stunclient_test.c' || echo '$(srcdir)/'`stunclient_test.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_stunlib-stunclient_test.Tpo $(DEPDIR)/check_stunlib-stunclient_test.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='stunclient_test.c' object='check_stunlib-stunclient_test.o' libtool=no @AMDEPBACKSLASH@
+check_stunlib-turnclienttest.o: turnclienttest.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_stunlib_CFLAGS) $(CFLAGS) -MT check_stunlib-turnclienttest.o -MD -MP -MF $(DEPDIR)/check_stunlib-turnclienttest.Tpo -c -o check_stunlib-turnclienttest.o `test -f 'turnclienttest.c' || echo '$(srcdir)/'`turnclienttest.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_stunlib-turnclienttest.Tpo $(DEPDIR)/check_stunlib-turnclienttest.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='turnclienttest.c' object='check_stunlib-turnclienttest.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_stunlib_CFLAGS) $(CFLAGS) -c -o check_stunlib-stunclient_test.o `test -f 'stunclient_test.c' || echo '$(srcdir)/'`stunclient_test.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_stunlib_CFLAGS) $(CFLAGS) -c -o check_stunlib-turnclienttest.o `test -f 'turnclienttest.c' || echo '$(srcdir)/'`turnclienttest.c
 
-check_stunlib-stunclient_test.obj: stunclient_test.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_stunlib_CFLAGS) $(CFLAGS) -MT check_stunlib-stunclient_test.obj -MD -MP -MF $(DEPDIR)/check_stunlib-stunclient_test.Tpo -c -o check_stunlib-stunclient_test.obj `if test -f 'stunclient_test.c'; then $(CYGPATH_W) 'stunclient_test.c'; else $(CYGPATH_W) '$(srcdir)/stunclient_test.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_stunlib-stunclient_test.Tpo $(DEPDIR)/check_stunlib-stunclient_test.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='stunclient_test.c' object='check_stunlib-stunclient_test.obj' libtool=no @AMDEPBACKSLASH@
+check_stunlib-turnclienttest.obj: turnclienttest.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_stunlib_CFLAGS) $(CFLAGS) -MT check_stunlib-turnclienttest.obj -MD -MP -MF $(DEPDIR)/check_stunlib-turnclienttest.Tpo -c -o check_stunlib-turnclienttest.obj `if test -f 'turnclienttest.c'; then $(CYGPATH_W) 'turnclienttest.c'; else $(CYGPATH_W) '$(srcdir)/turnclienttest.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_stunlib-turnclienttest.Tpo $(DEPDIR)/check_stunlib-turnclienttest.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='turnclienttest.c' object='check_stunlib-turnclienttest.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_stunlib_CFLAGS) $(CFLAGS) -c -o check_stunlib-stunclient_test.obj `if test -f 'stunclient_test.c'; then $(CYGPATH_W) 'stunclient_test.c'; else $(CYGPATH_W) '$(srcdir)/stunclient_test.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_stunlib_CFLAGS) $(CFLAGS) -c -o check_stunlib-turnclienttest.obj `if test -f 'turnclienttest.c'; then $(CYGPATH_W) 'turnclienttest.c'; else $(CYGPATH_W) '$(srcdir)/turnclienttest.c'; fi`
 
-check_stunlib-stunlib_test.o: stunlib_test.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_stunlib_CFLAGS) $(CFLAGS) -MT check_stunlib-stunlib_test.o -MD -MP -MF $(DEPDIR)/check_stunlib-stunlib_test.Tpo -c -o check_stunlib-stunlib_test.o `test -f 'stunlib_test.c' || echo '$(srcdir)/'`stunlib_test.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_stunlib-stunlib_test.Tpo $(DEPDIR)/check_stunlib-stunlib_test.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='stunlib_test.c' object='check_stunlib-stunlib_test.o' libtool=no @AMDEPBACKSLASH@
+check_stunlib-testvector.o: testvector.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_stunlib_CFLAGS) $(CFLAGS) -MT check_stunlib-testvector.o -MD -MP -MF $(DEPDIR)/check_stunlib-testvector.Tpo -c -o check_stunlib-testvector.o `test -f 'testvector.c' || echo '$(srcdir)/'`testvector.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_stunlib-testvector.Tpo $(DEPDIR)/check_stunlib-testvector.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='testvector.c' object='check_stunlib-testvector.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_stunlib_CFLAGS) $(CFLAGS) -c -o check_stunlib-stunlib_test.o `test -f 'stunlib_test.c' || echo '$(srcdir)/'`stunlib_test.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_stunlib_CFLAGS) $(CFLAGS) -c -o check_stunlib-testvector.o `test -f 'testvector.c' || echo '$(srcdir)/'`testvector.c
 
-check_stunlib-stunlib_test.obj: stunlib_test.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_stunlib_CFLAGS) $(CFLAGS) -MT check_stunlib-stunlib_test.obj -MD -MP -MF $(DEPDIR)/check_stunlib-stunlib_test.Tpo -c -o check_stunlib-stunlib_test.obj `if test -f 'stunlib_test.c'; then $(CYGPATH_W) 'stunlib_test.c'; else $(CYGPATH_W) '$(srcdir)/stunlib_test.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_stunlib-stunlib_test.Tpo $(DEPDIR)/check_stunlib-stunlib_test.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='stunlib_test.c' object='check_stunlib-stunlib_test.obj' libtool=no @AMDEPBACKSLASH@
+check_stunlib-testvector.obj: testvector.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_stunlib_CFLAGS) $(CFLAGS) -MT check_stunlib-testvector.obj -MD -MP -MF $(DEPDIR)/check_stunlib-testvector.Tpo -c -o check_stunlib-testvector.obj `if test -f 'testvector.c'; then $(CYGPATH_W) 'testvector.c'; else $(CYGPATH_W) '$(srcdir)/testvector.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_stunlib-testvector.Tpo $(DEPDIR)/check_stunlib-testvector.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='testvector.c' object='check_stunlib-testvector.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_stunlib_CFLAGS) $(CFLAGS) -c -o check_stunlib-stunlib_test.obj `if test -f 'stunlib_test.c'; then $(CYGPATH_W) 'stunlib_test.c'; else $(CYGPATH_W) '$(srcdir)/stunlib_test.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_stunlib_CFLAGS) $(CFLAGS) -c -o check_stunlib-testvector.obj `if test -f 'testvector.c'; then $(CYGPATH_W) 'testvector.c'; else $(CYGPATH_W) '$(srcdir)/testvector.c'; fi`
+
+check_stunlib-turn_message.o: turn_message.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_stunlib_CFLAGS) $(CFLAGS) -MT check_stunlib-turn_message.o -MD -MP -MF $(DEPDIR)/check_stunlib-turn_message.Tpo -c -o check_stunlib-turn_message.o `test -f 'turn_message.c' || echo '$(srcdir)/'`turn_message.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_stunlib-turn_message.Tpo $(DEPDIR)/check_stunlib-turn_message.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='turn_message.c' object='check_stunlib-turn_message.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_stunlib_CFLAGS) $(CFLAGS) -c -o check_stunlib-turn_message.o `test -f 'turn_message.c' || echo '$(srcdir)/'`turn_message.c
+
+check_stunlib-turn_message.obj: turn_message.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_stunlib_CFLAGS) $(CFLAGS) -MT check_stunlib-turn_message.obj -MD -MP -MF $(DEPDIR)/check_stunlib-turn_message.Tpo -c -o check_stunlib-turn_message.obj `if test -f 'turn_message.c'; then $(CYGPATH_W) 'turn_message.c'; else $(CYGPATH_W) '$(srcdir)/turn_message.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_stunlib-turn_message.Tpo $(DEPDIR)/check_stunlib-turn_message.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='turn_message.c' object='check_stunlib-turn_message.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_stunlib_CFLAGS) $(CFLAGS) -c -o check_stunlib-turn_message.obj `if test -f 'turn_message.c'; then $(CYGPATH_W) 'turn_message.c'; else $(CYGPATH_W) '$(srcdir)/turn_message.c'; fi`
 
 check_stunlib-testmain.o: testmain.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_stunlib_CFLAGS) $(CFLAGS) -MT check_stunlib-testmain.o -MD -MP -MF $(DEPDIR)/check_stunlib-testmain.Tpo -c -o check_stunlib-testmain.o `test -f 'testmain.c' || echo '$(srcdir)/'`testmain.c

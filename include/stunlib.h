@@ -662,8 +662,6 @@ char const *stunlib_getErrorReason(uint16_t errorClass, uint16_t errorNumber);
 void stunlib_setIP4Address(StunIPAddress* pIpAdr, uint32_t addr, uint16_t port);
 /* Addr is 4 long. With most significant DWORD in pos 0 */
 void stunlib_setIP6Address(StunIPAddress *pIpAdr, uint8_t addr[16], uint16_t port);
-int stunlib_compareIPAddresses(StunIPAddress *pS1, StunIPAddress *pS2);
-
 
 void stunlib_printBuffer(uint8_t *pBuf, int len, char const * szHead);
 

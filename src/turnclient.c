@@ -403,13 +403,13 @@ void TurnClientGetActiveTurnServerAddr(uint32_t threadCtx, int turnInst, struct 
         return;
     }
 
-    if ( !sockaddr_isSet(&pInst->turnAllocateReq.serverAddr) )
+    if ( !sockaddr_isSet((struct sockaddr *)&pInst->turnAllocateReq.serverAddr) )
     {
         TurnPrint(threadCtx, TurnInfoCategory_Error, "TurnClientGetActiveTurnServerAddr() serveraddr not set, inst %d (thread %d)\n",  turnInst, threadCtx);
         return;
     }
     //TurnPrint(threadCtx, TurnInfoCategory_Trace, "TurnClientGetActiveTurnServerAddr() inst %d (thread %d), server %s\n",  turnInst, threadCtx, pInst->turnAllocateReq.serverAddr); 
-    sockaddr_copy(s, &pInst->turnAllocateReq.serverAddr);
+    sockaddr_copy(s, (struct sockaddr *)&pInst->turnAllocateReq.serverAddr);
 
 }
 
@@ -1523,7 +1523,7 @@ static void SendStunKeepAlive(TURN_INSTANCE_DATA *pInst)
     pInst->turnAllocateReq.sendFunc(pInst->turnAllocateReq.sockhandle,
                                     buf,
                                     encLen,
-                                    &pInst->turnAllocateReq.serverAddr,
+                                    (struct sockaddr *)&pInst->turnAllocateReq.serverAddr,
                                     sizeof(pInst->turnAllocateReq.serverAddr),
                                     pInst->turnAllocateReq.userCtx);
 }
@@ -1537,8 +1537,8 @@ static bool GetServerAddrFromAltServer(TURN_INSTANCE_DATA *pInst, StunMessage *p
         {
     
             sockaddr_initFromIPv4Int((struct sockaddr_in *)&pInst->turnAllocateReq.serverAddr,
-                                     pResp->alternateServer.addr.v4.addr, 
-                                     pResp->alternateServer.addr.v4.port);
+                                     htonl(pResp->alternateServer.addr.v4.addr), 
+                                     htons(pResp->alternateServer.addr.v4.port));
 
             
             return true;
@@ -1546,9 +1546,8 @@ static bool GetServerAddrFromAltServer(TURN_INSTANCE_DATA *pInst, StunMessage *p
         else if (pResp->alternateServer.familyType == STUN_ADDR_IPv6Family){
             sockaddr_initFromIPv6Int((struct sockaddr_in6 *)&pInst->turnAllocateReq.serverAddr,
                                      pResp->alternateServer.addr.v6.addr,
-                                     pResp->alternateServer.addr.v6.port);
+                                     htons(pResp->alternateServer.addr.v6.port));
             return true;
-
         }
 
         else
@@ -1693,7 +1692,7 @@ static bool  SendTurnReq(TURN_INSTANCE_DATA *pInst, StunMessage  *stunReqMsg)
     pInst->turnAllocateReq.sendFunc(pInst->turnAllocateReq.sockhandle,
                                     pInst->stunReqMsgBuf,
                                     pInst->stunReqMsgBufLen,
-                                    &pInst->turnAllocateReq.serverAddr,
+                                    (struct sockaddr *)&pInst->turnAllocateReq.serverAddr,
                                     sizeof(pInst->turnAllocateReq.serverAddr),
                                     pInst->turnAllocateReq.userCtx);
 
@@ -1708,7 +1707,7 @@ static void RetransmitLastReq(TURN_INSTANCE_DATA *pInst)
     pInst->turnAllocateReq.sendFunc(pInst->turnAllocateReq.sockhandle,
                                     pInst->stunReqMsgBuf,
                                     pInst->stunReqMsgBufLen,
-                                    &pInst->turnAllocateReq.serverAddr,
+                                    (struct sockaddr *)&pInst->turnAllocateReq.serverAddr,
                                     sizeof(pInst->turnAllocateReq.serverAddr),
                                     pInst->turnAllocateReq.userCtx);
 
