@@ -74,7 +74,7 @@ static int SendRawStun(int sockfd,
     
     sockaddr_toString(addr, addr_str, SOCKADDR_MAX_STRLEN, true);
                       
-    printf("Sendto: '%s'\n", addr_str);
+    //printf("Sendto: '%s'\n", addr_str);
 
 
     return 1;

@@ -180,9 +180,8 @@ typedef struct
 }
 TURN_STATE_TABLE;
 
-#if defined(UNITTEST)
+
 int  TurnClientSimulateSig(uint32_t threadCtx, int ctx, TURN_SIGNAL sig);
-#endif
 
 
 #ifdef __cplusplus

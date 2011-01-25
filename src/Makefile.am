@@ -1,5 +1,5 @@
 ## Process this file with automake to produce Makefile.in
-AM_CPPFLAGS = -I../include
+AM_CPPFLAGS = -I../include -O2 -g -Wall -Wextra -Wno-unknown-pragmas -Werror-implicit-function-declaration -Werror -Wno-unused-parameter -Wdeclaration-after-statement -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes
 include_HEADERS = ../include/stunclient.h ../include/stun_intern.h ../include/stunlib.h ../include/turnclient.h ../include/stunfifo.h ../include/stunlibapi.h ../include/stun_os.h ../include/turn_intern.h
 
 
