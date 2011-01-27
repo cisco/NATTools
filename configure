@@ -608,8 +608,6 @@ ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
-CHECK_LIBS
-CHECK_CFLAGS
 CPP
 OTOOL64
 OTOOL
@@ -729,7 +727,6 @@ enable_dependency_tracking
 with_gnu_ld
 with_sysroot
 enable_libtool_lock
-with_check
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1377,7 +1374,6 @@ Optional Packages:
   --with-gnu-ld           assume the C compiler uses GNU ld [default=no]
   --with-sysroot=DIR Search for dependent libraries within DIR
                         (or the compiler's sysroot if not specified).
-  --with-check=PATH       prefix where check is installed default=auto
 
 Some influential environment variables:
   CC          C compiler command
@@ -12268,168 +12264,6 @@ _ACEOF
 fi
 
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: AM_PATH_CHECK() is deprecated" >&5
-$as_echo "$as_me: WARNING: AM_PATH_CHECK() is deprecated" >&2;}
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: use PKG_CHECK_MODULES([CHECK], [check >= 0.9.4]) instead" >&5
-$as_echo "$as_me: WARNING: use PKG_CHECK_MODULES([CHECK], [check >= 0.9.4]) instead" >&2;}
-
-# Check whether --with-check was given.
-if test "${with_check+set}" = set; then :
-  withval=$with_check;
-fi
-
-
-  min_check_version=0.8.2
-
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for check - version >= $min_check_version" >&5
-$as_echo_n "checking for check - version >= $min_check_version... " >&6; }
-
-  if test x$with_check = xno; then
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: disabled" >&5
-$as_echo "disabled" >&6; }
-    as_fn_error "disabling check is not supported" "$LINENO" 5
-  else
-    if test "x$with_check" != x; then
-      CHECK_CFLAGS="-I$with_check/include"
-      CHECK_LIBS="-L$with_check/lib -lcheck"
-    else
-      CHECK_CFLAGS=""
-      CHECK_LIBS="-lcheck"
-    fi
-
-    ac_save_CFLAGS="$CFLAGS"
-    ac_save_LIBS="$LIBS"
-
-    CFLAGS="$CFLAGS $CHECK_CFLAGS"
-    LIBS="$CHECK_LIBS $LIBS"
-
-    rm -f conf.check-test
-    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-$ac_includes_default
-#include <check.h>
-
-int main ()
-{
-  int major, minor, micro;
-  char *tmp_version;
-
-  system ("touch conf.check-test");
-
-  /* HP/UX 9 (%@#!) writes to sscanf strings */
-  tmp_version = strdup("$min_check_version");
-  if (sscanf(tmp_version, "%d.%d.%d", &major, &minor, &micro) != 3) {
-     printf("%s, bad version string\n", "$min_check_version");
-     return 1;
-   }
-
-  if ((CHECK_MAJOR_VERSION != check_major_version) ||
-      (CHECK_MINOR_VERSION != check_minor_version) ||
-      (CHECK_MICRO_VERSION != check_micro_version))
-    {
-      printf("\n*** The check header file (version %d.%d.%d) does not match\n",
-	     CHECK_MAJOR_VERSION, CHECK_MINOR_VERSION, CHECK_MICRO_VERSION);
-      printf("*** the check library (version %d.%d.%d).\n",
-	     check_major_version, check_minor_version, check_micro_version);
-      return 1;
-    }
-
-  if ((check_major_version > major) ||
-      ((check_major_version == major) && (check_minor_version > minor)) ||
-      ((check_major_version == major) && (check_minor_version == minor) && (check_micro_version >= micro)))
-    {
-      return 0;
-    }
-  else
-    {
-      printf("\n*** An old version of check (%d.%d.%d) was found.\n",
-             check_major_version, check_minor_version, check_micro_version);
-      printf("*** You need a version of check being at least %d.%d.%d.\n", major, minor, micro);
-      printf("***\n");
-      printf("*** If you have already installed a sufficiently new version, this error\n");
-      printf("*** probably means that the wrong copy of the check library and header\n");
-      printf("*** file is being found. Rerun configure with the --with-check=PATH option\n");
-      printf("*** to specify the prefix where the correct version was installed.\n");
-    }
-
-  return 1;
-}
-
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-
-else
-  no_check=yes
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-
-    CFLAGS="$ac_save_CFLAGS"
-    LIBS="$ac_save_LIBS"
-
-    if test "x$no_check" = x ; then
-      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-      :
-    else
-      { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-      if test -f conf.check-test ; then
-        :
-      else
-        echo "*** Could not run check test program, checking why..."
-        CFLAGS="$CFLAGS $CHECK_CFLAGS"
-        LIBS="$CHECK_LIBS $LIBS"
-        cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-#include <stdio.h>
-#include <stdlib.h>
-
-#include <check.h>
-
-int
-main ()
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-   echo "*** The test program compiled, but did not run. This usually means"
-        echo "*** that the run-time linker is not finding check. You'll need to set your"
-        echo "*** LD_LIBRARY_PATH environment variable, or edit /etc/ld.so.conf to point"
-        echo "*** to the installed location  Also, make sure you have run ldconfig if that"
-        echo "*** is required on your system"
-	echo "***"
-        echo "*** If you have an old version installed, it is best to remove it, although"
-        echo "*** you may also be able to get things to work by modifying LD_LIBRARY_PATH"
-else
-   echo "*** The test program failed to compile or link. See the file config.log for"
-        echo "*** the exact error that occured."
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-
-        CFLAGS="$ac_save_CFLAGS"
-        LIBS="$ac_save_LIBS"
-      fi
-
-      CHECK_CFLAGS=""
-      CHECK_LIBS=""
-
-      rm -f conf.check-test
-      as_fn_error "check not found" "$LINENO" 5
-    fi
-
-
-
-
-    rm -f conf.check-test
-
-  fi
-
-
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for sockaddr_initFromString in -lsockaddrutil" >&5
 $as_echo_n "checking for sockaddr_initFromString in -lsockaddrutil... " >&6; }
 if test "${ac_cv_lib_sockaddrutil_sockaddr_initFromString+set}" = set; then :
@@ -12530,6 +12364,58 @@ $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error "could not find ssl
 See \`config.log' for more details." "$LINENO" 5; }
 fi
+
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for gsasl_check_version in -lgsasl" >&5
+$as_echo_n "checking for gsasl_check_version in -lgsasl... " >&6; }
+if test "${ac_cv_lib_gsasl_gsasl_check_version+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lgsasl  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char gsasl_check_version ();
+int
+main ()
+{
+return gsasl_check_version ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_gsasl_gsasl_check_version=yes
+else
+  ac_cv_lib_gsasl_gsasl_check_version=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_gsasl_gsasl_check_version" >&5
+$as_echo "$ac_cv_lib_gsasl_gsasl_check_version" >&6; }
+if test "x$ac_cv_lib_gsasl_gsasl_check_version" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBGSASL 1
+_ACEOF
+
+  LIBS="-lgsasl $LIBS"
+
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error "could not find gsasl
+See \`config.log' for more details." "$LINENO" 5; }
+fi
+
 
 
 

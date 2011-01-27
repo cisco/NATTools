@@ -9,6 +9,9 @@
 /* Define to 1 if you have the `check' library (-lcheck). */
 #undef HAVE_LIBCHECK
 
+/* Define to 1 if you have the `gsasl' library (-lgsasl). */
+#undef HAVE_LIBGSASL
+
 /* Define to 1 if you have the `sockaddrutil' library (-lsockaddrutil). */
 #undef HAVE_LIBSOCKADDRUTIL
 

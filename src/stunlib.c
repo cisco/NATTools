@@ -1,7 +1,8 @@
 #include "stunlib.h"
-#include "openssl/md5.h"
-#include "openssl/evp.h"
-#include "openssl/hmac.h"
+#include <openssl/md5.h>
+#include <openssl/evp.h>
+#include <openssl/hmac.h>
+#include <gsasl.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -1760,14 +1761,15 @@ bool stunlib_checkIntegrity(unsigned char* buf,
         
         
         HMAC(EVP_sha1(),
-             integrityKey, integrityKeyLen,
+             integrityKey, 
+             integrityKeyLen,
              pCurrPtr,
              msgIntLength-24,
              &hash[0], &len);
         
         if (memcmp( &hash, message->messageIntegrity.hash,20) != 0)
         {
-            /*
+            
               int i;
               printError("<STUNMSG>  Integrity Failed!(%s)\n",integrityKey);
               printError("     rcv: ");
@@ -1779,7 +1781,7 @@ bool stunlib_checkIntegrity(unsigned char* buf,
               printError("%02x ", hash[i]);
               printError("\n");
               stun_printMessage(message);
-            */
+            
             return false;
         }
         
@@ -2465,14 +2467,33 @@ bool stunlib_checkFingerPrint(uint8_t *buf, uint32_t fpOffset){
 /* Concat  username+realm+passwd into string "<username>:<realm>:<password>" then run the MD5 alg.
  * to create a 128but MD5 hash in md5key.
 */
-void stunlib_createMD5Key(unsigned char *md5key, char *userName, char *realm, char *password)
+void stunlib_createMD5Key(unsigned char *md5key, 
+                          const char *userName, 
+                          const char *realm, 
+                          const char *password)
 {
     char keyStr[STUN_MSG_MAX_USERNAME_LENGTH+STUN_MSG_MAX_PASSWORD_LENGTH+STUN_MSG_MAX_REALM_LENGTH+2];
     int bytes_written;
+    char *password_saslPrep = 0;
 
-    bytes_written = snprintf(keyStr, sizeof keyStr, "%s:%s:%s", userName, realm, password);
+    if ( gsasl_saslprep(password, 
+                        GSASL_ALLOW_UNASSIGNED, 
+                        (char **)&password_saslPrep, 
+                        NULL) == GSASL_SASLPREP_ERROR){
+        printf("saslprep failed!\n");
+    
+    }
+
+    printf("password: %s\n", password);
+    printf("saslprep: %s\n", password_saslPrep);
+
+    bytes_written = snprintf(keyStr, sizeof keyStr, "%s:%s:%s", userName, realm, password_saslPrep);
     if((size_t)bytes_written >= sizeof keyStr)
         abort();
+    printf("KeyStr: '%s'\n", keyStr);
 
     MD5((uint8_t *)keyStr, bytes_written , md5key);
+    
+    free(password_saslPrep);
+
 }

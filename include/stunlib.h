@@ -707,7 +707,10 @@ void     stunlib_addMsSeqNum(StunMessage *stunMsg, StunAttrSequenceNum *seqNr);
  * \param   realm     C string
  * \param   password  C string
 */
-void stunlib_createMD5Key(unsigned char *md5key, char *userName, char *realm, char *password);
+void stunlib_createMD5Key(unsigned char *md5key, 
+                          const char *userName, 
+                          const char *realm, 
+                          const char *password);
 
 
 /* helpers */

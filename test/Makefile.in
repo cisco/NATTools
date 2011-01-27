@@ -87,8 +87,6 @@ AWK = @AWK@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
-CHECK_CFLAGS = @CHECK_CFLAGS@
-CHECK_LIBS = @CHECK_LIBS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CYGPATH_W = @CYGPATH_W@
@@ -194,8 +192,8 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I../include
 check_stunlib_SOURCES = turnclienttest.c testvector.c  turn_message.c testmain.c
-check_stunlib_CFLAGS = @CHECK_CFLAGS@  
-check_stunlib_LDADD = $(top_builddir)/src/libstun.la @CHECK_LIBS@
+check_stunlib_CFLAGS = 
+check_stunlib_LDADD = $(top_builddir)/src/libstun.la
 all: all-am
 
 .SUFFIXES:

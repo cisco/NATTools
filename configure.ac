@@ -17,11 +17,13 @@ AM_PROG_CC_C_O
 
 # Checks for libraries.
 AC_CHECK_LIB([check], [srunner_create])
-AM_PATH_CHECK()
 
 AC_CHECK_LIB([sockaddrutil], [sockaddr_initFromString],[], [AC_MSG_FAILURE([could not find sockaddrutil])])
 
 AC_CHECK_LIB([ssl], [SSL_library_init], [], [AC_MSG_FAILURE([could not find ssl])])
+
+AC_CHECK_LIB([gsasl], [gsasl_check_version], [], [AC_MSG_FAILURE([could not find gsasl])])
+
 
 
 # Checks for header files.

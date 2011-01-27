@@ -86,6 +86,38 @@ static unsigned char respv6[] =
     "\xc8\xfb\x0b\x4c"; //     CRC32 fingerprint
 
 
+static unsigned char respv_longauth[] =
+    "\x00\x01\x00\x60"  // Request type and message length
+    "\x21\x12\xa4\x42"  //   Magic cookie
+    "\x78\xad\x34\x33"  //}
+    "\xc6\xad\x72\xc0"  //}  Transaction ID
+    "\x29\xda\x41\x2e"  //}
+    "\x00\x06\x00\x12"  //   USERNAME attribute header
+    "\xe3\x83\x9e\xe3"  //}
+    "\x83\x88\xe3\x83"  //}
+    "\xaa\xe3\x83\x83"  //}  Username value (18 bytes) and padding (2 bytes)
+    "\xe3\x82\xaf\xe3"  //}
+    "\x82\xb9\x00\x00"  //}
+    "\x00\x15\x00\x1c"  //   NONCE attribute header
+    "\x66\x2f\x2f\x34"  //}
+    "\x39\x39\x6b\x39"  //}
+    "\x35\x34\x64\x36"  //}
+    "\x4f\x4c\x33\x34"  //}  Nonce value
+    "\x6f\x4c\x39\x46"  //}
+    "\x53\x54\x76\x79"  //}
+    "\x36\x34\x73\x41"  //}
+    "\x00\x14\x00\x0b"  //   REALM attribute header
+    "\x65\x78\x61\x6d"  //}
+    "\x70\x6c\x65\x2e"  //}  Realm value (11 bytes) and padding (1 byte)
+    "\x6f\x72\x67\x00"  //}
+    "\x00\x08\x00\x14"  //   MESSAGE-INTEGRITY attribute header
+    "\xf6\x70\x24\x65"  //}
+    "\x6d\xd6\x4a\x3e"  //}
+    "\x02\xb8\xe0\x71"  //}  HMAC-SHA1 fingerprint
+    "\x2e\x85\xc9\xa2"  //}
+    "\x8c\xa8\x96\x66"; //}
+
+
 
 static const char username[] = "evtj:h6vY";
 
@@ -107,14 +139,45 @@ static const uint16_t port = 32853;
 const char *software= "STUN test client\0";
 const char *software_resp= "test vector\0";
 
+const char *user_longAuth =  "<U+30DE><U+30C8><U+30EA><U+30C3><U+30AF><U+30B9>\0";
+//const char *pass_longAuth =  "The<U+00AD>M<U+00AA>tr<U+2168>\0";
+const char *pass_longAuth =  "TheMatrIX";
+const char *realm_longAuth = "example.org\0";
+
 #define MAX_STRING_TEST 5
 
 Suite * stunlib_suite (void);
 
 
 
+START_TEST (request_longauth_decode)
+{
+    StunMessage stunMsg;
+    int keyLen = 16;
+    char md5[keyLen];
 
 
+
+    stunlib_createMD5Key((unsigned char *)md5, user_longAuth, realm_longAuth, pass_longAuth);
+
+
+    fail_unless( stunlib_DecodeMessage( respv_longauth,
+                                        sizeof(respv_longauth),
+                                        &stunMsg,
+                                        NULL,
+                                        false,
+                                        false ));
+
+    
+    fail_unless(  stunlib_checkIntegrity(respv_longauth,
+                                         sizeof(respv_longauth),
+                                         &stunMsg,
+                                         md5,
+                                         keyLen) );
+
+    
+}
+END_TEST
 
 START_TEST (request_decode)
 {
@@ -862,6 +925,7 @@ Suite * stunlib_suite (void)
       tcase_add_test (tc_encodeDecode, xor_encode_decode);
       tcase_add_test (tc_encodeDecode, transport_encode_decode);
       tcase_add_test (tc_encodeDecode, channel_encode_decode);
+      tcase_add_test (tc_encodeDecode, request_longauth_decode);
       suite_add_tcase (s, tc_encodeDecode);
   }
 
