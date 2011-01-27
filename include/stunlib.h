@@ -530,9 +530,25 @@ bool stunlib_DecodeMessage(unsigned char* buf,
                            unsigned int bufLen,
                            StunMessage* message,
                            StunAtrUnknown* unknowns,
-                           char *integrityKey,
                            bool verbose,
                            bool isMsStun);
+
+
+/*!
+ * stunlib_checkIntegrity -  Checks the integrity attribute. Be sure to send in the
+                             correct key. simple Simple password for short term. 
+                             MD5(user:realm:pass) for long term.
+ * \param buf             serialised buffer, network order 
+ * \param buflen          Length of buffer
+ * \param message         STUN/TURN message to check integrity on.
+ * \param integrityKey    Integrity key, password used to calculate integrity.
+ */
+
+bool stunlib_checkIntegrity(unsigned char* buf,
+                            unsigned int bufLen,
+                            StunMessage* message,
+                            char *integrityKey,
+                            int integrityKeyLen);
 
 /*!
  * STUNLIB_isRequest() - Test if  decoded stun message is a request

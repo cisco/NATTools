@@ -75,7 +75,11 @@ static unsigned char allocate_error_resp[] =
 */
 
 
-static char password[] = "pem:medianetworkservices.com:pem\0";
+static char password[] = "pem\0";
+static char user[] = "pem\0";
+static char realm[] = "medianetworkservices.com\0";
+
+
 static const unsigned char idOctet[] = 
     "\x64\x3c\x98\x69" 
     "\x00\x01\x00\x00" 
@@ -143,9 +147,14 @@ START_TEST(encode_integrity)
                                         120,
                                         &decodeStunMsg,
                                         NULL,
-                                        password,
                                         false,
                                         false ));
+    
+    fail_unless(  stunlib_checkIntegrity(stunBuf,
+                                         120, 
+                                         &decodeStunMsg,
+                                         password,
+                                         sizeof(password)) );
 
 
 }
@@ -155,14 +164,25 @@ START_TEST(decode_integrity)
 {
 
     StunMessage stunMsg;
+    int keyLen = 16;
+    char md5[keyLen];
+
+
+
+    stunlib_createMD5Key((unsigned char *)md5, user, realm, password);
 
     fail_unless( stunlib_DecodeMessage( allocate_resp,
                                         sizeof(allocate_resp),
                                         &stunMsg,
                                         NULL,
-                                        password,
                                         false,
                                         false ));
+    
+    fail_unless(  stunlib_checkIntegrity(allocate_resp,
+                                         sizeof(allocate_resp),
+                                         &stunMsg,
+                                         md5,
+                                         keyLen) );
 
 }
 END_TEST
@@ -176,7 +196,7 @@ Suite * turnmessage_suite (void){
         TCase *tc_integrity = tcase_create ("Alloctate Sucsess Integrity");
         
         tcase_add_test (tc_integrity, encode_integrity);
-        //tcase_add_test (tc_integrity, decode_integrity);
+        tcase_add_test (tc_integrity, decode_integrity);
         
         suite_add_tcase (s, tc_integrity);
       

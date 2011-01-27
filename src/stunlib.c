@@ -1369,7 +1369,6 @@ stunlib_DecodeMessage(unsigned char* buf,
                       unsigned int bufLen,
                       StunMessage* message,
                       StunAtrUnknown* unknowns,
-                      char *integrityKey,
                       bool verbose,
                       bool isMsStun)
 {
@@ -1711,62 +1710,7 @@ stunlib_DecodeMessage(unsigned char* buf,
         return false;
     }
 
-    if (integrityKey)
-    {
-        //Check integrity attribute
-
-        if (message->hasMessageIntegrity)
-        {
-            unsigned char bufCopy[STUN_MAX_PACKET_SIZE];
-            uint16_t msgIntLength;
-            unsigned char hash[20];
-            uint32_t len = 0; /*dummy value*/
-
-            //Lengt of message including integiryty lenght (Header and attribute)
-            //Fingerprint and any trailing attributes are dismissed.
-            msgIntLength = message->messageIntegrity.offset+24;
-
-            memcpy(&bufCopy, buf, bufLen);
-
-            //Write new packet length in header
-            pCurrPtr = (uint8_t *)bufCopy;
-            pCurrPtr+=2;
-            write_16(&pCurrPtr, (msgIntLength-20));
-
-            pCurrPtr = (uint8_t *)bufCopy;
-
-            HMAC(EVP_sha1(),
-                 integrityKey, strlen(integrityKey),
-                 pCurrPtr,
-                 msgIntLength-24,
-                 &hash[0], &len);
-
-            if (memcmp( &hash, message->messageIntegrity.hash,20) != 0)
-            {
-                /*
-                int i;
-                printError("<STUNMSG>  Integrity Failed!(%s)\n",integrityKey);
-                printError("     rcv: ");
-                for (i = 0; i < 20; i++)
-                    printError("%02x ", message->messageIntegrity.hash[i]);
-                printError("\n");
-                printError("    calc: ");
-                for (i = 0; i < 20; i++)
-                    printError("%02x ", hash[i]);
-                printError("\n");
-                stun_printMessage(message);
-                */
-                return false;
-            }
-
-        }
-        else
-        {
-            printError("<stunmsg> Missing integrity attribute\n");
-            return false;
-        }
-
-    }
+    
 
     if (verbose)
     {
@@ -1780,6 +1724,76 @@ stunlib_DecodeMessage(unsigned char* buf,
     }
     return true;
 }
+
+
+bool stunlib_checkIntegrity(unsigned char* buf,
+                            unsigned int bufLen,
+                            StunMessage* message,
+                            char *integrityKey,
+                            int integrityKeyLen)
+
+{
+
+    //Check integrity attribute
+    
+    if (message->hasMessageIntegrity)
+    {
+        unsigned char bufCopy[STUN_MAX_PACKET_SIZE];
+        uint16_t msgIntLength;
+        unsigned char hash[20];
+        uint32_t len = 0; /*dummy value*/
+        uint8_t *pCurrPtr;
+        
+        //Lengt of message including integiryty lenght (Header and attribute)
+        //Fingerprint and any trailing attributes are dismissed.
+        msgIntLength = message->messageIntegrity.offset+24;
+        
+        memcpy(&bufCopy, buf, bufLen);
+        
+        //Write new packet length in header
+        pCurrPtr = (uint8_t *)bufCopy;
+        pCurrPtr+=2;
+        write_16(&pCurrPtr, (msgIntLength-20));
+        
+        pCurrPtr = (uint8_t *)bufCopy;
+        
+        
+        
+        HMAC(EVP_sha1(),
+             integrityKey, integrityKeyLen,
+             pCurrPtr,
+             msgIntLength-24,
+             &hash[0], &len);
+        
+        if (memcmp( &hash, message->messageIntegrity.hash,20) != 0)
+        {
+            /*
+              int i;
+              printError("<STUNMSG>  Integrity Failed!(%s)\n",integrityKey);
+              printError("     rcv: ");
+              for (i = 0; i < 20; i++)
+              printError("%02x ", message->messageIntegrity.hash[i]);
+              printError("\n");
+              printError("    calc: ");
+              for (i = 0; i < 20; i++)
+              printError("%02x ", hash[i]);
+              printError("\n");
+              stun_printMessage(message);
+            */
+            return false;
+        }
+        
+    }
+    else
+    {
+        printError("<stunmsg> Missing integrity attribute\n");
+        return false;
+    }
+    
+    return true;
+
+}
+
 
 
 uint16_t stunlib_createRandomTurnChanNum()
