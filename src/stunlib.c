@@ -2,7 +2,6 @@
 #include <openssl/md5.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
-#include <gsasl.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -1769,7 +1768,7 @@ bool stunlib_checkIntegrity(unsigned char* buf,
         
         if (memcmp( &hash, message->messageIntegrity.hash,20) != 0)
         {
-            
+            /*
               int i;
               printError("<STUNMSG>  Integrity Failed!(%s)\n",integrityKey);
               printError("     rcv: ");
@@ -1781,7 +1780,7 @@ bool stunlib_checkIntegrity(unsigned char* buf,
               printError("%02x ", hash[i]);
               printError("\n");
               stun_printMessage(message);
-            
+            */    
             return false;
         }
         
@@ -2474,26 +2473,12 @@ void stunlib_createMD5Key(unsigned char *md5key,
 {
     char keyStr[STUN_MSG_MAX_USERNAME_LENGTH+STUN_MSG_MAX_PASSWORD_LENGTH+STUN_MSG_MAX_REALM_LENGTH+2];
     int bytes_written;
-    char *password_saslPrep = 0;
-
-    if ( gsasl_saslprep(password, 
-                        GSASL_ALLOW_UNASSIGNED, 
-                        (char **)&password_saslPrep, 
-                        NULL) == GSASL_SASLPREP_ERROR){
-        printf("saslprep failed!\n");
     
-    }
 
-    printf("password: %s\n", password);
-    printf("saslprep: %s\n", password_saslPrep);
-
-    bytes_written = snprintf(keyStr, sizeof keyStr, "%s:%s:%s", userName, realm, password_saslPrep);
-    if((size_t)bytes_written >= sizeof keyStr)
+    bytes_written = snprintf(keyStr, sizeof keyStr, "%s:%s:%s", userName, realm, password);
+    if ((size_t)bytes_written >= sizeof keyStr)
         abort();
-    printf("KeyStr: '%s'\n", keyStr);
-
+    
     MD5((uint8_t *)keyStr, bytes_written , md5key);
     
-    free(password_saslPrep);
-
 }

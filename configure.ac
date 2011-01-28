@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ([2.65])
+AC_PREREQ([2.61])
 AC_INIT([stunlib], [0.1], [palmarti@cisco.com])
 AC_CONFIG_SRCDIR([include/stunlib.h])
 AC_CONFIG_HEADERS([config.h])
@@ -22,7 +22,7 @@ AC_CHECK_LIB([sockaddrutil], [sockaddr_initFromString],[], [AC_MSG_FAILURE([coul
 
 AC_CHECK_LIB([ssl], [SSL_library_init], [], [AC_MSG_FAILURE([could not find ssl])])
 
-AC_CHECK_LIB([gsasl], [gsasl_check_version], [], [AC_MSG_FAILURE([could not find gsasl])])
+dnl AC_CHECK_LIB([gsasl], [gsasl_check_version], [], [AC_MSG_FAILURE([could not find gsasl])])
 
 
 

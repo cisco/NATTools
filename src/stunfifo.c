@@ -1,5 +1,6 @@
 #include "stunfifo.h"
 #include <string.h>
+#include <stdlib.h>
 
 static StunPassFifo_T  StunPassFifo[STUN_FIFO_MAX_THREAD_CTX];
 
