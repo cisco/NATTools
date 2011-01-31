@@ -9,11 +9,9 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <time.h>
-#include <gsasl.h>
 
 #include "turnclient.h"
 #include "sockaddr_util.h"
-
 
 
 #define PORT "5793"
@@ -27,7 +25,6 @@ static int createLocalUDPSocket(int ai_family){
     
     int rv;
     int yes = 1;
-    
     struct addrinfo hints, *ai, *p;
 
 
@@ -56,8 +53,10 @@ static int createLocalUDPSocket(int ai_family){
             close(sockfd);
             continue;
         }
-            break;
+        
+        break;
     }
+    printf("Soket open: %i\n", sockfd);
     return sockfd;
 }
 
@@ -78,7 +77,7 @@ static int sendRawUDP(int sockfd,
     numbytes = sendto(sockfd, buf, len, 0,
                       p , t); 
                       
-    printf("Sending Raw (To: '%s'(%i), Bytes:%i/%i  )\n", addr, t, numbytes, len);
+    printf("Sending Raw (To: '%s'(%i), Bytes:%i/%i  )\n", addr, sockfd, numbytes, (int)len);
     
     return numbytes;
 
@@ -142,7 +141,7 @@ int main(int argc, char *argv[])
     pthread_t recieveThread;
 
     char key[] = "pem";
-    char *key_saslprep;;
+    
     
     
 
@@ -151,15 +150,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
     
-    if ( gsasl_saslprep(key, 
-                        GSASL_ALLOW_UNASSIGNED, 
-                        (char **)&key_saslprep, 
-                        NULL) == GSASL_SASLPREP_ERROR){
-        printf("saslprep failed!\n");
-        exit(1);
-    }
-        
-    printf("Key:'%s' saslprep:'%s'\n", key, key_saslprep);
+    
 
     sockfd_4 = createLocalUDPSocket(AF_INET);
     sockfd_6 = createLocalUDPSocket(AF_INET6);
@@ -172,8 +163,10 @@ int main(int argc, char *argv[])
                             argv[1]);
 
     if(ss_addr.ss_family == AF_INET){
+        printf("Using IPv4 Socket\n");
         sockfd = sockfd_4;
     }else if(ss_addr.ss_family == AF_INET6){
+        printf("Using IPv6 Socket\n");
         sockfd = sockfd_6;
     }
 
@@ -210,13 +203,12 @@ int main(int argc, char *argv[])
             printf("GOT stun packet...\n", buf);
             StunMessage msg;
             char pass[128] = "pem:medianetworkservices.com:";
-            strcat(pass, key_saslprep);
+            
             
             stunlib_DecodeMessage(buf,
                                   rcv_numbytes,
                                   &msg,
                                   NULL,
-                                  pass,
                                   false,
                                   false);
             
