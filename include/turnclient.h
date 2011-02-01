@@ -256,13 +256,15 @@ void TurnClient_HandleTick(uint32_t threadCtx);
  *  ctx       - Appl. should use the ctx returned from TurnClient_startAllocateTransaction(). However
  *              if this is not known, use TURNCLIENT_CTX_UNKNOWN and the turn client will internally search all instances for a match. 
  *  msg       - Decoded STUN message.
+ *  buf       - Original buffer holding unencoded message. (Needed to calculate integrity)
  *
  * return - instance/ctx (of use only when TURNCLIENT_CTX_UNKNOWN is input). 
  *
  */
 int TurnClient_HandleIncResp(uint32_t     threadCtx,
                              int          ctx, 
-                             StunMessage *msg);
+                             StunMessage *msg,
+                             char         *buf);
 /*
  * Encode a TURN send indication.  
  * \param  stunbuf          Buffer to store encoded STUN message in

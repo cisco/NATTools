@@ -110,23 +110,67 @@ static char  SoftwareVersionStr[100];
 static TurnStats_T TurnStats;
 
 /* forward declarations */
-static int   TurnClientMain(uint32_t threadCtx, int ctx, TURN_SIGNAL sig, uint8_t *payload);
-static void  TurnClientFsm(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uint8_t *payload);
+static int   TurnClientMain(uint32_t threadCtx, 
+                            int ctx, 
+                            TURN_SIGNAL sig, 
+                            uint8_t *payload, 
+                            uint8_t *origMsgBuf);
+
+static void  TurnClientFsm(TURN_INSTANCE_DATA *pInst, 
+                           TURN_SIGNAL sig, 
+                           uint8_t *payload, 
+                           uint8_t *origMsgBuf);
+
 static void  SetNextState(TURN_INSTANCE_DATA *pInst,  TURN_STATE NextState);
 static void  TurnPrint(uint32_t threadCtx, TurnInfoCategory_T category, const char *fmt, ...);
 static bool  TimerHasExpired(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig);
 
 
 /* forward declarations of state functions */
-static void  TurnState_Idle(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uint8_t *payload);
-static void  TurnState_WaitAllocRespNotAut(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uint8_t *payload);
-static void  TurnState_WaitAllocResp(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uint8_t *payload);
-static void  TurnState_Allocated(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uint8_t *payload);
-static void  TurnState_WaitChanBindResp(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uint8_t *payload);
-static void  TurnState_WaitCreatePermResp(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uint8_t *payload);
-static void  TurnState_WaitAllocRefreshResp(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uint8_t *payload);
-static void  TurnState_WaitSetActiveDestResp(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uint8_t *payload);
-static void  TurnState_WaitReleaseResp(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uint8_t *payload);
+static void  TurnState_Idle(TURN_INSTANCE_DATA *pInst, 
+                            TURN_SIGNAL sig, 
+                            uint8_t *payload,
+                            uint8_t *origMsgBuf);
+
+static void  TurnState_WaitAllocRespNotAut(TURN_INSTANCE_DATA *pInst, 
+                                           TURN_SIGNAL sig, 
+                                           uint8_t *payload,
+                                           uint8_t *origMsgBuf);
+                                           
+static void  TurnState_WaitAllocResp(TURN_INSTANCE_DATA *pInst, 
+                                     TURN_SIGNAL sig, 
+                                     uint8_t *payload,
+                                     uint8_t *origMsgBuf);
+
+static void  TurnState_Allocated(TURN_INSTANCE_DATA *pInst, 
+                                 TURN_SIGNAL sig, 
+                                 uint8_t *payload,
+                                 uint8_t *origMsgBuf);
+
+static void  TurnState_WaitChanBindResp(TURN_INSTANCE_DATA *pInst, 
+                                        TURN_SIGNAL sig, 
+                                        uint8_t *payload,
+                                        uint8_t *origMsgBuf);
+
+static void  TurnState_WaitCreatePermResp(TURN_INSTANCE_DATA *pInst, 
+                                          TURN_SIGNAL sig, 
+                                          uint8_t *payload,
+                                          uint8_t *origMsgBuf);
+
+static void  TurnState_WaitAllocRefreshResp(TURN_INSTANCE_DATA *pInst, 
+                                            TURN_SIGNAL sig, 
+                                            uint8_t *payload,
+                                            uint8_t *origMsgBuf);
+
+static void  TurnState_WaitSetActiveDestResp(TURN_INSTANCE_DATA *pInst, 
+                                             TURN_SIGNAL sig, 
+                                             uint8_t *payload,
+                                             uint8_t *origMsgBuf);
+
+static void  TurnState_WaitReleaseResp(TURN_INSTANCE_DATA *pInst, 
+                                       TURN_SIGNAL sig, 
+                                       uint8_t *payload,
+                                       uint8_t *origMsgBuf);
 
 
 /*************************************************************************/
@@ -381,7 +425,7 @@ int TurnClient_startAllocateTransaction(uint32_t               threadCtx,
     m.turnCbFunc = turnCbFunc;
     m.turnCbData = turnCbData;
 
-    ret = TurnClientMain(threadCtx, TURNCLIENT_CTX_UNKNOWN, TURN_SIGNAL_AllocateReq, (uint8_t*)&m);
+    ret = TurnClientMain(threadCtx, TURNCLIENT_CTX_UNKNOWN, TURN_SIGNAL_AllocateReq, (uint8_t*)&m, NULL);
 
     return ret;
 
@@ -485,7 +529,7 @@ bool TurnClient_StartChannelBindReq(uint32_t threadCtx,
         msg.channelNumber = channelNumber;
         sockaddr_copy((struct sockaddr *)&msg.peerTrnspAddr, 
                       peerTrnspAddr);
-        TurnClientMain(threadCtx, ctx, TURN_SIGNAL_ChannelBindReq, (uint8_t*)&msg);
+        TurnClientMain(threadCtx, ctx, TURN_SIGNAL_ChannelBindReq, (uint8_t*)&msg, NULL);
         return true;
     }
     return false;
@@ -509,7 +553,7 @@ bool TurnClient_StartCreatePermissionReq(uint32_t         threadCtx,
             msg.numberOfPeers++;
         }
 
-        TurnClientMain(threadCtx, ctx, TURN_SIGNAL_CreatePermissionReq, (uint8_t*)&msg);
+        TurnClientMain(threadCtx, ctx, TURN_SIGNAL_CreatePermissionReq, (uint8_t*)&msg, NULL);
         return true;
     }
     return false;
@@ -526,20 +570,20 @@ void TurnClient_HandleTick(uint32_t threadCtx)
         TURN_INSTANCE_DATA *pInst;
         pInst = InstanceData[threadCtx][i];
         if (TimerHasExpired(pInst, TURN_SIGNAL_TimerRetransmit))
-            TurnClientFsm  (pInst, TURN_SIGNAL_TimerRetransmit, NULL);
+            TurnClientFsm  (pInst, TURN_SIGNAL_TimerRetransmit, NULL, NULL);
         if (TimerHasExpired(pInst, TURN_SIGNAL_TimerRefreshAlloc))
-            TurnClientFsm  (pInst, TURN_SIGNAL_TimerRefreshAlloc, NULL);
+            TurnClientFsm  (pInst, TURN_SIGNAL_TimerRefreshAlloc, NULL, NULL);
         if (TimerHasExpired(pInst, TURN_SIGNAL_TimerRefreshChannel))
-            TurnClientFsm  (pInst, TURN_SIGNAL_TimerRefreshChannel, NULL);
+            TurnClientFsm  (pInst, TURN_SIGNAL_TimerRefreshChannel, NULL, NULL);
         if (TimerHasExpired(pInst, TURN_SIGNAL_TimerRefreshPermission))
-            TurnClientFsm  (pInst, TURN_SIGNAL_TimerRefreshPermission, NULL);
+            TurnClientFsm  (pInst, TURN_SIGNAL_TimerRefreshPermission, NULL, NULL);
         if (TimerHasExpired(pInst, TURN_SIGNAL_TimerStunKeepAlive))
-            TurnClientFsm  (pInst, TURN_SIGNAL_TimerStunKeepAlive, NULL);
+            TurnClientFsm  (pInst, TURN_SIGNAL_TimerStunKeepAlive, NULL, NULL);
     }
 }
 
 
-int  TurnClient_HandleIncResp(uint32_t threadCtx, int ctx, StunMessage *msg)
+int  TurnClient_HandleIncResp(uint32_t threadCtx, int ctx, StunMessage *msg, char *buf)
 {
     if (ctx >= CurrentInstances[threadCtx])
     {
@@ -559,29 +603,51 @@ int  TurnClient_HandleIncResp(uint32_t threadCtx, int ctx, StunMessage *msg)
                 if (TransIdIsEqual(&msg->msgHdr.id, &InstanceData[threadCtx][i]->PrevRespTransId))
                 {
                     /* silent discard duplicate msg */
-                    TurnPrint(threadCtx, TurnInfoCategory_Trace, "<TURNCLIENT:%02d> %02x..%02x %s silent discard duplicate\n", 
-                              i, msg->msgHdr.id.octet[0], msg->msgHdr.id.octet[11], stunlib_getMessageName(msg->msgHdr.msgType));
+                    TurnPrint(threadCtx, 
+                              TurnInfoCategory_Trace, 
+                              "<TURNCLIENT:%02d> %02x..%02x %s silent discard duplicate\n", 
+                              i, 
+                              msg->msgHdr.id.octet[0], 
+                              msg->msgHdr.id.octet[11], 
+                              stunlib_getMessageName(msg->msgHdr.msgType));
                 }
                 else
                 {   
-                    TurnPrint(threadCtx, TurnInfoCategory_Trace, "<TURNCLIENT:%02d> %02x..%02x %s\n", 
-                              i, msg->msgHdr.id.octet[0], msg->msgHdr.id.octet[11], stunlib_getMessageName(msg->msgHdr.msgType));
+                    TurnPrint(threadCtx, TurnInfoCategory_Trace, 
+                              "<TURNCLIENT:%02d> %02x..%02x %s\n", 
+                              i, 
+                              msg->msgHdr.id.octet[0], 
+                              msg->msgHdr.id.octet[11], 
+                              stunlib_getMessageName(msg->msgHdr.msgType));
+
                     StorePrevRespTransId(InstanceData[threadCtx][i], msg); 
-                    TurnClientMain(threadCtx, i, StunMsgToInternalTurnSig(threadCtx, msg), (void*)msg);
+                    TurnClientMain(threadCtx, 
+                                   i, 
+                                   StunMsgToInternalTurnSig(threadCtx, msg), 
+                                   (void*)msg, 
+                                   (uint8_t *)buf);
                 }
                 return i;
             }
         }
-        TurnPrint(threadCtx, TurnInfoCategory_Error, "<TURNCLIENT> no instance with transId %02x..%02x, discarding, msgType %d\n ", 
-                  msg->msgHdr.id.octet[0], msg->msgHdr.id.octet[11], msg->msgHdr.msgType);
+        TurnPrint(threadCtx, 
+                  TurnInfoCategory_Error, 
+                  "<TURNCLIENT> no instance with transId %02x..%02x, discarding, msgType %d\n ", 
+                  msg->msgHdr.id.octet[0], 
+                  msg->msgHdr.id.octet[11], 
+                  msg->msgHdr.msgType);
         return TURNCLIENT_CTX_UNKNOWN;
     }
 
     if (TransIdIsEqual(&msg->msgHdr.id, &InstanceData[threadCtx][ctx]->PrevRespTransId))
     {
         /* silent discard duplicate msg */
-        TurnPrint(threadCtx, TurnInfoCategory_Trace, "<TURNCLIENT:%02d> %02x..%02x %s silent discard duplicate\n", 
-                  ctx, msg->msgHdr.id.octet[0], msg->msgHdr.id.octet[11], stunlib_getMessageName(msg->msgHdr.msgType));
+        TurnPrint(threadCtx, 
+                  TurnInfoCategory_Trace, 
+                  "<TURNCLIENT:%02d> %02x..%02x %s silent discard duplicate\n", 
+                  ctx, msg->msgHdr.id.octet[0], 
+                  msg->msgHdr.id.octet[11], 
+                  stunlib_getMessageName(msg->msgHdr.msgType));
         return ctx;
     }
 
@@ -589,19 +655,29 @@ int  TurnClient_HandleIncResp(uint32_t threadCtx, int ctx, StunMessage *msg)
     /* context known, just check transId matches last sent request on this instance */
     if (TransIdIsEqual(&msg->msgHdr.id, &InstanceData[threadCtx][ctx]->StunReqTransId))
     {
-        TurnPrint(threadCtx, TurnInfoCategory_Trace, "<TURNCLIENT:%02d> %02x..%02x %s\n", 
-                  ctx, msg->msgHdr.id.octet[0], msg->msgHdr.id.octet[11], stunlib_getMessageName(msg->msgHdr.msgType));
+        TurnPrint(threadCtx, 
+                  TurnInfoCategory_Trace, 
+                  "<TURNCLIENT:%02d> %02x..%02x %s\n", 
+                  ctx, 
+                  msg->msgHdr.id.octet[0], 
+                  msg->msgHdr.id.octet[11], 
+                  stunlib_getMessageName(msg->msgHdr.msgType));
+
         StorePrevRespTransId(InstanceData[threadCtx][ctx], msg); 
-        TurnClientMain(threadCtx, ctx, StunMsgToInternalTurnSig(threadCtx,msg), (void*)msg);
+        TurnClientMain(threadCtx, ctx, StunMsgToInternalTurnSig(threadCtx,msg), (void*)msg, (uint8_t *)buf);
         return ctx;
     }
     else
     {
-        TurnPrint(threadCtx, TurnInfoCategory_Error, "<TURNCLIENT:%02d> mismatched transId rec: %02x..%02x, exp: %02x..%02x discarding, msgType %s\n ", ctx, 
-                  msg->msgHdr.id.octet[0], msg->msgHdr.id.octet[11], 
+        TurnPrint(threadCtx, 
+                  TurnInfoCategory_Error, 
+                  "<TURNCLIENT:%02d> mismatched transId rec: %02x..%02x, exp: %02x..%02x discarding, msgType %s\n ", ctx, 
+                  msg->msgHdr.id.octet[0], 
+                  msg->msgHdr.id.octet[11], 
                   InstanceData[threadCtx][ctx]->StunReqTransId.octet[0], 
                   InstanceData[threadCtx][ctx]->StunReqTransId.octet[11],
                   stunlib_getMessageName(msg->msgHdr.msgType)); 
+
         return TURNCLIENT_CTX_UNKNOWN;
     }
 }
@@ -609,7 +685,7 @@ int  TurnClient_HandleIncResp(uint32_t threadCtx, int ctx, StunMessage *msg)
 
 void TurnClient_Deallocate(uint32_t threadCtx, int ctx)
 {
-    TurnClientMain(threadCtx, ctx, TURN_SIGNAL_DeAllocate, NULL);
+    TurnClientMain(threadCtx, ctx, TURN_SIGNAL_DeAllocate, NULL, NULL);
 }
 
 
@@ -1021,11 +1097,15 @@ static void StopTimer(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig)
 
 int  TurnClientSimulateSig(uint32_t threadCtx, int ctx, TURN_SIGNAL sig)
 {
-    return TurnClientMain(threadCtx, ctx, sig, NULL);
+    return TurnClientMain(threadCtx, ctx, sig, NULL, NULL);
 }
 
 
-static int  TurnClientMain(uint32_t threadCtx, int ctx, TURN_SIGNAL sig, uint8_t *payload)
+static int  TurnClientMain(uint32_t threadCtx, 
+                           int ctx, 
+                           TURN_SIGNAL sig, 
+                           uint8_t *payload, 
+                           uint8_t *origMsgBuf)
 {
     int ret = TURNCLIENT_CTX_UNKNOWN;
 
@@ -1033,9 +1113,14 @@ static int  TurnClientMain(uint32_t threadCtx, int ctx, TURN_SIGNAL sig, uint8_t
     if (ctx != TURNCLIENT_CTX_UNKNOWN)
     {
         if (ctx < CurrentInstances[threadCtx])
-            TurnClientFsm(InstanceData[threadCtx][ctx], sig, payload);
+            TurnClientFsm(InstanceData[threadCtx][ctx], sig, payload, origMsgBuf);
         else
-            TurnPrint(threadCtx, TurnInfoCategory_Error, "<TURNCLIENT> sig: %s illegal context %d exceeds %d\n ", TurnsigToStr(sig), ctx, CurrentInstances[threadCtx]-1); 
+            TurnPrint(threadCtx, 
+                      TurnInfoCategory_Error, 
+                      "<TURNCLIENT> sig: %s illegal context %d exceeds %d\n ", 
+                      TurnsigToStr(sig), 
+                      ctx, 
+                      CurrentInstances[threadCtx]-1); 
         ret = ctx;
     }
     else 
@@ -1045,13 +1130,17 @@ static int  TurnClientMain(uint32_t threadCtx, int ctx, TURN_SIGNAL sig, uint8_t
 
         if (ctx >= 0)
         {
-            TurnClientFsm(InstanceData[threadCtx][ctx], sig, payload);
+            TurnClientFsm(InstanceData[threadCtx][ctx], sig, payload, origMsgBuf);
 
             ret = ctx; /* returns context */
         }
         else
         {
-            TurnPrint(threadCtx, TurnInfoCategory_Error, "<TURNCLIENT> No free instances, sig: %s", TurnsigToStr(sig));
+            TurnPrint(threadCtx, 
+                      TurnInfoCategory_Error, 
+                      "<TURNCLIENT> No free instances, sig: %s", 
+                      TurnsigToStr(sig));
+
             ret = TURNCLIENT_CTX_UNKNOWN;
         }
     }
@@ -1592,9 +1681,30 @@ static  bool CheckRefreshRespError(TURN_INSTANCE_DATA *pInst, StunMessage *pResp
 }
 
 
-static bool HandleStunAllocateResponseMsg(TURN_INSTANCE_DATA *pInst, StunMessage *pResp)
+static bool HandleStunAllocateResponseMsg(TURN_INSTANCE_DATA *pInst, 
+                                          StunMessage *pResp, 
+                                          uint8_t *origMsgBuf)
                                                    
 {
+    if (origMsgBuf != NULL)
+    {
+        if( !stunlib_checkIntegrity(origMsgBuf,
+                                    pResp->msgHdr.msgLength+20,
+                                    pResp,
+                                    pInst->userCredentials.key,
+                                    16) )
+        {
+            TurnPrint(pInst->threadCtx, 
+                      TurnInfoCategory_Error, 
+                      "<TURNCLIENT:%02d>  HandleStunAllocate(), failed message integrity", 
+                      pInst->inst);
+
+            return false;
+        }
+            
+    }
+
+    
     if (StoreRelayAddress(pInst, pResp) 
     && StoreServerReflexiveAddress(pInst, pResp) 
     && StoreLifetime(pInst, pResp)
@@ -1673,7 +1783,10 @@ static bool  SendTurnReq(TURN_INSTANCE_DATA *pInst, StunMessage  *stunReqMsg)
     
     if (!len )
     {
-        TurnPrint(pInst->threadCtx, TurnInfoCategory_Error, "<TURNCLIENT:%02d>  SendTurnReq(), failed encode", pInst->inst);
+        TurnPrint(pInst->threadCtx, 
+                  TurnInfoCategory_Error, 
+                  "<TURNCLIENT:%02d>  SendTurnReq(), failed encode", 
+                  pInst->inst);
         return false;
     }
 
@@ -1841,30 +1954,49 @@ static void  TurnAllState_Allocated(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, 
 
 
 
-static void  TurnClientFsm(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uint8_t *payload)
+static void  TurnClientFsm(TURN_INSTANCE_DATA *pInst, 
+                           TURN_SIGNAL sig, 
+                           uint8_t *payload, 
+                           uint8_t *origMsgBuf)
 {
     if (pInst->state < TURN_STATE_End)
     {
-        TurnPrint(pInst->threadCtx, TurnInfoCategory_Trace, 
+        TurnPrint(pInst->threadCtx, 
+                  TurnInfoCategory_Trace, 
                   "<TURNCLIENT:%02d> IN <-- %s (state %s)", 
                   pInst->inst, TurnsigToStr(sig), 
                   StateTable[pInst->state].StateStr);
+
         MutexLock(pInst->threadCtx, pInst->inst);
-        (StateTable[pInst->state].Statefunc)(pInst, sig, payload);
+        (StateTable[pInst->state].Statefunc)(pInst, sig, payload, origMsgBuf);
         MutexUnlock(pInst->threadCtx, pInst->inst);
     }
     else
-        TurnPrint(pInst->threadCtx, TurnInfoCategory_Error, "<TURNCLIENT:%02d> undefned state %d, sig %s",pInst->inst, pInst->state, TurnsigToStr(sig));
+    {
+        TurnPrint(pInst->threadCtx, 
+                  TurnInfoCategory_Error, 
+                  "<TURNCLIENT:%02d> undefned state %d, sig %s",
+                  pInst->inst, 
+                  pInst->state, 
+                  TurnsigToStr(sig));
+    }
 }
 
 static void  CommonRetryTimeoutHandler(TURN_INSTANCE_DATA *pInst, TurnResult_T turnResult, const char *errStr, TURN_STATE FailedState)
 {
 
     if ((pInst->retransmits < STUNCLIENT_MAX_RETRANSMITS)
-    && (pInst->turnAllocateReq.stunTimeoutList[pInst->retransmits] != 0))  /* can be 0 terminated if using fewer retransmits */
+        && (pInst->turnAllocateReq.stunTimeoutList[pInst->retransmits] != 0))  /* can be 0 terminated if using fewer retransmits */
     {
-        TurnPrint(pInst->threadCtx, TurnInfoCategory_Trace, "<TURNCLIENT:%02d> %02x..%02x Retransmit %s Retry: %d",
-                  pInst->inst, pInst->stunReqMsgBuf[8], pInst->stunReqMsgBuf[19],  errStr, pInst->retransmits+1);
+        TurnPrint(pInst->threadCtx, 
+                  TurnInfoCategory_Trace, 
+                  "<TURNCLIENT:%02d> %02x..%02x Retransmit %s Retry: %d",
+                  pInst->inst, 
+                  pInst->stunReqMsgBuf[8], 
+                  pInst->stunReqMsgBuf[19],  
+                  errStr, 
+                  pInst->retransmits+1);
+
         RetransmitLastReq(pInst);
         StartNextRetransmitTimer(pInst);
         pInst->retransmits++;
@@ -1873,14 +2005,23 @@ static void  CommonRetryTimeoutHandler(TURN_INSTANCE_DATA *pInst, TurnResult_T t
     else
     {
         TurnStats.Failures++;
-        TurnPrint(pInst->threadCtx, TurnInfoCategory_Error, "<TURNCLIENT:%02d> Retransmit %s failed after %d retries",pInst->inst, errStr, pInst->retransmits);
+        TurnPrint(pInst->threadCtx, 
+                  TurnInfoCategory_Error, 
+                  "<TURNCLIENT:%02d> Retransmit %s failed after %d retries",
+                  pInst->inst, 
+                  errStr, 
+                  pInst->retransmits);
+
         SetNextState(pInst, FailedState);
         CallBack(pInst, turnResult);
     }
 }
 
 
-static void  TurnState_Idle(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uint8_t *payload)
+static void  TurnState_Idle(TURN_INSTANCE_DATA *pInst, 
+                            TURN_SIGNAL sig, 
+                            uint8_t *payload, 
+                            uint8_t *origMsgBuf)
 {
     switch (sig)
     {
@@ -1926,7 +2067,10 @@ static void  TurnState_Idle(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uint8_t 
 /*
  * initial "empty" AllocateReq has been sent, waiting for response.
  */
-static void  TurnState_WaitAllocRespNotAut(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uint8_t *payload)
+static void  TurnState_WaitAllocRespNotAut(TURN_INSTANCE_DATA *pInst, 
+                                           TURN_SIGNAL sig, 
+                                           uint8_t *payload,
+                                           uint8_t *origMsgBuf)
 {
     switch (sig)
     {
@@ -2003,7 +2147,7 @@ static void  TurnState_WaitAllocRespNotAut(TURN_INSTANCE_DATA *pInst, TURN_SIGNA
             StunMessage *pResp = (StunMessage*)payload;
 
             StopTimer(pInst, TURN_SIGNAL_TimerRetransmit);
-            if (HandleStunAllocateResponseMsg(pInst, pResp))
+            if (HandleStunAllocateResponseMsg(pInst, pResp, NULL))
             {
                 StartAllocRefreshTimer(pInst);
                 //StartStunKeepAliveTimer(pInst);
@@ -2044,7 +2188,10 @@ static void  TurnState_WaitAllocRespNotAut(TURN_INSTANCE_DATA *pInst, TURN_SIGNA
 /*
  * Second AllocateReq has been sent, waiting for response.
  */
-static void  TurnState_WaitAllocResp(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uint8_t *payload)
+static void  TurnState_WaitAllocResp(TURN_INSTANCE_DATA *pInst, 
+                                     TURN_SIGNAL sig, 
+                                     uint8_t *payload, 
+                                     uint8_t *origMsgBuf)
 {
     switch (sig)
     {
@@ -2113,7 +2260,7 @@ static void  TurnState_WaitAllocResp(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig,
             
 
             StopTimer(pInst, TURN_SIGNAL_TimerRetransmit);
-            if (HandleStunAllocateResponseMsg(pInst, pResp))
+            if (HandleStunAllocateResponseMsg(pInst, pResp, origMsgBuf))
             {
                 StartAllocRefreshTimer(pInst);
                 //StartStunKeepAliveTimer(pInst);
@@ -2151,7 +2298,10 @@ static void  TurnState_WaitAllocResp(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig,
 
 
 /* Have an allocated relay */
-static void  TurnState_Allocated(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uint8_t *payload)
+static void  TurnState_Allocated(TURN_INSTANCE_DATA *pInst, 
+                                 TURN_SIGNAL sig, 
+                                 uint8_t *payload,
+                                 uint8_t *origMsgBuf)
 {
     StunMessage  stunReqMsg;
 
@@ -2261,7 +2411,10 @@ static void  TurnState_Allocated(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uin
 /*
  * (Allocation) Refresh sent, waiting for response. 
  */
-static void  TurnState_WaitAllocRefreshResp(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uint8_t *payload)
+static void  TurnState_WaitAllocRefreshResp(TURN_INSTANCE_DATA *pInst, 
+                                            TURN_SIGNAL sig, 
+                                            uint8_t *payload,
+                                            uint8_t *origMsgBuf)
 {
     StunMessage  stunReqMsg;
 
@@ -2336,7 +2489,10 @@ static void  TurnState_WaitAllocRefreshResp(TURN_INSTANCE_DATA *pInst, TURN_SIGN
 /*
  * ChannelBindReq has been sent. Waiting for  response. 
  */
-static void  TurnState_WaitChanBindResp(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uint8_t *payload)
+static void  TurnState_WaitChanBindResp(TURN_INSTANCE_DATA *pInst, 
+                                        TURN_SIGNAL sig, 
+                                        uint8_t *payload,
+                                        uint8_t *origMsgBuf)
 {
     switch (sig)
     {
@@ -2414,7 +2570,10 @@ static void  TurnState_WaitChanBindResp(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL s
 /*
  * CreatePermissionReq has been sent. Waiting for  response. 
  */
-static void  TurnState_WaitCreatePermResp(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uint8_t *payload)
+static void  TurnState_WaitCreatePermResp(TURN_INSTANCE_DATA *pInst, 
+                                          TURN_SIGNAL sig, 
+                                          uint8_t *payload,
+                                          uint8_t *origMsgBuf)
 {
     switch (sig)
     {
@@ -2493,7 +2652,10 @@ static void  TurnState_WaitCreatePermResp(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL
 
 
 /* MSSTUN: Sent SetActiveDestinationReq, waiting for Resp */
-static void  TurnState_WaitSetActiveDestResp(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uint8_t *payload)
+static void  TurnState_WaitSetActiveDestResp(TURN_INSTANCE_DATA *pInst, 
+                                             TURN_SIGNAL sig, 
+                                             uint8_t *payload,
+                                             uint8_t *origMsgBuf)
 {
     switch (sig)
     {
@@ -2542,7 +2704,10 @@ static void  TurnState_WaitSetActiveDestResp(TURN_INSTANCE_DATA *pInst, TURN_SIG
  * This means that ResfreshResp will not be received. So hence use a relatively short timer to get back to idle quick
  * and not lock up resources. 
  */
-static void  TurnState_WaitReleaseResp(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uint8_t *payload)
+static void  TurnState_WaitReleaseResp(TURN_INSTANCE_DATA *pInst, 
+                                       TURN_SIGNAL sig, 
+                                       uint8_t *payload,
+                                       uint8_t *origMsgBuf)
 {
     switch (sig)
     {

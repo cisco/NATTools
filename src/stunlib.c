@@ -1729,7 +1729,7 @@ stunlib_DecodeMessage(unsigned char* buf,
 bool stunlib_checkIntegrity(unsigned char* buf,
                             unsigned int bufLen,
                             StunMessage* message,
-                            char *integrityKey,
+                            unsigned char *integrityKey,
                             int integrityKeyLen)
 
 {
@@ -1780,7 +1780,8 @@ bool stunlib_checkIntegrity(unsigned char* buf,
               printError("%02x ", hash[i]);
               printError("\n");
               stun_printMessage(message);
-            */    
+
+            */
             return false;
         }
         
@@ -2473,10 +2474,9 @@ void stunlib_createMD5Key(unsigned char *md5key,
 {
     char keyStr[STUN_MSG_MAX_USERNAME_LENGTH+STUN_MSG_MAX_PASSWORD_LENGTH+STUN_MSG_MAX_REALM_LENGTH+2];
     int bytes_written;
-    
 
     bytes_written = snprintf(keyStr, sizeof keyStr, "%s:%s:%s", userName, realm, password);
-    if ((size_t)bytes_written >= sizeof keyStr)
+    if((size_t)bytes_written >= sizeof keyStr)
         abort();
     
     MD5((uint8_t *)keyStr, bytes_written , md5key);

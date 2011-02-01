@@ -153,7 +153,7 @@ static void SimAllocResp(int ctx, bool relay, bool xorMappedAddr, bool lifetime,
         m.lifetime.value = 60;
     }
 
-    TurnClient_HandleIncResp(TEST_THREAD_CTX, ctx, &m);
+    TurnClient_HandleIncResp(TEST_THREAD_CTX, ctx, &m, NULL);
 
 }
 
@@ -172,7 +172,7 @@ static void  Sim_ChanBindResp(int ctx, uint16_t msgType, uint32_t errClass, uint
         m.errorCode.errorClass  = errClass;
         m.errorCode.number      = errNumber;
     }
-    TurnClient_HandleIncResp(TEST_THREAD_CTX, ctx, &m);
+    TurnClient_HandleIncResp(TEST_THREAD_CTX, ctx, &m, NULL);
 }
 
 
@@ -230,7 +230,7 @@ static void SimInitialAllocRespErr(int ctx, bool hasErrCode, uint32_t errClass, 
     }
 
 
-    TurnClient_HandleIncResp(TEST_THREAD_CTX, ctx, &m);
+    TurnClient_HandleIncResp(TEST_THREAD_CTX, ctx, &m, NULL);
 }
 
 
@@ -270,7 +270,7 @@ static void Sim_RefreshError(int ctx, uint32_t errClass, uint32_t errNumber, boo
         m.nonce.sizeValue = strlen(m.nonce.value);
     }
 
-    TurnClient_HandleIncResp(TEST_THREAD_CTX, ctx, &m);
+    TurnClient_HandleIncResp(TEST_THREAD_CTX, ctx, &m, NULL);
 }
 
 
