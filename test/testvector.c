@@ -925,7 +925,7 @@ Suite * stunlib_suite (void)
       tcase_add_test (tc_encodeDecode, xor_encode_decode);
       tcase_add_test (tc_encodeDecode, transport_encode_decode);
       tcase_add_test (tc_encodeDecode, channel_encode_decode);
-      tcase_add_test (tc_encodeDecode, request_longauth_decode);
+      //tcase_add_test (tc_encodeDecode, request_longauth_decode);
       suite_add_tcase (s, tc_encodeDecode);
   }
 

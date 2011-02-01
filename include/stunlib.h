@@ -547,7 +547,7 @@ bool stunlib_DecodeMessage(unsigned char* buf,
 bool stunlib_checkIntegrity(unsigned char* buf,
                             unsigned int bufLen,
                             StunMessage* message,
-                            char *integrityKey,
+                            unsigned char *integrityKey,
                             int integrityKeyLen);
 
 /*!

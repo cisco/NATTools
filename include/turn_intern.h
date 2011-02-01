@@ -170,7 +170,7 @@ typedef struct
 
 
 /* state function */
-typedef void (*TURN_STATE_FUNC)(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uint8_t *payload);
+typedef void (*TURN_STATE_FUNC)(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uint8_t *payload, uint8_t *origMsgBuf);
 
 /* entry in state table */
 typedef struct 
