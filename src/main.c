@@ -5,6 +5,8 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/poll.h>
+
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -14,11 +16,21 @@
 #include "sockaddr_util.h"
 
 
-#define PORT "5793"
+#define PORT "5799"
 //#define  TEST_THREAD_CTX 1
 #define MAXBUFLEN 1024
 
 static const uint32_t TEST_THREAD_CTX = 1;
+
+
+struct listenConfig{
+    int stunCtx;
+    int sockfd;
+    char* user;
+    char* pass;
+
+
+};
 
 static int createLocalUDPSocket(int ai_family){
     int sockfd;
@@ -72,15 +84,35 @@ static int sendRawUDP(int sockfd,
     
     int numbytes;
     char addr[256];
+    int rv;
 
-    sockaddr_toString(p, addr, 256, true); 
-    numbytes = sendto(sockfd, buf, len, 0,
-                      p , t); 
-                      
-    printf("Sending Raw (To: '%s'(%i), Bytes:%i/%i  )\n", addr, sockfd, numbytes, (int)len);
+    struct pollfd ufds[1];
+
+
+    ufds[0].fd = sockfd;
+    ufds[0].events = POLLOUT;
+
+    rv = poll(ufds, 1, 3500);
     
-    return numbytes;
-
+    if (rv == -1) {
+        perror("poll"); // error occurred in poll()
+    } else if (rv == 0) {
+        printf("Timeout occurred!  No data after 3.5 seconds.\n");
+    } else {
+        // check for events on s1:
+        if (ufds[0].revents & POLLOUT) {
+            
+            numbytes = sendto(sockfd, buf, len, 0,
+                              p , t); 
+                        
+            sockaddr_toString(p, addr, 256, true); 
+            printf("Sending Raw (To: '%s'(%i), Bytes:%i/%i  )\n", addr, sockfd, numbytes, (int)len);
+            
+            return numbytes;
+        }
+    }
+    
+    return -1;
 }
 
 
@@ -124,26 +156,36 @@ void *tickTurn(void *ptr){
 }
 
 
+void *stunListen(void *ptr){
+
+}
+
 int main(int argc, char *argv[])
 {
     int sockfd_4, sockfd_6, sockfd;
-    int sendt_numbytes, rcv_numbytes;;
-    struct sockaddr_storage remote_addr;
-    char buf[MAXBUFLEN];
+        
     socklen_t addr_len;
-    char s[INET6_ADDRSTRLEN];
-    bool isMsSTUN;
+    
     int stunCtx;
     struct sockaddr_storage ss_addr;
     static TurnCallBackData_T TurnCbData;
 
-    pthread_t turnTickThread;
-    pthread_t recieveThread;
+    struct listenConfig listenConfig;
+  
 
-    char key[] = "pem";
+    pthread_t turnTickThread;
+    pthread_t listenThread;
     
+    int numbytes;
+    struct sockaddr_storage their_addr;
+    char buf[MAXBUFLEN];
+    char s[INET6_ADDRSTRLEN];
+    bool isMsSTUN;
+    char realm[256];
     
-    
+    int rv;
+    struct pollfd ufds[1];
+
 
     if (argc != 4) {
         fprintf(stderr,"usage: ice  [ip:port] user pass\n");
@@ -170,7 +212,7 @@ int main(int argc, char *argv[])
         sockfd = sockfd_6;
     }
 
-
+    
     stunCtx = TurnClient_startAllocateTransaction(TEST_THREAD_CTX,
                                                   NULL,
                                                   (struct sockaddr *)&ss_addr,
@@ -185,40 +227,69 @@ int main(int argc, char *argv[])
     
     pthread_create( &turnTickThread, NULL, tickTurn, (void*) &TEST_THREAD_CTX);
 
+    listenConfig.stunCtx = stunCtx;
+    listenConfig.sockfd = sockfd;
+    listenConfig.user = argv[2];
+    listenConfig.pass = argv[3];
+
+
+
+    //pthread_create( &listenThread,   NULL, stunListen, (void*) &listenConfig);
+
+    //stunListen(&listenConfig);
+    //pthread_join( &listenThread, NULL);
         
-    addr_len = sizeof remote_addr;
+    //addr_len = 
+    ufds[0].fd = sockfd;
+    ufds[0].events = POLLIN | POLLPRI; // check for normal or out-of-band
+    
     while(1){
-        if ((rcv_numbytes = recvfrom(sockfd, buf, MAXBUFLEN-1 , 0,
-                                     (struct sockaddr *)&remote_addr, &addr_len)) == -1) {
-            perror("recvfrom");
-            exit(1);
-        }
+        rv = poll(ufds, 1, 3500);
         
-        printf("listener: got packet from %s\n",
-               sockaddr_toString((struct sockaddr *)&remote_addr, s, sizeof s, true));
-        printf("listener: packet is %d bytes long\n", rcv_numbytes);
-        
-        
-        if ( stunlib_isStunMsg(buf, rcv_numbytes, &isMsSTUN) ){
-            printf("GOT stun packet...\n", buf);
-            StunMessage msg;
-            char pass[128] = "pem:medianetworkservices.com:";
+        if (rv == -1) {
+            perror("poll"); // error occurred in poll()
+        } else if (rv == 0) {
+            printf("Timeout occurred!  No data after 3.5 seconds.\n");
+        } else {
+            // check for events on s1:
+            if (ufds[0].revents & POLLIN) {
+                
+                
+                addr_len = sizeof their_addr;
+                if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN-1 , 0,
+                                         (struct sockaddr *)&their_addr, &addr_len)) == -1) {
+                    perror("recvfrom");
+                    exit(1);
+                }
+                
+                if ( stunlib_isStunMsg(buf, numbytes, &isMsSTUN) ){
+                    printf("GOT stun packet...\n", buf);
+                    StunMessage msg;
+                    
+                    
+                    
+                    
+                    stunlib_DecodeMessage(buf,
+                                          numbytes,
+                                          &msg,
+                                          NULL,
+                                          false,
+                                          false);
+
+                    
+                            
+                    TurnClient_HandleIncResp(TEST_THREAD_CTX,
+                                             stunCtx, 
+                                             &msg,
+                                             buf);
+                    
+                }
             
-            
-            stunlib_DecodeMessage(buf,
-                                  rcv_numbytes,
-                                  &msg,
-                                  NULL,
-                                  false,
-                                  false);
-            
-            TurnClient_HandleIncResp(TEST_THREAD_CTX,
-                                     stunCtx, 
-                                     &msg);
-            
+            }
         }
     }
+    
     close(sockfd);
-
+    
     return 0;
 }
