@@ -1239,13 +1239,13 @@ static bool StoreServerReflexiveAddress(TURN_INSTANCE_DATA *pInst, StunMessage *
 
         if (stunRespMsg->xorMappedAddress.familyType == STUN_ADDR_IPv4Family){
             sockaddr_initFromIPv4Int((struct sockaddr_in *)&addr, 
-                                     stunRespMsg->xorMappedAddress.addr.v4.addr,
-                                     stunRespMsg->xorMappedAddress.addr.v4.port);
+                                     htonl(stunRespMsg->xorMappedAddress.addr.v4.addr),
+                                     htons(stunRespMsg->xorMappedAddress.addr.v4.port));
         }
         else if (stunRespMsg->xorMappedAddress.familyType == STUN_ADDR_IPv6Family){
             sockaddr_initFromIPv6Int((struct sockaddr_in6 *)&addr, 
                                      stunRespMsg->xorMappedAddress.addr.v6.addr,
-                                     stunRespMsg->xorMappedAddress.addr.v6.port);
+                                     htons(stunRespMsg->xorMappedAddress.addr.v6.port));
         }
         
 
@@ -1272,13 +1272,13 @@ static bool StoreRelayAddressStd(TURN_INSTANCE_DATA *pInst, StunMessage *stunRes
 
         if (stunRespMsg->xorRelayAddress.familyType == STUN_ADDR_IPv4Family){
             sockaddr_initFromIPv4Int((struct sockaddr_in *)&addr, 
-                                     stunRespMsg->xorRelayAddress.addr.v4.addr,
-                                     stunRespMsg->xorRelayAddress.addr.v4.port);
+                                     htonl(stunRespMsg->xorRelayAddress.addr.v4.addr),
+                                     htons(stunRespMsg->xorRelayAddress.addr.v4.port));
         }
         else if (stunRespMsg->xorRelayAddress.familyType == STUN_ADDR_IPv6Family){
             sockaddr_initFromIPv6Int((struct sockaddr_in6 *)&addr, 
                                      stunRespMsg->xorRelayAddress.addr.v6.addr,
-                                     stunRespMsg->xorRelayAddress.addr.v6.port);
+                                     htons(stunRespMsg->xorRelayAddress.addr.v6.port));
         }
         
 
@@ -1303,13 +1303,13 @@ static bool StoreRelayAddressMs2(TURN_INSTANCE_DATA *pInst, StunMessage *stunRes
     {
         if (stunRespMsg->mappedAddress.familyType == STUN_ADDR_IPv4Family){
             sockaddr_initFromIPv4Int((struct sockaddr_in *)&addr, 
-                                     stunRespMsg->mappedAddress.addr.v4.addr,
-                                     stunRespMsg->mappedAddress.addr.v4.port);
+                                     htonl(stunRespMsg->mappedAddress.addr.v4.addr),
+                                     htons(stunRespMsg->mappedAddress.addr.v4.port));
         }
         else if (stunRespMsg->xorRelayAddress.familyType == STUN_ADDR_IPv6Family){
             sockaddr_initFromIPv6Int((struct sockaddr_in6 *)&addr, 
                                      stunRespMsg->mappedAddress.addr.v6.addr,
-                                     stunRespMsg->mappedAddress.addr.v6.port);
+                                     htons(stunRespMsg->mappedAddress.addr.v6.port));
         }
         
 
