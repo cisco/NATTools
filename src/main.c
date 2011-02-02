@@ -168,7 +168,9 @@ void *stunListen(void *ptr){
 
     ufds[0].fd = config->sockfd;
     ufds[0].events = POLLIN | POLLPRI; // check for normal or out-of-band
-    
+                    
+    addr_len = sizeof their_addr;
+
     while(1){
         rv = poll(ufds, 1, 3500);
         
@@ -179,9 +181,7 @@ void *stunListen(void *ptr){
         } else {
             // check for events on s1:
             if (ufds[0].revents & POLLIN) {
-                
-                
-                addr_len = sizeof their_addr;
+            
                 if ((numbytes = recvfrom(config->sockfd, buf, MAXBUFLEN-1 , 0,
                                          (struct sockaddr *)&their_addr, &addr_len)) == -1) {
                     perror("recvfrom");
@@ -191,10 +191,7 @@ void *stunListen(void *ptr){
                 if ( stunlib_isStunMsg(buf, numbytes, &isMsSTUN) ){
                     printf("GOT stun packet...\n", buf);
                     StunMessage msg;
-                    
-                    
-                    
-                    
+                                
                     stunlib_DecodeMessage(buf,
                                           numbytes,
                                           &msg,
@@ -208,9 +205,7 @@ void *stunListen(void *ptr){
                                              config->stunCtx, 
                                              &msg,
                                              buf);
-                    
                 }
-            
             }
         }
     }
@@ -232,11 +227,7 @@ int main(int argc, char *argv[])
     pthread_t turnTickThread;
     pthread_t listenThread;
     
-    
-    
-    
-    char s[INET6_ADDRSTRLEN];
-    
+        
     char realm[256];
     
     
@@ -244,7 +235,7 @@ int main(int argc, char *argv[])
 
 
     if (argc != 4) {
-        fprintf(stderr,"usage: ice  [ip:port] user pass\n");
+        fprintf(stderr,"usage: testice  [ip:port] user pass\n");
         exit(1);
     }
     
@@ -260,11 +251,22 @@ int main(int argc, char *argv[])
     sockaddr_initFromString((struct sockaddr *)&ss_addr, 
                             argv[1]);
 
+   
+
     if(ss_addr.ss_family == AF_INET){
         printf("Using IPv4 Socket\n");
+        //make sure the port is set
+        if (((struct sockaddr_in *)&ss_addr)->sin_port == 0 ) {
+            ((struct sockaddr_in *)&ss_addr)->sin_port = htons(3478);
+        }
         sockfd = sockfd_4;
+
     }else if(ss_addr.ss_family == AF_INET6){
         printf("Using IPv6 Socket\n");
+        //make sure the port is set
+        if (((struct sockaddr_in6 *)&ss_addr)->sin6_port == 0 ) {
+            ((struct sockaddr_in6 *)&ss_addr)->sin6_port = htons(3478);
+        }
         sockfd = sockfd_6;
     }
 
