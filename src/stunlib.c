@@ -2395,31 +2395,6 @@ void stunlib_setIP6Address(StunIPAddress *pIpAddr, uint8_t addr[16], uint16_t po
     }
 }
 
-/*
-int stunlib_compareIPAddresses(StunIPAddress *pS1, StunIPAddress *pS2)
-{
-    int res;
-    if (!pS1 && !pS2) return 0;
-    if (!pS1) return -1;
-    if (!pS2) return 1;
-
-    if (0 != (res = (pS1->familyType - pS2->familyType))) return res;
-    if (pS1->familyType == STUN_ADDR_IPv4Family)
-    {
-        if (0 != (res = (pS1->addr.v4.port - pS2->addr.v4.port))) return res;
-        if (0 != (res = (pS1->addr.v4.addr - pS2->addr.v4.addr))) return res;
-    }
-    else
-    {
-        int i;
-        if (0 != (res = (pS1->addr.v6.port - pS2->addr.v6.port))) return res;
-        for (i = 0; i < 4; i++)
-            if (0 != (res = pS1->addr.v6.addr[i] - pS2->addr.v6.addr[i])) return res;
-    }
-    return 0;
-}
-*/
-
 
 char* stunlib_transactionIdtoStr( char* s, StunMsgId tId)
 {
