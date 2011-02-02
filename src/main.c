@@ -10,6 +10,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <ifaddrs.h>
+
 #include <time.h>
 
 #include "turnclient.h"
@@ -32,26 +34,67 @@ struct listenConfig{
 
 };
 
-static int createLocalUDPSocket(int ai_family){
+static int createLocalUDPSocket(int ai_family, struct sockaddr * localIp){
     int sockfd;
     
     int rv;
     int yes = 1;
     struct addrinfo hints, *ai, *p;
+    char addr[SOCKADDR_MAX_STRLEN];
+
+
+    struct ifaddrs *ifaddr, *ifa;
+    int family, s;
+    char host[NI_MAXHOST];
+    
+    if (getifaddrs(&ifaddr) == -1) {
+        perror("getifaddrs");
+        exit(EXIT_FAILURE);
+    }
+    
+    /* Walk through linked list, maintaining head pointer so we
+       can free list later */
+    
+    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+        if (ifa->ifa_addr == NULL)
+            continue;
+        
+        if (sockaddr_isAddrLoopBack(ifa->ifa_addr))
+            continue;
+
+        family = ifa->ifa_addr->sa_family;
+                        
+        if (family == ai_family) {
+            
+            s = getnameinfo(ifa->ifa_addr,
+                            (family == AF_INET) ? sizeof(struct sockaddr_in) :
+                            sizeof(struct sockaddr_in6),
+                            host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
+            if (s != 0) {
+                printf("getnameinfo() failed: %s\n", gai_strerror(s));
+                exit(EXIT_FAILURE);
+            }
+            printf("\taddress: <%s>\n", host);
+        }
+    }
+    
+    freeifaddrs(ifaddr);
+    
 
 
     // get us a socket and bind it
     memset(&hints, 0, sizeof hints);
     hints.ai_family = ai_family;
     hints.ai_socktype = SOCK_DGRAM;
-    hints.ai_flags = AI_PASSIVE;
-    if ((rv = getaddrinfo(NULL, PORT, &hints, &ai)) != 0) {
+    hints.ai_flags = AI_NUMERICHOST | AI_ADDRCONFIG;
+    if ((rv = getaddrinfo(host, PORT, &hints, &ai)) != 0) {
         fprintf(stderr, "selectserver: %s\n", gai_strerror(rv));
         exit(1);
     }
+    
 
 
-    for(p = ai; p != NULL; p = p->ai_next) {
+    for (p = ai; p != NULL; p = p->ai_next) {
         
         sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
         if (sockfd < 0) { 
@@ -60,10 +103,29 @@ static int createLocalUDPSocket(int ai_family){
         
         // lose the pesky "address already in use" error message
         setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
-
+        if (sockaddr_isAddrAny(p->ai_addr) ){
+            printf("Ignoring any\n");
+            continue;
+            
+        }
         if (bind(sockfd, p->ai_addr, p->ai_addrlen) < 0) {
             close(sockfd);
             continue;
+        }
+        
+        if (localIp != NULL){ 
+            if(ai_family == AF_INET){
+                
+                //sockaddr_initFromIPv4Int(localIp,
+                //                         htonl(*(p->ai_addr)), 
+                //                         PORT);
+
+                //addr = *(p->ai_addr);
+                sockaddr_copy(localIp, p->ai_addr);
+                
+                printf("Bound to: '%s'\n",
+                       sockaddr_toString(localIp, addr, sizeof(addr), true));
+            }
         }
         
         break;
@@ -241,6 +303,7 @@ int main(int argc, char *argv[])
     
     int stunCtx;
     struct sockaddr_storage ss_addr;
+    struct sockaddr_storage localIp;
     static TurnCallBackData_T TurnCbData;
 
     struct listenConfig listenConfig;
@@ -263,8 +326,8 @@ int main(int argc, char *argv[])
     
     
 
-    sockfd_4 = createLocalUDPSocket(AF_INET);
-    sockfd_6 = createLocalUDPSocket(AF_INET6);
+    sockfd_4 = createLocalUDPSocket(AF_INET, (struct sockaddr *)&localIp);
+    sockfd_6 = createLocalUDPSocket(AF_INET6, (struct sockaddr *)&localIp);
 
 
     //Turn setup
