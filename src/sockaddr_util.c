@@ -246,6 +246,31 @@ bool sockaddr_isAddrAny(const struct sockaddr * sa)
     return false;
 }
 
+
+bool sockaddr_isAddrLoopBack(const struct sockaddr * sa)
+{
+    
+    if (sa->sa_family == AF_INET) {
+        struct sockaddr_in *sin = (struct sockaddr_in*)sa;
+        if ( sin->sin_addr.s_addr == htonl(INADDR_LOOPBACK)){
+            return true;
+        }
+    }else if (sa->sa_family == AF_INET6) {
+        struct sockaddr_in6 *sin6 = (struct sockaddr_in6*)sa;
+        struct sockaddr_in6 any6;
+        sockaddr_initFromIPv6String(&any6, "::1");
+        
+        if ( sockaddr_alike((struct sockaddr *)sin6, 
+                            (struct sockaddr *)&any6) ){
+            return true;
+        }
+        return false;
+    }
+     
+    return false;
+}
+
+
 const char *sockaddr_toString( const struct sockaddr *sa,
                                char *dest,
                                size_t destlen,

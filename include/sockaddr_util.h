@@ -95,6 +95,13 @@ bool sockaddr_isSet(const struct sockaddr * sa);
 bool sockaddr_isAddrAny(const struct sockaddr * sa);
 
 
+/*
+ * Cheks if a sockaddr has the address of 'any'
+ *  
+ */
+bool sockaddr_isAddrLoopBack(const struct sockaddr * sa);
+
+
 const char *sockaddr_toString( const struct sockaddr *sa,
                                char *dest,
                                size_t destlen,

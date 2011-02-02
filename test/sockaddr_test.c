@@ -505,6 +505,32 @@ START_TEST (sockaddr_IPv6_setPort)
 }
 END_TEST
 
+
+START_TEST (sockaddr_IPv4_loopback)
+{
+    struct sockaddr_storage ip;
+    sockaddr_initFromString( (struct sockaddr *)&ip, "127.0.0.1" );
+
+    fail_unless( sockaddr_isAddrLoopBack( (struct sockaddr *)&ip ));
+
+
+
+}
+END_TEST
+
+
+START_TEST (sockaddr_IPv6_loopback)
+{
+    struct sockaddr_storage ip;
+    sockaddr_initFromString( (struct sockaddr *)&ip, "::1" );
+
+    fail_unless( sockaddr_isAddrLoopBack( (struct sockaddr *)&ip ));
+
+
+
+}
+END_TEST
+
 Suite * sockaddr_suite (void)
 {
   Suite *s = suite_create ("sockaddr");
@@ -577,6 +603,15 @@ Suite * sockaddr_suite (void)
       tcase_add_test (tc_sockaddr_setPort, sockaddr_IPv6_setPort);
       suite_add_tcase (s, tc_sockaddr_setPort);
   }
+
+  {/* loopback test case */
+      TCase *tc_sockaddr_loopback = tcase_create ("sockaddr_setPort");
+      tcase_add_test (tc_sockaddr_loopback, sockaddr_IPv4_loopback);
+      tcase_add_test (tc_sockaddr_loopback, sockaddr_IPv6_loopback);
+      suite_add_tcase (s, tc_sockaddr_loopback);
+  }
+
+  
 
   return s;
 }
