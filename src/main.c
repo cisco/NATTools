@@ -157,14 +157,70 @@ void *tickTurn(void *ptr){
 
 
 void *stunListen(void *ptr){
+    struct pollfd ufds[1];
+    struct listenConfig *config = (struct listenConfig *)ptr;
+    struct sockaddr_storage their_addr;
+    char buf[MAXBUFLEN];
+    socklen_t addr_len;
+    int rv;
+    int numbytes;
+    bool isMsSTUN;
 
+    ufds[0].fd = config->sockfd;
+    ufds[0].events = POLLIN | POLLPRI; // check for normal or out-of-band
+    
+    while(1){
+        rv = poll(ufds, 1, 3500);
+        
+        if (rv == -1) {
+            perror("poll"); // error occurred in poll()
+        } else if (rv == 0) {
+            printf("Timeout occurred!  No data after 3.5 seconds.\n");
+        } else {
+            // check for events on s1:
+            if (ufds[0].revents & POLLIN) {
+                
+                
+                addr_len = sizeof their_addr;
+                if ((numbytes = recvfrom(config->sockfd, buf, MAXBUFLEN-1 , 0,
+                                         (struct sockaddr *)&their_addr, &addr_len)) == -1) {
+                    perror("recvfrom");
+                    exit(1);
+                }
+                
+                if ( stunlib_isStunMsg(buf, numbytes, &isMsSTUN) ){
+                    printf("GOT stun packet...\n", buf);
+                    StunMessage msg;
+                    
+                    
+                    
+                    
+                    stunlib_DecodeMessage(buf,
+                                          numbytes,
+                                          &msg,
+                                          NULL,
+                                          false,
+                                          false);
+
+                    
+                            
+                    TurnClient_HandleIncResp(TEST_THREAD_CTX,
+                                             config->stunCtx, 
+                                             &msg,
+                                             buf);
+                    
+                }
+            
+            }
+        }
+    }
 }
 
 int main(int argc, char *argv[])
 {
     int sockfd_4, sockfd_6, sockfd;
         
-    socklen_t addr_len;
+
     
     int stunCtx;
     struct sockaddr_storage ss_addr;
@@ -176,15 +232,15 @@ int main(int argc, char *argv[])
     pthread_t turnTickThread;
     pthread_t listenThread;
     
-    int numbytes;
-    struct sockaddr_storage their_addr;
-    char buf[MAXBUFLEN];
+    
+    
+    
     char s[INET6_ADDRSTRLEN];
-    bool isMsSTUN;
+    
     char realm[256];
     
-    int rv;
-    struct pollfd ufds[1];
+    
+    
 
 
     if (argc != 4) {
@@ -234,60 +290,13 @@ int main(int argc, char *argv[])
 
 
 
-    //pthread_create( &listenThread,   NULL, stunListen, (void*) &listenConfig);
+    pthread_create( &listenThread,   NULL, stunListen, (void*) &listenConfig);
 
     //stunListen(&listenConfig);
-    //pthread_join( &listenThread, NULL);
-        
-    //addr_len = 
-    ufds[0].fd = sockfd;
-    ufds[0].events = POLLIN | POLLPRI; // check for normal or out-of-band
+    pthread_join( &listenThread, NULL);
     
-    while(1){
-        rv = poll(ufds, 1, 3500);
-        
-        if (rv == -1) {
-            perror("poll"); // error occurred in poll()
-        } else if (rv == 0) {
-            printf("Timeout occurred!  No data after 3.5 seconds.\n");
-        } else {
-            // check for events on s1:
-            if (ufds[0].revents & POLLIN) {
-                
-                
-                addr_len = sizeof their_addr;
-                if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN-1 , 0,
-                                         (struct sockaddr *)&their_addr, &addr_len)) == -1) {
-                    perror("recvfrom");
-                    exit(1);
-                }
-                
-                if ( stunlib_isStunMsg(buf, numbytes, &isMsSTUN) ){
-                    printf("GOT stun packet...\n", buf);
-                    StunMessage msg;
-                    
-                    
-                    
-                    
-                    stunlib_DecodeMessage(buf,
-                                          numbytes,
-                                          &msg,
-                                          NULL,
-                                          false,
-                                          false);
-
-                    
-                            
-                    TurnClient_HandleIncResp(TEST_THREAD_CTX,
-                                             stunCtx, 
-                                             &msg,
-                                             buf);
-                    
-                }
-            
-            }
-        }
-    }
+    while(1)
+        sleep(2);
     
     close(sockfd);
     
