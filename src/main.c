@@ -68,7 +68,7 @@ static int createLocalUDPSocket(int ai_family){
         
         break;
     }
-    printf("Soket open: %i\n", sockfd);
+    //printf("Soket open: %i\n", sockfd);
     return sockfd;
 }
 
@@ -97,7 +97,7 @@ static int sendRawUDP(int sockfd,
     if (rv == -1) {
         perror("poll"); // error occurred in poll()
     } else if (rv == 0) {
-        printf("Timeout occurred!  No data after 3.5 seconds.\n");
+        printf("Timeout occurred!  Not possible to send for 3.5 seconds.\n");
     } else {
         // check for events on s1:
         if (ufds[0].revents & POLLOUT) {
@@ -106,7 +106,7 @@ static int sendRawUDP(int sockfd,
                               p , t); 
                         
             sockaddr_toString(p, addr, 256, true); 
-            printf("Sending Raw (To: '%s'(%i), Bytes:%i/%i  )\n", addr, sockfd, numbytes, (int)len);
+            //printf("Sending Raw (To: '%s'(%i), Bytes:%i/%i  )\n", addr, sockfd, numbytes, (int)len);
             
             return numbytes;
         }
@@ -137,7 +137,30 @@ static void  PrintTurnInfo(TurnInfoCategory_T category, char *ErrStr)
 
 static void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData)
 {
+    char addr[SOCKADDR_MAX_STRLEN];
     printf("Got TURN status callback (%i)\n", retData->turnResult);
+    if ( retData->turnResult == TurnResult_AllocOk ){
+        printf("Active TURN server: '%s'\n",
+               sockaddr_toString((struct sockaddr *)&retData->TurnResultData.AllocResp.activeTurnServerAddr,
+                                 addr,
+                                 sizeof(addr),
+                                 true));
+
+        printf("RFLX addr: '%s'\n",
+               sockaddr_toString((struct sockaddr *)&retData->TurnResultData.AllocResp.rflxAddr,
+                                 addr,
+                                 sizeof(addr),
+                                 true));
+
+        printf("RELAY addr: '%s'\n",
+               sockaddr_toString((struct sockaddr *)&retData->TurnResultData.AllocResp.relAddr,
+                                 addr,
+                                 sizeof(addr),
+                                 true));
+
+        retData->TurnResultData.AllocResp;
+    }
+
 }
 
 
@@ -172,12 +195,12 @@ void *stunListen(void *ptr){
     addr_len = sizeof their_addr;
 
     while(1){
-        rv = poll(ufds, 1, 3500);
+        rv = poll(ufds, 1, -1);
         
         if (rv == -1) {
             perror("poll"); // error occurred in poll()
         } else if (rv == 0) {
-            printf("Timeout occurred!  No data after 3.5 seconds.\n");
+            printf("Timeout occurred! (Should not happen)\n");
         } else {
             // check for events on s1:
             if (ufds[0].revents & POLLIN) {
@@ -189,7 +212,6 @@ void *stunListen(void *ptr){
                 }
                 
                 if ( stunlib_isStunMsg(buf, numbytes, &isMsSTUN) ){
-                    printf("GOT stun packet...\n", buf);
                     StunMessage msg;
                                 
                     stunlib_DecodeMessage(buf,
