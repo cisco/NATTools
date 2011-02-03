@@ -20,7 +20,7 @@ const char ipv4_any_str[] = "0.0.0.0:0\0";
 const char ipv6_any_str[] = "[::]:0\0";
 
 const char ipv4_1_noport_str[] = "192.168.2.1\0";
-const char ipv6_1_noport_str[] = "[2001:470:dc88:2:226:18ff:fe92:6d53]\0";
+const char ipv6_1_noport_str[] = "2001:470:dc88:2:226:18ff:fe92:6d53\0";
 
 struct sockaddr_storage  *sockaddr_IPv4_1,
                          *sockaddr_IPv4_2,

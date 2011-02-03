@@ -107,6 +107,11 @@ bool sockaddr_isAddrLoopBack(const struct sockaddr * sa);
  */
 bool sockaddr_isAddrLinkLocal(const struct sockaddr * sa);
 
+/*
+ * Converts a sockaddr to string
+ * If add port is true the IPv6 string will contain [],
+ * if not the IPv6 adress is printed without[]
+ */
 const char *sockaddr_toString( const struct sockaddr *sa,
                                char *dest,
                                size_t destlen,

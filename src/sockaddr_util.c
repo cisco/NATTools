@@ -272,10 +272,16 @@ const char *sockaddr_toString( const struct sockaddr *sa,
     }else if (sa->sa_family == AF_INET6) {
         int r;
         const struct sockaddr_in6 *sa6 = (const struct sockaddr_in6 *)sa;
-        dest[0] = '[';
-        inet_ntop(AF_INET6, &(sa6->sin6_addr), dest+1, destlen);
+        if (addport){
+            dest[0] = '[';
+            inet_ntop(AF_INET6, &(sa6->sin6_addr), dest+1, destlen);
+        }else{
+            inet_ntop(AF_INET6, &(sa6->sin6_addr), dest, destlen);
+        }
         r = strlen(dest);
-        dest[r++] = ']';
+
+        if (addport)
+            dest[r++] = ']';
         if (addport){
             sprintf(dest + r, ":%d", ntohs(sa6->sin6_port));
         }else {
