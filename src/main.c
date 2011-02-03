@@ -38,19 +38,19 @@ static bool getLocalInterFaceAddrs(struct sockaddr *addr, char *iface, int ai_fa
     struct ifaddrs *ifaddr, *ifa;
     int family, s;
     char host[NI_MAXHOST];
-    
+
     if (getifaddrs(&ifaddr) == -1) {
         perror("getifaddrs");
         exit(EXIT_FAILURE);
     }
-    
+
     /* Walk through linked list, maintaining head pointer so we
        can free list later */
-    
+
     for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
         if (ifa->ifa_addr == NULL)
             continue;
-        
+
         if (sockaddr_isAddrLoopBack(ifa->ifa_addr))
             continue;
 
@@ -61,12 +61,12 @@ static bool getLocalInterFaceAddrs(struct sockaddr *addr, char *iface, int ai_fa
             if (sockaddr_isAddrLinkLocal(ifa->ifa_addr))
                 continue;
         }
-            
+
 
         family = ifa->ifa_addr->sa_family;
-                        
+
         if (family == ai_family) {
-                        
+
             s = getnameinfo(ifa->ifa_addr,
                             (family == AF_INET) ? sizeof(struct sockaddr_in) :
                             sizeof(struct sockaddr_in6),
@@ -87,7 +87,7 @@ static bool getLocalInterFaceAddrs(struct sockaddr *addr, char *iface, int ai_fa
 
 static int createLocalUDPSocket(int ai_family, struct sockaddr * localIp){
     int sockfd;
-    
+
     int rv;
     int yes = 1;
     struct addrinfo hints, *ai, *p;
@@ -102,44 +102,44 @@ static int createLocalUDPSocket(int ai_family, struct sockaddr * localIp){
     hints.ai_family = ai_family;
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_flags = AI_NUMERICHOST | AI_ADDRCONFIG;
-        
-        
+
+
     if ((rv = getaddrinfo(addr, PORT, &hints, &ai)) != 0) {
         fprintf(stderr, "selectserver: %s ('%s')\n", gai_strerror(rv), addr);
         exit(1);
     }
-    
+
 
 
     for (p = ai; p != NULL; p = p->ai_next) {
-        
+
         sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-        if (sockfd < 0) { 
+        if (sockfd < 0) {
             printf("Unable to open socket\n");
             continue;
         }
-        
+
         // lose the pesky "address already in use" error message
         setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
         if (sockaddr_isAddrAny(p->ai_addr) ){
             printf("Ignoring any\n");
             continue;
-            
+
         }
         if (bind(sockfd, p->ai_addr, p->ai_addrlen) < 0) {
             printf("Bind failed\n");
             close(sockfd);
             continue;
         }
-        
-        if (localIp != NULL){ 
+
+        if (localIp != NULL){
             sockaddr_copy(localIp, p->ai_addr);
-                
+
             printf("Bound to: '%s'\n",
                    sockaddr_toString(localIp, addr, sizeof(addr), true));
-                
+
         }
-        
+
         break;
     }
     //printf("Soket open: %i\n", sockfd);
@@ -150,12 +150,12 @@ static int createLocalUDPSocket(int ai_family, struct sockaddr * localIp){
 
 
 
-static int sendRawUDP(int sockfd, 
-                      const void *buf, 
-                      size_t len, 
-                      struct sockaddr * p, 
+static int sendRawUDP(int sockfd,
+                      const void *buf,
+                      size_t len,
+                      struct sockaddr * p,
                       socklen_t t){
-    
+
     int numbytes;
     char addr[256];
     int rv;
@@ -167,7 +167,7 @@ static int sendRawUDP(int sockfd,
     ufds[0].events = POLLOUT;
 
     rv = poll(ufds, 1, 3500);
-    
+
     if (rv == -1) {
         perror("poll"); // error occurred in poll()
     } else if (rv == 0) {
@@ -175,24 +175,24 @@ static int sendRawUDP(int sockfd,
     } else {
         // check for events on s1:
         if (ufds[0].revents & POLLOUT) {
-            
+
             numbytes = sendto(sockfd, buf, len, 0,
-                              p , t); 
-                        
-            sockaddr_toString(p, addr, 256, true); 
+                              p , t);
+
+            sockaddr_toString(p, addr, 256, true);
             //printf("Sending Raw (To: '%s'(%i), Bytes:%i/%i  )\n", addr, sockfd, numbytes, (int)len);
-            
+
             return numbytes;
         }
     }
-    
+
     return -1;
 }
 
 
-static int SendRawStun(int sockfd, 
-                       uint8_t *buf, 
-                       int len, 
+static int SendRawStun(int sockfd,
+                       uint8_t *buf,
+                       int len,
                        struct sockaddr *addr,
                        socklen_t t,
                        void *userdata){
@@ -242,12 +242,12 @@ void *tickTurn(void *ptr){
     struct timespec timer;
     struct timespec remaining;
     uint32_t  *ctx = (uint32_t *)ptr;
-    
+
     timer.tv_sec = 0;
     timer.tv_nsec = 50000000;
-    
+
     for(;;){
-        nanosleep(&timer, &remaining);               
+        nanosleep(&timer, &remaining);
         TurnClient_HandleTick(*ctx);
     }
 }
@@ -265,12 +265,12 @@ void *stunListen(void *ptr){
 
     ufds[0].fd = config->sockfd;
     ufds[0].events = POLLIN | POLLPRI; // check for normal or out-of-band
-                    
+
     addr_len = sizeof their_addr;
 
     while(1){
         rv = poll(ufds, 1, -1);
-        
+
         if (rv == -1) {
             perror("poll"); // error occurred in poll()
         } else if (rv == 0) {
@@ -278,16 +278,16 @@ void *stunListen(void *ptr){
         } else {
             // check for events on s1:
             if (ufds[0].revents & POLLIN) {
-            
+
                 if ((numbytes = recvfrom(config->sockfd, buf, MAXBUFLEN-1 , 0,
                                          (struct sockaddr *)&their_addr, &addr_len)) == -1) {
                     perror("recvfrom");
                     exit(1);
                 }
-                
+
                 if ( stunlib_isStunMsg(buf, numbytes, &isMsSTUN) ){
                     StunMessage msg;
-                                
+
                     stunlib_DecodeMessage(buf,
                                           numbytes,
                                           &msg,
@@ -295,10 +295,10 @@ void *stunListen(void *ptr){
                                           false,
                                           false);
 
-                    
-                            
+
+
                     TurnClient_HandleIncResp(TEST_THREAD_CTX,
-                                             config->stunCtx, 
+                                             config->stunCtx,
                                              &msg,
                                              buf);
                 }
@@ -310,32 +310,25 @@ void *stunListen(void *ptr){
 int main(int argc, char *argv[])
 {
     int sockfd_4, sockfd_6, sockfd;
-        
 
-    
     int stunCtx;
     struct sockaddr_storage ss_addr;
     struct sockaddr_storage localIp4, localIp6;
     static TurnCallBackData_T TurnCbData;
 
     struct listenConfig listenConfig;
-  
+
 
     pthread_t turnTickThread;
     pthread_t listenThread;
-    
-        
-    char realm[256];
-    
-    
-    
+
 
 
     if (argc != 5) {
         fprintf(stderr,"usage: testice  iface [ip:port] user pass\n");
         exit(1);
     }
-    
+
 
     if (!getLocalInterFaceAddrs((struct sockaddr *)&localIp4, argv[1], AF_INET) ){
         fprintf(stderr,"Unable to find local IPv4 interface addresses\n");
@@ -348,19 +341,16 @@ int main(int argc, char *argv[])
     }else{
         sockfd_6 = createLocalUDPSocket(AF_INET6, (struct sockaddr *)&localIp6);
     }
-    
 
-    
-    //
 
 
     //Turn setup
     TurnClient_Init(TEST_THREAD_CTX, 50, 50, PrintTurnInfo, false, "TestIce");
 
-    sockaddr_initFromString((struct sockaddr *)&ss_addr, 
+    sockaddr_initFromString((struct sockaddr *)&ss_addr,
                             argv[2]);
 
-   
+
 
     if(ss_addr.ss_family == AF_INET){
         printf("Using IPv4 Socket\n");
@@ -379,7 +369,7 @@ int main(int argc, char *argv[])
         sockfd = sockfd_6;
     }
 
-    
+
     stunCtx = TurnClient_startAllocateTransaction(TEST_THREAD_CTX,
                                                   NULL,
                                                   (struct sockaddr *)&ss_addr,
@@ -391,7 +381,7 @@ int main(int argc, char *argv[])
                                                   TurnStatusCallBack,
                                                   &TurnCbData,
                                                   false);
-    
+
     pthread_create( &turnTickThread, NULL, tickTurn, (void*) &TEST_THREAD_CTX);
 
     listenConfig.stunCtx = stunCtx;
@@ -405,11 +395,11 @@ int main(int argc, char *argv[])
 
     //stunListen(&listenConfig);
     pthread_join( &listenThread, NULL);
-    
+
     while(1)
         sleep(2);
-    
+
     close(sockfd);
-    
+
     return 0;
 }
