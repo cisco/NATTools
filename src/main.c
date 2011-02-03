@@ -34,15 +34,7 @@ struct listenConfig{
 
 };
 
-static int createLocalUDPSocket(int ai_family, struct sockaddr * localIp){
-    int sockfd;
-    
-    int rv;
-    int yes = 1;
-    struct addrinfo hints, *ai, *p;
-    char addr[SOCKADDR_MAX_STRLEN];
-
-
+static bool getLocalInterFaceAddrs(struct sockaddr *addr, char *iface, int ai_family){
     struct ifaddrs *ifaddr, *ifa;
     int family, s;
     char host[NI_MAXHOST];
@@ -62,10 +54,19 @@ static int createLocalUDPSocket(int ai_family, struct sockaddr * localIp){
         if (sockaddr_isAddrLoopBack(ifa->ifa_addr))
             continue;
 
+        if( strcmp(iface, ifa->ifa_name)!=0 )
+            continue;
+
+        if (ai_family == AF_INET6 ){
+            if (sockaddr_isAddrLinkLocal(ifa->ifa_addr))
+                continue;
+        }
+            
+
         family = ifa->ifa_addr->sa_family;
                         
         if (family == ai_family) {
-            
+                        
             s = getnameinfo(ifa->ifa_addr,
                             (family == AF_INET) ? sizeof(struct sockaddr_in) :
                             sizeof(struct sockaddr_in6),
@@ -74,12 +75,26 @@ static int createLocalUDPSocket(int ai_family, struct sockaddr * localIp){
                 printf("getnameinfo() failed: %s\n", gai_strerror(s));
                 exit(EXIT_FAILURE);
             }
-            printf("\taddress: <%s>\n", host);
         }
     }
-    
     freeifaddrs(ifaddr);
+
+    if (sockaddr_initFromString(addr, host))
+        return true;
+
+    return false;
+}
+
+static int createLocalUDPSocket(int ai_family, struct sockaddr * localIp){
+    int sockfd;
     
+    int rv;
+    int yes = 1;
+    struct addrinfo hints, *ai, *p;
+    char addr[SOCKADDR_MAX_STRLEN];
+
+
+    sockaddr_toString(localIp, addr, sizeof addr, false);
 
 
     // get us a socket and bind it
@@ -87,8 +102,10 @@ static int createLocalUDPSocket(int ai_family, struct sockaddr * localIp){
     hints.ai_family = ai_family;
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_flags = AI_NUMERICHOST | AI_ADDRCONFIG;
-    if ((rv = getaddrinfo(host, PORT, &hints, &ai)) != 0) {
-        fprintf(stderr, "selectserver: %s\n", gai_strerror(rv));
+        
+        
+    if ((rv = getaddrinfo(addr, PORT, &hints, &ai)) != 0) {
+        fprintf(stderr, "selectserver: %s ('%s')\n", gai_strerror(rv), addr);
         exit(1);
     }
     
@@ -98,6 +115,7 @@ static int createLocalUDPSocket(int ai_family, struct sockaddr * localIp){
         
         sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
         if (sockfd < 0) { 
+            printf("Unable to open socket\n");
             continue;
         }
         
@@ -109,23 +127,17 @@ static int createLocalUDPSocket(int ai_family, struct sockaddr * localIp){
             
         }
         if (bind(sockfd, p->ai_addr, p->ai_addrlen) < 0) {
+            printf("Bind failed\n");
             close(sockfd);
             continue;
         }
         
         if (localIp != NULL){ 
-            if(ai_family == AF_INET){
+            sockaddr_copy(localIp, p->ai_addr);
                 
-                //sockaddr_initFromIPv4Int(localIp,
-                //                         htonl(*(p->ai_addr)), 
-                //                         PORT);
-
-                //addr = *(p->ai_addr);
-                sockaddr_copy(localIp, p->ai_addr);
+            printf("Bound to: '%s'\n",
+                   sockaddr_toString(localIp, addr, sizeof(addr), true));
                 
-                printf("Bound to: '%s'\n",
-                       sockaddr_toString(localIp, addr, sizeof(addr), true));
-            }
         }
         
         break;
@@ -303,7 +315,7 @@ int main(int argc, char *argv[])
     
     int stunCtx;
     struct sockaddr_storage ss_addr;
-    struct sockaddr_storage localIp;
+    struct sockaddr_storage localIp4, localIp6;
     static TurnCallBackData_T TurnCbData;
 
     struct listenConfig listenConfig;
@@ -319,22 +331,34 @@ int main(int argc, char *argv[])
     
 
 
-    if (argc != 4) {
-        fprintf(stderr,"usage: testice  [ip:port] user pass\n");
+    if (argc != 5) {
+        fprintf(stderr,"usage: testice  iface [ip:port] user pass\n");
         exit(1);
     }
     
+
+    if (!getLocalInterFaceAddrs((struct sockaddr *)&localIp4, argv[1], AF_INET) ){
+        fprintf(stderr,"Unable to find local IPv4 interface addresses\n");
+    }else{
+        sockfd_4 = createLocalUDPSocket(AF_INET, (struct sockaddr *)&localIp4);
+    }
+
+    if (!getLocalInterFaceAddrs((struct sockaddr *)&localIp6, argv[1], AF_INET6) ){
+        fprintf(stderr,"Unable to find local IPv6 interface addresses\n");
+    }else{
+        sockfd_6 = createLocalUDPSocket(AF_INET6, (struct sockaddr *)&localIp6);
+    }
     
 
-    sockfd_4 = createLocalUDPSocket(AF_INET, (struct sockaddr *)&localIp);
-    sockfd_6 = createLocalUDPSocket(AF_INET6, (struct sockaddr *)&localIp);
+    
+    //
 
 
     //Turn setup
     TurnClient_Init(TEST_THREAD_CTX, 50, 50, PrintTurnInfo, false, "TestIce");
 
     sockaddr_initFromString((struct sockaddr *)&ss_addr, 
-                            argv[1]);
+                            argv[2]);
 
    
 
@@ -359,8 +383,8 @@ int main(int argc, char *argv[])
     stunCtx = TurnClient_startAllocateTransaction(TEST_THREAD_CTX,
                                                   NULL,
                                                   (struct sockaddr *)&ss_addr,
-                                                  argv[2],
                                                   argv[3],
+                                                  argv[4],
                                                   sockfd,                       /* socket */
                                                   SendRawStun,             /* send func */
                                                   NULL,  /* timeout list */
@@ -372,8 +396,8 @@ int main(int argc, char *argv[])
 
     listenConfig.stunCtx = stunCtx;
     listenConfig.sockfd = sockfd;
-    listenConfig.user = argv[2];
-    listenConfig.pass = argv[3];
+    listenConfig.user = argv[3];
+    listenConfig.pass = argv[4];
 
 
 
