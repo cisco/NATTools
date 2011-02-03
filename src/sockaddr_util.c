@@ -1,4 +1,3 @@
-
 #include <string.h>
 #include <stdio.h>
 #include <arpa/inet.h>
@@ -22,7 +21,7 @@ void sockaddr_initAsIPv6Any(struct sockaddr_in6 * sa)
 
     sa->sin6_family = AF_INET6;
     sa->sin6_port = htons(0);
-    memcpy( &(sa->sin6_addr.s6_addr), &ipv6any, 
+    memcpy( &(sa->sin6_addr.s6_addr), &ipv6any,
             sizeof(struct in6_addr));
 }
 
@@ -32,9 +31,7 @@ bool sockaddr_initFromIPv6String(struct sockaddr_in6 *sa,
 {
     struct in6_addr ipv6;
     in_port_t port = 0;
-    
-    //tt_assert_not_null(addr);
-    
+
     if (addr_str[0] == '[') {
         char tmp[64];
         const char * p = strchr(addr_str, ']');
@@ -61,10 +58,10 @@ bool sockaddr_initFromIPv6String(struct sockaddr_in6 *sa,
     } else if (!inet_pton(AF_INET6, addr_str, &ipv6)) {
         return false;
     }
-    
+
     sa->sin6_family = AF_INET6;
     sa->sin6_port = htons(port);
-    memcpy( &(sa->sin6_addr.s6_addr), &ipv6, 
+    memcpy( &(sa->sin6_addr.s6_addr), &ipv6,
             sizeof(struct in6_addr));
 
     return true;
@@ -101,22 +98,17 @@ bool sockaddr_initFromIPv4String(struct sockaddr_in *sa,
          * and we use 0.  This might not be the ideal solution,
          * but we keep it in for now to accommodate some users. */
     }
-    
+
     sa->sin_family = AF_INET;
     sa->sin_port = htons(port);
     sa->sin_addr = ipaddr;
 
     return true;
-
-
 }
 
 bool sockaddr_initFromString( struct sockaddr *sa,
                               const char *addr_str)
 {
-    //tt_assert_not_null(addr);
-
-    /* TODO: Figure out if we should assert that string length > minlen */
     if (strlen(addr_str) == 0) {
         return false;
     }
@@ -130,10 +122,9 @@ bool sockaddr_initFromString( struct sockaddr *sa,
 
 
 bool sockaddr_initFromIPv4Int(struct sockaddr_in *sin,
-                              uint32_t ipaddr, 
+                              uint32_t ipaddr,
                               uint16_t port)
 {
-    
     sin->sin_family = AF_INET;
     sin->sin_port = port;
     sin->sin_addr.s_addr = ipaddr;
@@ -142,35 +133,35 @@ bool sockaddr_initFromIPv4Int(struct sockaddr_in *sin,
 }
 
 bool sockaddr_initFromIPv6Int(struct sockaddr_in6 *sin,
-                              uint8_t ipaddr[16], 
+                              uint8_t ipaddr[16],
                               uint16_t port)
 {
     sin->sin6_family = AF_INET6;
     sin->sin6_port = port;
-    memcpy( &(sin->sin6_addr.s6_addr), ipaddr, 
+    memcpy( &(sin->sin6_addr.s6_addr), ipaddr,
             sizeof(struct in6_addr) );
-    
+
     return true;
 }
 
 
-bool sockaddr_sameAddr(const struct sockaddr * a, 
+bool sockaddr_sameAddr(const struct sockaddr * a,
                        const struct sockaddr * b)
 {
     if( a->sa_family == b->sa_family ){
         if (a->sa_family == AF_INET) {
             const struct sockaddr_in *a4 = (const struct sockaddr_in *)a;
             const struct sockaddr_in *b4 = (const struct sockaddr_in *)b;
-            
+
             if (a4->sin_addr.s_addr == b4->sin_addr.s_addr){
                 return true;
-                
+
             }
         }else if (a->sa_family == AF_INET6) {
             const struct sockaddr_in6 *a6 = (const struct sockaddr_in6 *)a;
             const struct sockaddr_in6 *b6 = (const struct sockaddr_in6 *)b;
-                        
-            if ( (memcmp(&(a6->sin6_addr.s6_addr), &(b6->sin6_addr.s6_addr), 
+
+            if ( (memcmp(&(a6->sin6_addr.s6_addr), &(b6->sin6_addr.s6_addr),
                          sizeof(struct in6_addr)) == 0))
             {
                 return true;
@@ -180,22 +171,22 @@ bool sockaddr_sameAddr(const struct sockaddr * a,
     return false;
 }
 
-bool sockaddr_samePort(const struct sockaddr * a, 
+bool sockaddr_samePort(const struct sockaddr * a,
                        const struct sockaddr * b)
 {
     if ( a->sa_family == b->sa_family ) {
         if (a->sa_family == AF_INET) {
             const struct sockaddr_in *a4 = (const struct sockaddr_in *)a;
             const struct sockaddr_in *b4 = (const struct sockaddr_in *)b;
-            
+
             if (a4->sin_port == b4->sin_port){
                 return true;
-                
+
             }
         }else if (a->sa_family == AF_INET6) {
             const struct sockaddr_in6 *a6 = (const struct sockaddr_in6 *)a;
             const struct sockaddr_in6 *b6 = (const struct sockaddr_in6 *)b;
-                        
+
             if (a6->sin6_port == b6->sin6_port) {
                 return true;
             }
@@ -204,7 +195,7 @@ bool sockaddr_samePort(const struct sockaddr * a,
     return false;
 }
 
-bool sockaddr_alike(const struct sockaddr * a, 
+bool sockaddr_alike(const struct sockaddr * a,
                     const struct sockaddr * b)
 {
     if (sockaddr_sameAddr(a,b) && sockaddr_samePort(a,b)){
@@ -219,21 +210,20 @@ bool sockaddr_isSet(const struct sockaddr * sa)
     if(sa->sa_family == AF_INET || sa->sa_family == AF_INET6){
         return true;
     }
-    
+
     return false;
 }
 
 
 bool sockaddr_isAddrAny(const struct sockaddr * sa)
 {
-    
     if (sa->sa_family == AF_INET) {
         return ( ((struct sockaddr_in*)sa)->sin_addr.s_addr == htonl(INADDR_ANY) );
-                
+
     }else if (sa->sa_family == AF_INET6) {
         return IN6_IS_ADDR_UNSPECIFIED(&((struct sockaddr_in6*)sa)->sin6_addr);
     }
-     
+
     return false;
 }
 
@@ -257,11 +247,11 @@ const char *sockaddr_toString( const struct sockaddr *sa,
     if (destlen < SOCKADDR_MAX_STRLEN) {
         dest[0] = '\0';
         return dest;
-    } 
+    }
 
     if (sa->sa_family == AF_INET) {
         const struct sockaddr_in *sa4 = (const struct sockaddr_in *)sa;
-        
+
         inet_ntop(AF_INET, &(sa4->sin_addr), dest, destlen);
         if(addport){
             int r = strlen(dest);
@@ -287,32 +277,29 @@ const char *sockaddr_toString( const struct sockaddr *sa,
     return NULL;
 }
 
-void sockaddr_copy(struct sockaddr * dst, 
+void sockaddr_copy(struct sockaddr * dst,
                    const struct sockaddr * src)
 {
-    
-
     if (src->sa_family == AF_INET) {
         struct sockaddr_in *dst4 = (struct sockaddr_in *)dst;
         const struct sockaddr_in *src4 = (const struct sockaddr_in *)src;
-        
+
         dst4->sin_family = AF_INET;
         dst4->sin_port = src4->sin_port;
         dst4->sin_addr.s_addr = src4->sin_addr.s_addr;
-        
+
     }else if (src->sa_family == AF_INET6) {
         struct sockaddr_in6 *dst6 = (struct sockaddr_in6 *)dst;
         const struct sockaddr_in6 *src6 = (const struct sockaddr_in6 *)src;
-        
+
         dst6->sin6_family = AF_INET6;
         dst6->sin6_port = src6->sin6_port;
-        
-        memcpy(&(dst6->sin6_addr.s6_addr), &(src6->sin6_addr.s6_addr), 
+
+        memcpy(&(dst6->sin6_addr.s6_addr), &(src6->sin6_addr.s6_addr),
                sizeof(struct in6_addr));
     }
-
 }
-    
+
 void sockaddr_setPort(struct sockaddr * sa, uint16_t port)
 {
     if (sa->sa_family == AF_INET) {
