@@ -97,15 +97,16 @@ extern "C" {
 #define STUN_ATTR_AlternateServer    0x8023
 
 /* STUN attributes (TURN extensions) */
-#define STUN_ATTR_ChannelNumber      0x000c
-#define STUN_ATTR_Lifetime           0x000d
-#define STUN_ATTR_XorPeerAddress     0x0012
-#define STUN_ATTR_Data               0x0013
-#define STUN_ATTR_XorRelayAddress    0x0016   /* relay address */
-#define STUN_ATTR_EvenPort           0x0018
-#define STUN_ATTR_RequestedTransport 0x0019
-#define STUN_ATTR_DontFragment       0x001a
-#define STUN_ATTR_ReservationToken   0x0022
+#define STUN_ATTR_ChannelNumber       0x000c
+#define STUN_ATTR_Lifetime            0x000d
+#define STUN_ATTR_XorPeerAddress      0x0012
+#define STUN_ATTR_Data                0x0013
+#define STUN_ATTR_XorRelayAddress     0x0016   /* relay address */
+#define STUN_ATTR_RequestedAddrFamily 0x0017
+#define STUN_ATTR_EvenPort            0x0018
+#define STUN_ATTR_RequestedTransport  0x0019
+#define STUN_ATTR_DontFragment        0x001a
+#define STUN_ATTR_ReservationToken    0x0022
 
 /* STUN attributes (ICE extensions) */
 #define STUN_ATTR_Priority           0x0024
@@ -145,28 +146,31 @@ extern "C" {
 /*** STUN Error attribute codes ***/
 
 /* STUN RFC5389 */
-#define STUN_ERROR_TRY_ALTERNATE         300
-#define STUN_ERROR_BAD_REQUEST           400
-#define STUN_ERROR_UNAUTHORIZED          401
-#define STUN_ERROR_UNKNOWN_ATTR          420
-#define STUN_ERROR_STALE_NONCE           438
-#define STUN_ERROR_SERVER_ERROR          500
+#define STUN_ERROR_TRY_ALTERNATE             300
+#define STUN_ERROR_BAD_REQUEST               400
+#define STUN_ERROR_UNAUTHORIZED              401
+#define STUN_ERROR_UNKNOWN_ATTR              420
+#define STUN_ERROR_STALE_NONCE               438
+
+#define STUN_ERROR_SERVER_ERROR              500
 
 /* TURN extensions */
-#define STUN_ERROR_NO_BINDING            437
-#define STUN_ERROR_WRONG_USERNAME        441
-#define STUN_ERROR_UNSUPPORTED_PROTO     442
-#define STUN_ERROR_QUOTA_REACHED         486
-#define STUN_ERROR_INSUFFICIENT_CAPACITY 508
+#define STUN_ERROR_NO_BINDING                437
+#define STUN_ERROR_ADDR_FAMILY_NOT_SUPPORTED 440
+#define STUN_ERROR_WRONG_USERNAME            441
+#define STUN_ERROR_UNSUPPORTED_PROTO         442
+#define STUN_ERROR_PEER_ADDR_MISMATCH        443
+#define STUN_ERROR_QUOTA_REACHED             486
+#define STUN_ERROR_INSUFFICIENT_CAPACITY     508
 
 /* ICE extensions */
-#define STUN_ERROR_ROLE_CONFLICT         487
+#define STUN_ERROR_ROLE_CONFLICT             487
 
 /* (old) STUN RFC3489 */
-#define STUN_ERROR_STALE_CREDS           430
-#define STUN_ERROR_INTEG_CHECK_FAIL      431
-#define STUN_ERROR_MISSING_USERNAME      432
-#define STUN_ERROR_GLOBAL_FAIL           600
+#define STUN_ERROR_STALE_CREDS               430
+#define STUN_ERROR_INTEG_CHECK_FAIL          431
+#define STUN_ERROR_MISSING_USERNAME          432
+#define STUN_ERROR_GLOBAL_FAIL               600
 
 
 /*** STUN decode helpers ***/
@@ -252,6 +256,7 @@ typedef struct
     uint16_t length;
 } StunAtrHdr;
 
+
 typedef struct
 {
     uint16_t port;
@@ -335,6 +340,16 @@ typedef struct
     uint8_t  rffu[3];       /* reserved */
 }
 StunAtrRequestedTransport;
+
+
+typedef struct
+{
+    //first 4 bytes for type, 
+    //rest is for padding (future use)
+    uint8_t  family;
+    uint8_t  rffu[3];       /* reserved */
+}StunAttrRequestedAddrFamily;
+
 
 typedef struct
 {
@@ -422,6 +437,9 @@ typedef struct
 
     bool hasXorRelayAddress;
     StunIPAddress  xorRelayAddress;
+
+    bool hasRequestedAddrFamily;
+    StunAttrRequestedAddrFamily requestedAddrFamily;
 
     bool hasChannelNumber;
     StunAtrChannelNumber channelNumber;
@@ -687,6 +705,7 @@ uint32_t crc32(uint32_t crc, const void *buf, uint32_t size);
 void     stunlib_createId(StunMsgId *pId, long randval, unsigned char retries);
 bool     stunlib_addRealm(StunMessage *stunMsg, const char *realm, char padChar);
 bool     stunlib_addRequestedTransport(StunMessage *stunMsg, uint8_t protocol);
+bool     stunlib_addRequestedAddrFamily(StunMessage *stunMsg, int sa_family);
 bool     stunlib_addUserName(StunMessage *stunMsg, const char *userName, char padChar);
 bool     stunlib_addNonce(StunMessage *stunMsg, const char *nonce, char padChar);
 bool     stunlib_addSoftware(StunMessage *stunMsg, const char *software, char padChar);

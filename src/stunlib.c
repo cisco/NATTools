@@ -636,6 +636,19 @@ stunEncodeRequestedTransport(StunAtrRequestedTransport *pReqTrnsp, uint8_t **pBu
     return true;
 }
 
+
+static bool
+stunEncodeRequestedAddrFamily(StunAttrRequestedAddrFamily *pReqAddrFam, uint8_t **pBuf, int *nBufLen)
+{
+    if (*nBufLen < 8) return false;
+    write_16(pBuf, (uint8_t)STUN_ATTR_RequestedAddrFamily); /* Attr type */
+    write_16(pBuf, 4);                                     /* Length */
+    write_8(pBuf, pReqAddrFam->family);                    /* family */
+    write_8n(pBuf, pReqAddrFam->rffu, sizeof(pReqAddrFam->rffu)); /* reserved */
+    *nBufLen -= 8;
+    return true;
+}
+
 static bool
 stunEncodeEvenPort(StunAtrEvenPort *pEvenPort, uint8_t **pBuf, int *nBufLen)
 {
@@ -795,6 +808,17 @@ stunDecodeRequestedTransportAtr(StunAtrRequestedTransport *reqTransAtr, uint8_t 
 
     read_8(pBuf, &reqTransAtr->protocol);
     read_8n(pBuf, reqTransAtr->rffu, sizeof(reqTransAtr->rffu));
+    *nBufLen -= 4;
+    return true;
+}
+
+static bool
+stunDecodeRequestedAddrFamilyAtr(StunAttrRequestedAddrFamily *reqAddrFamily, uint8_t **pBuf, int *nBufLen)
+{
+    if (*nBufLen < 4) return false;
+
+    read_8(pBuf, &reqAddrFamily->family);
+    read_8n(pBuf, reqAddrFamily->rffu, sizeof(reqAddrFamily->rffu));
     *nBufLen -= 4;
     return true;
 }
@@ -1560,12 +1584,19 @@ stunlib_DecodeMessage(unsigned char* buf,
                                         &restlen)) return false;
                 message->hasPriority = true;
                 break;
-            case STUN_ATTR_RequestedTransport:
+        case STUN_ATTR_RequestedTransport:
                 if (!stunDecodeRequestedTransportAtr(&message->requestedTransport,
                                                      &pCurrPtr,
                                                      &restlen)) return false;
                 message->hasRequestedTransport = true;
                 break;
+        case STUN_ATTR_RequestedAddrFamily:
+                if (!stunDecodeRequestedAddrFamilyAtr(&message->requestedAddrFamily,
+                                                      &pCurrPtr,
+                                                      &restlen)) return false;
+                message->hasRequestedAddrFamily = true;
+                break;
+
 
             case STUN_ATTR_UseCandidate:
                 message->hasUseCandidate = true;
@@ -1710,7 +1741,7 @@ stunlib_DecodeMessage(unsigned char* buf,
         return false;
     }
 
-    
+
 
     if (verbose)
     {
@@ -1735,7 +1766,7 @@ bool stunlib_checkIntegrity(unsigned char* buf,
 {
 
     //Check integrity attribute
-    
+
     if (message->hasMessageIntegrity)
     {
         unsigned char bufCopy[STUN_MAX_PACKET_SIZE];
@@ -1743,29 +1774,29 @@ bool stunlib_checkIntegrity(unsigned char* buf,
         unsigned char hash[20];
         uint32_t len = 0; /*dummy value*/
         uint8_t *pCurrPtr;
-        
+
         //Lengt of message including integiryty lenght (Header and attribute)
         //Fingerprint and any trailing attributes are dismissed.
         msgIntLength = message->messageIntegrity.offset+24;
-        
+
         memcpy(&bufCopy, buf, bufLen);
-        
+
         //Write new packet length in header
         pCurrPtr = (uint8_t *)bufCopy;
         pCurrPtr+=2;
         write_16(&pCurrPtr, (msgIntLength-20));
-        
+
         pCurrPtr = (uint8_t *)bufCopy;
-        
-        
-        
+
+
+
         HMAC(EVP_sha1(),
-             integrityKey, 
+             integrityKey,
              integrityKeyLen,
              pCurrPtr,
              msgIntLength-24,
              &hash[0], &len);
-        
+
         if (memcmp( &hash, message->messageIntegrity.hash,20) != 0)
         {
             /*
@@ -1784,14 +1815,14 @@ bool stunlib_checkIntegrity(unsigned char* buf,
             */
             return false;
         }
-        
+
     }
     else
     {
         printError("<stunmsg> Missing integrity attribute\n");
         return false;
     }
-    
+
     return true;
 
 }
@@ -2014,7 +2045,13 @@ stunlib_encodeMessage(StunMessage* message,
         return 0;
     }
 
-
+    if (message->hasRequestedAddrFamily && !stunEncodeRequestedAddrFamily(&message->requestedAddrFamily,
+                                                                          &pCurrPtr,
+                                                                          &restlen))
+    {
+        if (verbose) printError("Invalid RequestedAddressFamily attribute\n");
+        return 0;
+    }
 
     if (message->hasControlling && !stunEncodeDoubleValueAtr(&message->controlling,
                                                              STUN_ATTR_ICEControlling,
@@ -2308,6 +2345,23 @@ stunlib_addRequestedTransport(StunMessage *stunMsg, uint8_t protocol)
 }
 
 bool
+stunlib_addRequestedAddrFamily(StunMessage *stunMsg, int sa_family)
+{
+    memset(stunMsg->requestedAddrFamily.rffu, 0, sizeof(stunMsg->requestedAddrFamily.rffu));
+    if (sa_family == AF_INET){
+        stunMsg->hasRequestedAddrFamily    = true;
+        stunMsg->requestedAddrFamily.family = 0x01;
+        return true;
+    }else if (sa_family == AF_INET6){
+        stunMsg->hasRequestedAddrFamily    = true;
+        stunMsg->requestedAddrFamily.family = 0x02;
+        return true;
+    }
+    return false;
+}
+
+
+bool
 stunlib_addSoftware(StunMessage *stunMsg, const char *software, char padChar)
 {
     stunMsg->hasSoftware = true;
@@ -2442,9 +2496,9 @@ bool stunlib_checkFingerPrint(uint8_t *buf, uint32_t fpOffset){
 /* Concat  username+realm+passwd into string "<username>:<realm>:<password>" then run the MD5 alg.
  * to create a 128but MD5 hash in md5key.
 */
-void stunlib_createMD5Key(unsigned char *md5key, 
-                          const char *userName, 
-                          const char *realm, 
+void stunlib_createMD5Key(unsigned char *md5key,
+                          const char *userName,
+                          const char *realm,
                           const char *password)
 {
     char keyStr[STUN_MSG_MAX_USERNAME_LENGTH+STUN_MSG_MAX_PASSWORD_LENGTH+STUN_MSG_MAX_REALM_LENGTH+2];
@@ -2453,7 +2507,7 @@ void stunlib_createMD5Key(unsigned char *md5key,
     bytes_written = snprintf(keyStr, sizeof keyStr, "%s:%s:%s", userName, realm, password);
     if((size_t)bytes_written >= sizeof keyStr)
         abort();
-    
+
     MD5((uint8_t *)keyStr, bytes_written , md5key);
-    
+
 }

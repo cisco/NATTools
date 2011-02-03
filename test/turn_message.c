@@ -38,42 +38,40 @@ static unsigned char allocate_resp[] =
     "\x98\xbd\xcd\x2f" 
     "\xce\xb4\x8f\x50";
 
-/*
-static unsigned char allocate_error_resp[] = 
+static unsigned char requested_addrFamilyReq[] =
+    "\x01\x03\x00\x28"
+    "\x21\x12\xa4\x42"
+    "\x64\x3c\x98\x69"
+    "\x00\x01\x00\x00"
+    "\x07\x5d\xfe\x0c"
+    "\x00\x17\x00\x04"
+    "\x01\x00\x00\x00"
+    "\x00\x08\x00\x14"
+    "\x1c\xea\x86\x3f"
+    "\x2e\xc8\x4f\x3d"
+    "\xbd\x85\x8c\x41"
+    "\x3a\x4a\xe9\xbc"
+    "\xd4\xa1\x28\xa6"
+    "\x80\x28\x00\x04"
+    "\x38\x98\xd0\x62";
 
-01 13 00 68 
-21 12 a4 42 
-32 7b 23 c6 
-00 00 00 00 
-51 1a 45 a3 
-00 09 00 10 
-00 00 04 01 
-55 6e 61 75 
-74 68 6f 72 
-69 7a 65 64 
-00 14 00 18 
-6d 65 64 69 
-61 6e 65 74 
-77 6f 72 6b 
-73 65 72 76 
-69 63 65 73 
-2e 63 6f 6d 
-00 15 00 10 
-30 39 61 36 
-30 33 36 30 
-31 36 33 61 
-36 62 63 32 
-80 22 00 1d 
-72 65 73 74 
-75 6e 64 20 
-76 30 2e 31 
-2e 30 20 28 
-78 38 36 5f 
-36 34 2f 6c 
-69 6e 75 78 
-29 00 00 00                                             
-*/
 
+static unsigned char requested_addrFamilyReq_IPv6[] =
+    "\x01\x03\x00\x28"
+    "\x21\x12\xa4\x42"
+    "\x64\x3c\x98\x69"
+    "\x00\x01\x00\x00"
+    "\x07\x5d\xfe\x0c"
+    "\x00\x17\x00\x04"
+    "\x02\x00\x00\x00"
+    "\x00\x08\x00\x14"
+    "\xfc\x8f\x30\x45"
+    "\x80\x06\x80\x29"
+    "\x97\x6b\x5c\x90"
+    "\xd2\x19\xc0\xba"
+    "\x7c\x37\x6e\xab"
+    "\x80\x28\x00\x04"
+    "\xd3\x60\x20\xf1";
 
 static char password[] = "pem\0";
 static char user[] = "pem\0";
@@ -187,6 +185,101 @@ START_TEST(decode_integrity)
 }
 END_TEST
 
+START_TEST(encode_requestedAddrFamily)
+{
+    StunMessage stunMsg, decodeStunMsg;
+
+    unsigned char stunBuf[120];
+    
+    memset(&stunMsg, 0, sizeof(StunMessage));
+
+
+    stunMsg.msgHdr.msgType = STUN_MSG_AllocateResponseMsg;
+    memcpy(&stunMsg.msgHdr.id.octet,&idOctet,12);
+
+    /*Add RequestedAddrFamily*/
+    fail_if( stunlib_addRequestedAddrFamily(&stunMsg, 76) );
+    fail_unless( stunlib_addRequestedAddrFamily(&stunMsg, AF_INET) );
+    
+    fail_unless( stunlib_encodeMessage(&stunMsg,
+                                       stunBuf,
+                                       120,
+                                       (unsigned char*)password,
+                                       strlen(password),
+                                       false, /*verbose */
+                                       false)  /* msice2 */);
+
+    fail_unless( memcmp(stunBuf, requested_addrFamilyReq, 60 ) == 0 );
+}
+END_TEST
+
+START_TEST(encode_requestedAddrFamily_IPv6)
+{
+    StunMessage stunMsg, decodeStunMsg;
+
+    unsigned char stunBuf[120];
+    
+    memset(&stunMsg, 0, sizeof(StunMessage));
+
+
+    stunMsg.msgHdr.msgType = STUN_MSG_AllocateResponseMsg;
+    memcpy(&stunMsg.msgHdr.id.octet,&idOctet,12);
+
+    /*Add RequestedAddrFamily*/
+    fail_if( stunlib_addRequestedAddrFamily(&stunMsg, 76) );
+    fail_unless( stunlib_addRequestedAddrFamily(&stunMsg, AF_INET6) );
+    
+    fail_unless( stunlib_encodeMessage(&stunMsg,
+                                       stunBuf,
+                                       120,
+                                       (unsigned char*)password,
+                                       strlen(password),
+                                       false, /*verbose */
+                                       false)  /* msice2 */);
+
+    fail_unless( memcmp(stunBuf, requested_addrFamilyReq_IPv6, 60 ) == 0 );
+}
+END_TEST
+
+
+START_TEST(decode_requestedAddrFamily)
+{
+    StunMessage stunMsg;
+
+    fail_unless( stunlib_DecodeMessage( requested_addrFamilyReq,
+                                        60,
+                                        &stunMsg,
+                                        NULL,
+                                        false,
+                                        false ));
+
+    fail_unless( stunMsg.hasRequestedAddrFamily );
+    fail_unless( stunMsg.requestedAddrFamily.family == 0x1 );
+
+}
+END_TEST
+
+
+START_TEST(decode_requestedAddrFamily_IPv6)
+{
+    StunMessage stunMsg;
+
+    fail_unless( stunlib_DecodeMessage( requested_addrFamilyReq_IPv6,
+                                        60,
+                                        &stunMsg,
+                                        NULL,
+                                        false,
+                                        false ));
+
+    fail_unless( stunMsg.hasRequestedAddrFamily );
+    fail_unless( stunMsg.requestedAddrFamily.family == 0x2 );
+
+}
+END_TEST
+
+
+
+
 Suite * turnmessage_suite (void){
 
     Suite *s = suite_create ("TURN message");
@@ -199,6 +292,19 @@ Suite * turnmessage_suite (void){
         tcase_add_test (tc_integrity, decode_integrity);
         
         suite_add_tcase (s, tc_integrity);
+      
+    }
+    {/* Requested Addr Family */
+        
+        TCase *tc_requestedAddrFamily = tcase_create ("Requested Address Family");
+        
+        tcase_add_test (tc_requestedAddrFamily, encode_requestedAddrFamily);
+        tcase_add_test (tc_requestedAddrFamily, encode_requestedAddrFamily_IPv6);
+        
+        tcase_add_test (tc_requestedAddrFamily, decode_requestedAddrFamily);
+        tcase_add_test (tc_requestedAddrFamily, decode_requestedAddrFamily_IPv6);
+        
+        suite_add_tcase (s, tc_requestedAddrFamily);
       
     }
     return s;
