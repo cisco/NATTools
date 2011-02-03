@@ -336,6 +336,9 @@ END_TEST
 START_TEST (sockaddr_IPv4_isAny)
 {
 
+    fail_unless( sockaddr_isAddrAny((struct sockaddr *)sockaddr_IPv4_any), 
+                 "isAny failed");
+
     fail_if( sockaddr_isAddrAny((struct sockaddr *)sockaddr_IPv4_1), 
              "isAny failed");
 

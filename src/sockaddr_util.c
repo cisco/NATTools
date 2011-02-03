@@ -228,19 +228,10 @@ bool sockaddr_isAddrAny(const struct sockaddr * sa)
 {
     
     if (sa->sa_family == AF_INET) {
-        struct sockaddr_in any;        
-        //sockaddr_initAsIpv4Any(&any);
-        sockaddr_initAsIPv4Any( &any );
-        if (sockaddr_sameAddr(sa, (const struct sockaddr *)&any)){
-            return true;
-        }        
-        
+        return ( ((struct sockaddr_in*)sa)->sin_addr.s_addr == htonl(INADDR_ANY) );
+                
     }else if (sa->sa_family == AF_INET6) {
-        struct sockaddr_in6 any;
-        sockaddr_initAsIPv6Any( &any );
-        if (sockaddr_sameAddr(sa, (const struct sockaddr *)&any)){
-            return true;
-        }
+        return IN6_IS_ADDR_UNSPECIFIED(&((struct sockaddr_in6*)sa)->sin6_addr);
     }
      
     return false;
