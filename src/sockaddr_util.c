@@ -249,24 +249,11 @@ bool sockaddr_isAddrAny(const struct sockaddr * sa)
 
 bool sockaddr_isAddrLoopBack(const struct sockaddr * sa)
 {
-    
     if (sa->sa_family == AF_INET) {
-        struct sockaddr_in *sin = (struct sockaddr_in*)sa;
-        if ( sin->sin_addr.s_addr == htonl(INADDR_LOOPBACK)){
-            return true;
-        }
+        return ( ((struct sockaddr_in*)sa)->sin_addr.s_addr == htonl(INADDR_LOOPBACK) );
     }else if (sa->sa_family == AF_INET6) {
-        struct sockaddr_in6 *sin6 = (struct sockaddr_in6*)sa;
-        struct sockaddr_in6 any6;
-        sockaddr_initFromIPv6String(&any6, "::1");
-        
-        if ( sockaddr_alike((struct sockaddr *)sin6, 
-                            (struct sockaddr *)&any6) ){
-            return true;
-        }
-        return false;
+        return IN6_IS_ADDR_LOOPBACK(&((struct sockaddr_in6*)sa)->sin6_addr);
     }
-     
     return false;
 }
 
