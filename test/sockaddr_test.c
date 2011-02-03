@@ -1,4 +1,3 @@
-
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -51,11 +50,11 @@ sockaddr_setup (void)
 
     //IPv4
     sockaddr_IPv4_1 = (struct sockaddr_storage *)malloc(sizeof(struct sockaddr_storage));
-    
+
     sockaddr_initFromString((struct sockaddr *)sockaddr_IPv4_1, ipv4_1_str);
-        
-        
-    
+
+
+
 
     sockaddr_IPv4_2 = (struct sockaddr_storage *)malloc(sizeof(struct sockaddr_storage));
     sockaddr_initFromString((struct sockaddr *)sockaddr_IPv4_2, ipv4_2_str);
@@ -65,17 +64,17 @@ sockaddr_setup (void)
 
     sockaddr_IPv4_4 = (struct sockaddr_storage *)malloc(sizeof(struct sockaddr_storage));
     sockaddr_initFromString((struct sockaddr *)sockaddr_IPv4_4, ipv4_4_str);
-        
+
 //IPv6
     sockaddr_IPv6_1 = (struct sockaddr_storage *)malloc(sizeof(struct sockaddr_storage));
     sockaddr_initFromString((struct sockaddr *)sockaddr_IPv6_1, ipv6_1_str);
-    
+
     sockaddr_IPv6_2 = (struct sockaddr_storage *)malloc(sizeof(struct sockaddr_storage));
     sockaddr_initFromString((struct sockaddr *)sockaddr_IPv6_2, ipv6_2_str);
-                
+
     sockaddr_IPv6_3 = (struct sockaddr_storage *)malloc(sizeof(struct sockaddr_storage));
     sockaddr_initFromString((struct sockaddr *)sockaddr_IPv6_3, ipv6_1_str);
-        
+
     sockaddr_IPv6_4 = (struct sockaddr_storage *)malloc(sizeof(struct sockaddr_storage));
     sockaddr_initFromString((struct sockaddr *)sockaddr_IPv6_4, ipv6_4_str);
 
@@ -122,13 +121,13 @@ START_TEST (test_sockaddr_create )
 {
     fail_unless( ((struct sockaddr *)sockaddr_IPv4_1)->sa_family == AF_INET,
                  "Addrinfo got wrong family");
-    
+
     fail_unless( ((struct sockaddr *)sockaddr_IPv6_1)->sa_family == AF_INET6,
                  "Addrinfo got wrong family");
 
     fail_unless( ((struct sockaddr *)sockaddr_IPv6_2)->sa_family == AF_INET6,
                  "Addrinfo got wrong family");
-    
+
 }
 END_TEST
 
@@ -140,7 +139,7 @@ START_TEST (test_sockaddr_int_IPv4_init)
     uint16_t port = 4567;
     struct sockaddr_storage a_addr;
     struct sockaddr_storage b_addr;
-    
+
 
     sockaddr_initFromIPv4Int((struct sockaddr_in *)&a_addr, htonl(a), htons(port));
     sockaddr_initFromIPv4String((struct sockaddr_in *)&b_addr, "158.38.48.10:4567");
@@ -149,8 +148,8 @@ START_TEST (test_sockaddr_int_IPv4_init)
                        addr_str,
                        256,
                        true);
-    
-    fail_unless( sockaddr_alike( (struct sockaddr *)&a_addr, (struct sockaddr *)&b_addr) ); 
+
+    fail_unless( sockaddr_alike( (struct sockaddr *)&a_addr, (struct sockaddr *)&b_addr) );
 
 
 
@@ -166,18 +165,18 @@ START_TEST (test_sockaddr_int_IPv6_init)
     uint16_t port = 4567;
     struct sockaddr_storage a_addr;
     struct sockaddr_storage b_addr;
-    
+
     sockaddr_initFromIPv6Int((struct sockaddr_in6 *)&a_addr, a, htons(port));
-    
+
     fail_unless(sockaddr_initFromIPv6String((struct sockaddr_in6 *)&b_addr, "[2001:470:dc88:2:226:18ff:fe92:6d53]:4567"));
 
     sockaddr_toString( (struct sockaddr *)&a_addr,
                        addr_str,
                        256,
                        true);
-    
-    
-    fail_unless( sockaddr_alike( (struct sockaddr *)&a_addr, (struct sockaddr *)&b_addr) ); 
+
+
+    fail_unless( sockaddr_alike( (struct sockaddr *)&a_addr, (struct sockaddr *)&b_addr) );
 
 
 
@@ -186,25 +185,25 @@ END_TEST
 
 START_TEST (sockaddr_IPv4_sameaddr)
 {
-    
-    fail_unless( sockaddr_sameAddr((struct sockaddr *)sockaddr_IPv4_1, 
+
+    fail_unless( sockaddr_sameAddr((struct sockaddr *)sockaddr_IPv4_1,
                                    (struct sockaddr *)sockaddr_IPv4_1),
                  "samaddr failed");
 
-    fail_unless( sockaddr_sameAddr((struct sockaddr *)sockaddr_IPv4_1, 
+    fail_unless( sockaddr_sameAddr((struct sockaddr *)sockaddr_IPv4_1,
                                    (struct sockaddr *)sockaddr_IPv4_3),
                  "samaddr failed");
 
-    fail_unless( sockaddr_sameAddr((struct sockaddr *)sockaddr_IPv4_any, 
+    fail_unless( sockaddr_sameAddr((struct sockaddr *)sockaddr_IPv4_any,
                                    (struct sockaddr *)sockaddr_IPv4_any_2),
                  "samaddr failed");
 
 
-    fail_if   ( sockaddr_sameAddr((struct sockaddr *)sockaddr_IPv4_1, 
+    fail_if   ( sockaddr_sameAddr((struct sockaddr *)sockaddr_IPv4_1,
                                   (struct sockaddr *)sockaddr_IPv4_2),
                   "samaddr failed");
 
-    fail_if   ( sockaddr_sameAddr((struct sockaddr *)sockaddr_IPv4_1, 
+    fail_if   ( sockaddr_sameAddr((struct sockaddr *)sockaddr_IPv4_1,
                                   (struct sockaddr *)sockaddr_IPv6_1 ),
                 "sameaddr failed");
 }
@@ -212,33 +211,33 @@ END_TEST
 
 START_TEST (sockaddr_IPv6_sameaddr)
 {
-          
-    fail_unless( sockaddr_sameAddr((struct sockaddr *)sockaddr_IPv6_1, 
+
+    fail_unless( sockaddr_sameAddr((struct sockaddr *)sockaddr_IPv6_1,
                                    (struct sockaddr *)sockaddr_IPv6_1),
                  "samaddr failed");
 
-    fail_unless( sockaddr_sameAddr((struct sockaddr *)sockaddr_IPv6_3, 
+    fail_unless( sockaddr_sameAddr((struct sockaddr *)sockaddr_IPv6_3,
                                    (struct sockaddr *)sockaddr_IPv6_3),
                  "samaddr failed");
 
-    fail_unless( sockaddr_sameAddr((struct sockaddr *)sockaddr_IPv6_1, 
+    fail_unless( sockaddr_sameAddr((struct sockaddr *)sockaddr_IPv6_1,
                                    (struct sockaddr *)sockaddr_IPv6_3),
                  "samaddr failed");
 
-    fail_unless( sockaddr_sameAddr((struct sockaddr *)sockaddr_IPv6_any, 
+    fail_unless( sockaddr_sameAddr((struct sockaddr *)sockaddr_IPv6_any,
                                    (struct sockaddr *)sockaddr_IPv6_any_2),
                  "samaddr failed");
 
 
-    fail_if   ( sockaddr_sameAddr((struct sockaddr *)sockaddr_IPv6_1, 
+    fail_if   ( sockaddr_sameAddr((struct sockaddr *)sockaddr_IPv6_1,
                                   (struct sockaddr *)sockaddr_IPv6_2),
                   "samaddr failed");
 
-    fail_if   ( sockaddr_sameAddr((struct sockaddr *)sockaddr_IPv6_1, 
+    fail_if   ( sockaddr_sameAddr((struct sockaddr *)sockaddr_IPv6_1,
                                   (struct sockaddr *)sockaddr_IPv6_2),
                   "samaddr failed");
 
-    fail_if   ( sockaddr_sameAddr((struct sockaddr *)sockaddr_IPv6_1, 
+    fail_if   ( sockaddr_sameAddr((struct sockaddr *)sockaddr_IPv6_1,
                                   (struct sockaddr *)sockaddr_IPv4_1 ),
                 "sameaddr failed");
 }
@@ -246,19 +245,19 @@ END_TEST
 
 START_TEST (sockaddr_IPv4_sameport)
 {
-    fail_unless ( sockaddr_samePort( (struct sockaddr *)sockaddr_IPv4_1, 
+    fail_unless ( sockaddr_samePort( (struct sockaddr *)sockaddr_IPv4_1,
                                      (struct sockaddr *)sockaddr_IPv4_1),
                   "sockaddr samePort failed");
-    
-    fail_unless ( sockaddr_samePort( (struct sockaddr *)sockaddr_IPv4_1, 
+
+    fail_unless ( sockaddr_samePort( (struct sockaddr *)sockaddr_IPv4_1,
                                      (struct sockaddr *)sockaddr_IPv4_2),
                   "sockaddr samePort failed");
 
-    fail_if ( sockaddr_samePort( (struct sockaddr *)sockaddr_IPv4_1, 
+    fail_if ( sockaddr_samePort( (struct sockaddr *)sockaddr_IPv4_1,
                                  (struct sockaddr *)sockaddr_IPv4_4),
               "sockaddr samePort failed");
-    
-    fail_if ( sockaddr_samePort( (struct sockaddr *)sockaddr_IPv4_1, 
+
+    fail_if ( sockaddr_samePort( (struct sockaddr *)sockaddr_IPv4_1,
                                  (struct sockaddr *)sockaddr_IPv6_4),
               "sockaddr samePort failed");
 }
@@ -267,28 +266,28 @@ END_TEST
 
 START_TEST (sockaddr_IPv6_sameport)
 {
-        fail_unless ( sockaddr_samePort( (struct sockaddr *)sockaddr_IPv6_1, 
+        fail_unless ( sockaddr_samePort( (struct sockaddr *)sockaddr_IPv6_1,
                                          (struct sockaddr *)sockaddr_IPv6_1),
                   "sockaddr samePort failed");
 
-        fail_unless ( sockaddr_samePort( (struct sockaddr *)sockaddr_IPv6_1, 
+        fail_unless ( sockaddr_samePort( (struct sockaddr *)sockaddr_IPv6_1,
                                          (struct sockaddr *)sockaddr_IPv6_2),
                       "sockaddr samePort failed");
-        fail_if ( sockaddr_samePort( (struct sockaddr *)sockaddr_IPv6_1, 
+        fail_if ( sockaddr_samePort( (struct sockaddr *)sockaddr_IPv6_1,
                                      (struct sockaddr *)sockaddr_IPv6_4),
               "sockaddr samePort failed");
-    
+
 
 }
 END_TEST
 
-START_TEST (sockaddr_IPv4_alike) 
+START_TEST (sockaddr_IPv4_alike)
 {
-    fail_unless( sockaddr_alike((struct sockaddr *)sockaddr_IPv4_1, 
+    fail_unless( sockaddr_alike((struct sockaddr *)sockaddr_IPv4_1,
                                 (struct sockaddr *)sockaddr_IPv4_1),
                  "alike failed");
 
-    fail_if( sockaddr_alike((struct sockaddr *)sockaddr_IPv4_1, 
+    fail_if( sockaddr_alike((struct sockaddr *)sockaddr_IPv4_1,
                             (struct sockaddr *)sockaddr_IPv4_2),
                  "alike failed");
 
@@ -297,13 +296,13 @@ START_TEST (sockaddr_IPv4_alike)
 END_TEST
 
 
-START_TEST (sockaddr_IPv6_alike) 
+START_TEST (sockaddr_IPv6_alike)
 {
-    fail_unless( sockaddr_alike((struct sockaddr *)sockaddr_IPv6_1, 
+    fail_unless( sockaddr_alike((struct sockaddr *)sockaddr_IPv6_1,
                                 (struct sockaddr *)sockaddr_IPv6_1),
                  "alike failed");
 
-    fail_if( sockaddr_alike((struct sockaddr *)sockaddr_IPv6_1, 
+    fail_if( sockaddr_alike((struct sockaddr *)sockaddr_IPv6_1,
                             (struct sockaddr *)sockaddr_IPv6_2),
                  "alike failed");
 
@@ -313,18 +312,18 @@ END_TEST
 
 START_TEST (sockaddr_IPv4_isSet)
 {
-    fail_unless( sockaddr_isSet((struct sockaddr *)sockaddr_IPv4_1), 
+    fail_unless( sockaddr_isSet((struct sockaddr *)sockaddr_IPv4_1),
                  "isSet failed");
-    
+
 
 }
-END_TEST 
+END_TEST
 
 
 
 START_TEST (sockaddr_IPv6_isSet)
 {
-    fail_unless( sockaddr_isSet((struct sockaddr *)sockaddr_IPv6_1), 
+    fail_unless( sockaddr_isSet((struct sockaddr *)sockaddr_IPv6_1),
                  "isSet failed");
 
     fail_if( sockaddr_isSet(sockaddr_uninit),
@@ -336,10 +335,10 @@ END_TEST
 START_TEST (sockaddr_IPv4_isAny)
 {
 
-    fail_unless( sockaddr_isAddrAny((struct sockaddr *)sockaddr_IPv4_any), 
+    fail_unless( sockaddr_isAddrAny((struct sockaddr *)sockaddr_IPv4_any),
                  "isAny failed");
 
-    fail_if( sockaddr_isAddrAny((struct sockaddr *)sockaddr_IPv4_1), 
+    fail_if( sockaddr_isAddrAny((struct sockaddr *)sockaddr_IPv4_1),
              "isAny failed");
 
 
@@ -350,13 +349,13 @@ END_TEST
 
 START_TEST (sockaddr_IPv6_isAny)
 {
-    fail_if(  sockaddr_isAddrAny((struct sockaddr *)sockaddr_IPv6_1), 
+    fail_if(  sockaddr_isAddrAny((struct sockaddr *)sockaddr_IPv6_1),
              "isAny failed");
 
-    fail_unless( sockaddr_isAddrAny((struct sockaddr *)sockaddr_IPv6_any), 
+    fail_unless( sockaddr_isAddrAny((struct sockaddr *)sockaddr_IPv6_any),
                  "isAny failed");
-    
-    fail_unless( sockaddr_isAddrAny((struct sockaddr *)sockaddr_IPv6_any_2), 
+
+    fail_unless( sockaddr_isAddrAny((struct sockaddr *)sockaddr_IPv6_any_2),
                  "isAny failed");
 
 }
@@ -366,32 +365,32 @@ START_TEST (sockaddr_IPv4_toString)
 {
     char ipaddr[SOCKADDR_MAX_STRLEN];
 
-    fail_unless( strncmp(ipv4_1_str, 
-                         sockaddr_toString((const struct sockaddr *)sockaddr_IPv4_1, 
-                                           ipaddr, 
-                                           SOCKADDR_MAX_STRLEN, 
+    fail_unless( strncmp(ipv4_1_str,
+                         sockaddr_toString((const struct sockaddr *)sockaddr_IPv4_1,
+                                           ipaddr,
+                                           SOCKADDR_MAX_STRLEN,
                                            true),
                          INET_ADDRSTRLEN) == 0 ,
-                 "sockaddr toString failed ('%s'", ipaddr); 
-    
-    fail_unless( strncmp(ipv4_1_noport_str, 
-                         sockaddr_toString((const struct sockaddr *)sockaddr_IPv4_1, 
-                                           ipaddr, 
-                                           SOCKADDR_MAX_STRLEN, 
+                 "sockaddr toString failed ('%s'", ipaddr);
+
+    fail_unless( strncmp(ipv4_1_noport_str,
+                         sockaddr_toString((const struct sockaddr *)sockaddr_IPv4_1,
+                                           ipaddr,
+                                           SOCKADDR_MAX_STRLEN,
                                            false),
                          SOCKADDR_MAX_STRLEN) == 0 ,
-                 "sockaddr toString failed ('%s'", ipaddr); 
-    
+                 "sockaddr toString failed ('%s'", ipaddr);
 
-    fail_unless( strncmp(ipv4_any_str, 
-                         sockaddr_toString((const struct sockaddr *)sockaddr_IPv4_any_2, 
-                                           ipaddr, 
-                                           SOCKADDR_MAX_STRLEN, 
+
+    fail_unless( strncmp(ipv4_any_str,
+                         sockaddr_toString((const struct sockaddr *)sockaddr_IPv4_any_2,
+                                           ipaddr,
+                                           SOCKADDR_MAX_STRLEN,
                                            true),
                          SOCKADDR_MAX_STRLEN ) == 0 ,
-                 "sockaddr toString failed ('%s'", ipaddr); 
-    
-    
+                 "sockaddr toString failed ('%s'", ipaddr);
+
+
 
 
 }
@@ -404,22 +403,22 @@ START_TEST (sockaddr_IPv6_toString)
 
     char ipaddr[SOCKADDR_MAX_STRLEN];
 
-    fail_unless( strncmp(ipv6_1_str, 
-                         sockaddr_toString((const struct sockaddr *)sockaddr_IPv6_1, 
-                                           ipaddr, 
-                                           SOCKADDR_MAX_STRLEN, 
+    fail_unless( strncmp(ipv6_1_str,
+                         sockaddr_toString((const struct sockaddr *)sockaddr_IPv6_1,
+                                           ipaddr,
+                                           SOCKADDR_MAX_STRLEN,
                                            true),
                          SOCKADDR_MAX_STRLEN) == 0 ,
-                 "sockaddr toString failed ('%s'", ipaddr); 
-    
-    fail_unless( strncmp(ipv6_1_noport_str, 
-                         sockaddr_toString((const struct sockaddr *)sockaddr_IPv6_1, 
-                                           ipaddr, 
-                                           SOCKADDR_MAX_STRLEN, 
+                 "sockaddr toString failed ('%s'", ipaddr);
+
+    fail_unless( strncmp(ipv6_1_noport_str,
+                         sockaddr_toString((const struct sockaddr *)sockaddr_IPv6_1,
+                                           ipaddr,
+                                           SOCKADDR_MAX_STRLEN,
                                            false),
                          SOCKADDR_MAX_STRLEN) == 0 ,
-                 "sockaddr toString failed ('%s'", ipaddr); 
-    
+                 "sockaddr toString failed ('%s'", ipaddr);
+
 
 }
 END_TEST
@@ -431,14 +430,14 @@ START_TEST (sockaddr_IPv4_copy)
     sockaddr_copy((struct sockaddr *)&copy,
                   (const struct sockaddr *)sockaddr_IPv4_1);
 
-    fail_unless( sockaddr_alike((struct sockaddr *)&copy, 
+    fail_unless( sockaddr_alike((struct sockaddr *)&copy,
                                 (struct sockaddr *)sockaddr_IPv4_1),
                  "copy failed");
 
-    fail_if( sockaddr_alike((struct sockaddr *)&copy, 
+    fail_if( sockaddr_alike((struct sockaddr *)&copy,
                             (struct sockaddr *)sockaddr_IPv4_2),
                  "copy failed");
-    
+
 
 }
 END_TEST
@@ -451,11 +450,11 @@ START_TEST (sockaddr_IPv6_copy)
     sockaddr_copy((struct sockaddr *)&copy,
                   (const struct sockaddr *)sockaddr_IPv6_1);
 
-    fail_unless( sockaddr_alike((struct sockaddr *)&copy, 
+    fail_unless( sockaddr_alike((struct sockaddr *)&copy,
                                 (struct sockaddr *)sockaddr_IPv6_1),
                  "copy failed");
 
-    fail_if( sockaddr_alike((struct sockaddr *)&copy, 
+    fail_if( sockaddr_alike((struct sockaddr *)&copy,
                             (struct sockaddr *)sockaddr_IPv6_2),
                  "copy failed");
 
@@ -471,13 +470,13 @@ START_TEST (sockaddr_IPv4_setPort)
 
     sockaddr_setPort( (struct sockaddr *)&ip, 4567 );
 
-    fail_unless( sockaddr_alike((struct sockaddr *)&ip, 
+    fail_unless( sockaddr_alike((struct sockaddr *)&ip,
                                 (struct sockaddr *)sockaddr_IPv4_1),
                  "setPort failed");
 
     sockaddr_setPort( (struct sockaddr *)&ip, 1111 );
 
-    fail_if( sockaddr_alike((struct sockaddr *)&ip, 
+    fail_if( sockaddr_alike((struct sockaddr *)&ip,
                             (struct sockaddr *)sockaddr_IPv4_1),
                  "setPort failed");
 
@@ -494,13 +493,13 @@ START_TEST (sockaddr_IPv6_setPort)
 
     sockaddr_setPort( (struct sockaddr *)&ip, 3456 );
 
-    fail_unless( sockaddr_alike((struct sockaddr *)&ip, 
+    fail_unless( sockaddr_alike((struct sockaddr *)&ip,
                                 (struct sockaddr *)sockaddr_IPv6_1),
                  "setPort failed");
 
     sockaddr_setPort( (struct sockaddr *)&ip, 1111 );
 
-    fail_if( sockaddr_alike((struct sockaddr *)&ip, 
+    fail_if( sockaddr_alike((struct sockaddr *)&ip,
                             (struct sockaddr *)sockaddr_IPv6_1),
                  "setPort failed");
 
@@ -534,6 +533,19 @@ START_TEST (sockaddr_IPv6_loopback)
 }
 END_TEST
 
+
+START_TEST (sockaddr_IPv6_linklocal)
+{
+    struct sockaddr_storage ip;
+    sockaddr_initFromString( (struct sockaddr *)&ip, "fe80::226:18ff:fe92:6d53" );
+
+    fail_unless( sockaddr_isAddrLinkLocal( (struct sockaddr *)&ip ));
+
+
+
+}
+END_TEST
+
 Suite * sockaddr_suite (void)
 {
   Suite *s = suite_create ("sockaddr");
@@ -546,7 +558,7 @@ Suite * sockaddr_suite (void)
       tcase_add_test (tc_core, test_sockaddr_int_IPv6_init);
       suite_add_tcase (s, tc_core);
   }
-  
+
   {/* Sameaddr test case */
       TCase *tc_sameaddr = tcase_create ("SameAddr");
       tcase_add_checked_fixture (tc_sameaddr, sockaddr_setup, sockaddr_teardown);
@@ -598,7 +610,7 @@ Suite * sockaddr_suite (void)
       suite_add_tcase (s, tc_sockaddr_copy);
 
   }
-  
+
   {/* setPort test case */
       TCase *tc_sockaddr_setPort = tcase_create ("sockaddr_setPort");
       tcase_add_checked_fixture (tc_sockaddr_setPort, sockaddr_setup, sockaddr_teardown);
@@ -608,15 +620,18 @@ Suite * sockaddr_suite (void)
   }
 
   {/* loopback test case */
-      TCase *tc_sockaddr_loopback = tcase_create ("sockaddr_setPort");
+      TCase *tc_sockaddr_loopback = tcase_create ("sockaddr_loopback");
       tcase_add_test (tc_sockaddr_loopback, sockaddr_IPv4_loopback);
       tcase_add_test (tc_sockaddr_loopback, sockaddr_IPv6_loopback);
       suite_add_tcase (s, tc_sockaddr_loopback);
   }
+  {/* linklocal test case */
+      TCase *tc_sockaddr_linklocal = tcase_create ("sockaddr_linklocal");
+      tcase_add_test (tc_sockaddr_linklocal, sockaddr_IPv6_linklocal);
+      suite_add_tcase (s, tc_sockaddr_linklocal);
+  }
 
-  
+
 
   return s;
 }
-
-

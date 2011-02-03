@@ -44,7 +44,7 @@ bool sockaddr_initFromIPv6String(struct sockaddr_in6 *sa,
  *
  */
 bool sockaddr_initFromIPv4Int(struct sockaddr_in *sa,
-                              uint32_t addr, 
+                              uint32_t addr,
                               uint16_t port);
 
 
@@ -54,24 +54,24 @@ bool sockaddr_initFromIPv4Int(struct sockaddr_in *sa,
  *
  */
 bool sockaddr_initFromIPv6Int(struct sockaddr_in6 *sin,
-                              uint8_t ipaddr[16], 
+                              uint8_t ipaddr[16],
                               uint16_t port);
 
 
 /*
  *  Checks if the address part is the same.
- *  No cheking of ports or transport protocol 
+ *  No cheking of ports or transport protocol
  */
 
-bool sockaddr_sameAddr(const struct sockaddr * a, 
+bool sockaddr_sameAddr(const struct sockaddr * a,
                        const struct sockaddr * b);
 
 
 /*
  *  Check if the port is the same.
- *  
+ *
  */
-bool sockaddr_samePort(const struct sockaddr * a, 
+bool sockaddr_samePort(const struct sockaddr * a,
                        const struct sockaddr * b);
 
 /*
@@ -79,7 +79,7 @@ bool sockaddr_samePort(const struct sockaddr * a,
  * (IP proto, port and address)
  *
  */
-bool sockaddr_alike(const struct sockaddr * a, 
+bool sockaddr_alike(const struct sockaddr * a,
                     const struct sockaddr * b);
 
 /*
@@ -90,28 +90,33 @@ bool sockaddr_isSet(const struct sockaddr * sa);
 
 /*
  * Cheks if a sockaddr has the address of 'any'
- *  
+ *
  */
 bool sockaddr_isAddrAny(const struct sockaddr * sa);
 
 
 /*
- * Cheks if a sockaddr has the address of 'any'
- *  
+ * Cheks if a sockaddr loopback
+ *
  */
 bool sockaddr_isAddrLoopBack(const struct sockaddr * sa);
 
+/*
+ * Cheks if a sockaddr is a IPv6 link local address
+ * Will return false if it is a IPv4 addr
+ */
+bool sockaddr_isAddrLinkLocal(const struct sockaddr * sa);
 
 const char *sockaddr_toString( const struct sockaddr *sa,
                                char *dest,
                                size_t destlen,
                                bool addport);
 
-void sockaddr_copy(struct sockaddr * dst, 
+void sockaddr_copy(struct sockaddr * dst,
                    const struct sockaddr * src);
 
 
-void sockaddr_setPort(struct sockaddr * sa, 
+void sockaddr_setPort(struct sockaddr * sa,
                       uint16_t port);
 
 #ifdef __cplusplus
