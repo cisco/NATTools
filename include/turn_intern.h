@@ -82,6 +82,7 @@ typedef struct {
     char                     username[STUN_MSG_MAX_USERNAME_LENGTH];
     char                     password[STUN_MSG_MAX_PASSWORD_LENGTH];
     uint32_t                 sockhandle;
+    uint16_t                 addrFamily;
     uint32_t                 stunTimeoutList[STUNCLIENT_MAX_RETRANSMITS];
     STUN_SENDFUNC            sendFunc;
     void                    *userCtx;

@@ -194,6 +194,7 @@ bool TurnClient_Init(uint32_t  threadCtx,
  *     userName         -  \0 terminated string. Max 512 chars.
  *     password         -  \0 terminated string. Max 512 chars.
  *     sockhandle       -  used as 1st parameter in STUN_SENDFUNC(), typically a socket.
+ *     addrFamily      -  requested address family (AF_INET or AF_INET6)
  *     sendFunc         -  function used to send STUN packet. send(sockhandle,buff, len, turnServerAddr, userCtx)
  *     timeoutList      -  Defines interval between each retry in msec. 0 terminated.  e.g. 500, 1000 results in 
  *                         retry after 500msec and retry after 1000 msec. If this is NULL, then TURN uses the default
@@ -210,6 +211,7 @@ int  TurnClient_startAllocateTransaction(uint32_t               threadCtx,
                                          const char            *userName,
                                          const char            *password,
                                          uint32_t               sockhandle,
+                                         uint16_t               addrFamily,
                                          STUN_SENDFUNC          sendFunc,
                                          uint32_t              *timeoutList,
                                          TURNCB                 TurnCbFunc,

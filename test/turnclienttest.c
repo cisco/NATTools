@@ -97,6 +97,7 @@ static int StartAllocateTransaction(int n)
                                                "pem",
                                                "pem",
                                                0,                       /* socket */
+                                               0,
                                                SendRawStun,             /* send func */
                                                StunDefaultTimeoutList,  /* timeout list */
                                                TurnStatusCallBack,

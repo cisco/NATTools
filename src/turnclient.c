@@ -242,6 +242,12 @@ static bool isMsStun(TURN_INSTANCE_DATA *pInst)
     return pInst->turnAllocateReq.isMsStun;
 }
 
+static uint16_t getAddrFamily(TURN_INSTANCE_DATA *pInst)
+{
+    return pInst->turnAllocateReq.addrFamily;
+}
+
+
 static TURN_SIGNAL StunMsgToInternalTurnSig(uint32_t threadCtx, StunMessage *msg)
 {
     switch (msg->msgHdr.msgType)
@@ -378,6 +384,7 @@ int TurnClient_startAllocateTransaction(uint32_t               threadCtx,
                                         const char            *userName,
                                         const char            *password,
                                         uint32_t               sockhandle,
+                                        uint16_t               addrFamily,
                                         STUN_SENDFUNC          sendFunc,
                                         uint32_t              *timeoutList,
                                         TURNCB                 turnCbFunc,
@@ -391,7 +398,10 @@ int TurnClient_startAllocateTransaction(uint32_t               threadCtx,
     
     if (InstanceData[threadCtx] == NULL)
     {
-        TurnPrint(threadCtx, TurnInfoCategory_Error, "<TURNCLIENT> startAllocateTransaction failed,  Not initialised or  no memory, threadCtx %d", threadCtx);
+        TurnPrint(threadCtx, 
+                  TurnInfoCategory_Error, 
+                  "<TURNCLIENT> startAllocateTransaction failed,  Not initialised or  no memory, threadCtx %d", 
+                  threadCtx);
         return TURNCLIENT_CTX_UNKNOWN;
     }
 
@@ -402,6 +412,7 @@ int TurnClient_startAllocateTransaction(uint32_t               threadCtx,
     strncpy(m.username, userName, sizeof(m.username));
     strncpy(m.password, password, sizeof(m.password));
     m.sockhandle     = sockhandle;
+    m.addrFamily     = addrFamily;
     m.sendFunc       = sendFunc;
     m.userCtx        = userCtx;
     m.threadCtx      = threadCtx;
@@ -1382,6 +1393,20 @@ static void  BuildInitialAllocateReq(TURN_INSTANCE_DATA *pInst, StunMessage  *pR
         stunlib_addSoftware(pReq, SoftwareVersionStr, STUN_DFLT_PAD);
         stunlib_addRequestedTransport(pReq, STUN_REQ_TRANSPORT_UDP);
     }
+    
+    if (getAddrFamily(pInst) != 0)
+    {
+        if (!stunlib_addRequestedAddrFamily(pReq, getAddrFamily(pInst) ))
+        {
+            TurnPrint(pInst->threadCtx, 
+                      TurnInfoCategory_Error, 
+                      "<TURNCLIENT:%02d> Requested Address Family  %i not supported in AllocateReq", 
+                      pInst->inst, 
+                      getAddrFamily(pInst));
+            
+        }
+    }
+
     else
     {
         stunlib_addMsCookie(pReq);
@@ -1417,6 +1442,20 @@ static void  BuildNewAllocateReq(TURN_INSTANCE_DATA *pInst, StunMessage  *pReq)
         stunlib_addMsVersion(pReq, STUN_MS2_VERSION);
         /* TBD - need bandwidth, SequenceNumber, serviceQuality ?? */
     }
+
+    if (getAddrFamily(pInst) != 0)
+    {
+        if (!stunlib_addRequestedAddrFamily(pReq, getAddrFamily(pInst) ))
+        {
+            TurnPrint(pInst->threadCtx, 
+                      TurnInfoCategory_Error, 
+                      "<TURNCLIENT:%02d> Requested Address Family  %i not supported in AllocateReq", 
+                      pInst->inst, 
+                      getAddrFamily(pInst));
+            
+        }
+    }
+
 
     stunlib_createMD5Key(pInst->userCredentials.key, 
                          pInst->userCredentials.stunUserName,
