@@ -14,6 +14,8 @@ struct listenConfig{
 
 };
 
-void gather(struct sockaddr *host_addr, int sockfd, char *user, char *pass);
+void gather(struct sockaddr *host_addr, int sockfd, int requestedFamily, char *user, char *pass);
+
+
 
 #endif

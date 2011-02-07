@@ -16,10 +16,10 @@
 
 #include "turnclient.h"
 #include "sockaddr_util.h"
+#include "gather.h"
 
 
 
-#define PORT "5799"
 
 
 
@@ -74,18 +74,21 @@ static bool getLocalInterFaceAddrs(struct sockaddr *addr, char *iface, int ai_fa
     return false;
 }
 
-static int createLocalUDPSocket(int ai_family, struct sockaddr * localIp){
+static int createLocalUDPSocket(int ai_family, struct sockaddr * localIp, uint16_t port){
     int sockfd;
 
     int rv;
     int yes = 1;
     struct addrinfo hints, *ai, *p;
     char addr[SOCKADDR_MAX_STRLEN];
-
+    char service[8];
 
     sockaddr_toString(localIp, addr, sizeof addr, false);
 
+    //itoa(port, service, 10);
+    snprintf(service, 8, "%d", port);
 
+    
     // get us a socket and bind it
     memset(&hints, 0, sizeof hints);
     hints.ai_family = ai_family;
@@ -93,7 +96,7 @@ static int createLocalUDPSocket(int ai_family, struct sockaddr * localIp){
     hints.ai_flags = AI_NUMERICHOST | AI_ADDRCONFIG;
 
 
-    if ((rv = getaddrinfo(addr, PORT, &hints, &ai)) != 0) {
+    if ((rv = getaddrinfo(addr, service, &hints, &ai)) != 0) {
         fprintf(stderr, "selectserver: %s ('%s')\n", gai_strerror(rv), addr);
         exit(1);
     }
@@ -136,23 +139,38 @@ static int createLocalUDPSocket(int ai_family, struct sockaddr * localIp){
 }
 
 
+/* Callback for management info  */
+static void  PrintTurnInfo(TurnInfoCategory_T category, char *ErrStr)
+{
+    //fprintf(stderr, "%s\n", ErrStr);
+}
 
+static void *tickTurn(void *ptr){
+    struct timespec timer;
+    struct timespec remaining;
+    uint32_t  *ctx = (uint32_t *)ptr;
+
+    timer.tv_sec = 0;
+    timer.tv_nsec = 50000000;
+
+    for(;;){
+        nanosleep(&timer, &remaining);
+        TurnClient_HandleTick(*ctx);
+    }
+}
 
 
 int main(int argc, char *argv[])
 {
-    int sockfd_4, sockfd_6, sockfd;
+    int sockfd_44, sockfd_46; 
+    int sockfd_6;
+    int sockfd;
 
     
     struct sockaddr_storage ss_addr;
     struct sockaddr_storage localIp4, localIp6;
     
-
-    
-
-
-    
-
+    pthread_t turnTickThread;
 
     if (argc != 5) {
         fprintf(stderr,"usage: testice  iface [ip:port] user pass\n");
@@ -163,13 +181,14 @@ int main(int argc, char *argv[])
     if (!getLocalInterFaceAddrs((struct sockaddr *)&localIp4, argv[1], AF_INET) ){
         fprintf(stderr,"Unable to find local IPv4 interface addresses\n");
     }else{
-        sockfd_4 = createLocalUDPSocket(AF_INET, (struct sockaddr *)&localIp4);
+        sockfd_44 = createLocalUDPSocket(AF_INET, (struct sockaddr *)&localIp4, 53000);
+        sockfd_46 = createLocalUDPSocket(AF_INET, (struct sockaddr *)&localIp4, 53001);
     }
 
     if (!getLocalInterFaceAddrs((struct sockaddr *)&localIp6, argv[1], AF_INET6) ){
         fprintf(stderr,"Unable to find local IPv6 interface addresses\n");
     }else{
-        sockfd_6 = createLocalUDPSocket(AF_INET6, (struct sockaddr *)&localIp6);
+        sockfd_6 = createLocalUDPSocket(AF_INET6, (struct sockaddr *)&localIp6, 53000);
     }
 
     sockaddr_initFromString((struct sockaddr *)&ss_addr,
@@ -182,7 +201,7 @@ int main(int argc, char *argv[])
         if (((struct sockaddr_in *)&ss_addr)->sin_port == 0 ) {
             ((struct sockaddr_in *)&ss_addr)->sin_port = htons(3478);
         }
-        sockfd = sockfd_4;
+        sockfd = sockfd_44;
 
     }else if(ss_addr.ss_family == AF_INET6){
         printf("Using IPv6 Socket\n");
@@ -192,8 +211,14 @@ int main(int argc, char *argv[])
         }
         sockfd = sockfd_6;
     }
+    //Turn setup
+    TurnClient_Init(TEST_THREAD_CTX, 50, 50, PrintTurnInfo, false, "TestIce");
+    pthread_create( &turnTickThread, NULL, tickTurn, (void*) &TEST_THREAD_CTX);
 
-    gather((struct sockaddr *)&ss_addr, sockfd, argv[3], argv[4]);
+
+    gather((struct sockaddr *)&ss_addr, sockfd_44, AF_INET, argv[3], argv[4]);
+
+    gather((struct sockaddr *)&ss_addr, sockfd_46, AF_INET6, argv[3], argv[4]);
 
 
     while(1)

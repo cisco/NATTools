@@ -14,6 +14,7 @@
 #include <netdb.h>
 #include <ifaddrs.h>
 
+#include <pthread.h>
 
 
 #include "turnclient.h"
@@ -25,23 +26,8 @@
 //#define  TEST_THREAD_CTX 1
 #define MAXBUFLEN 1024
 
-
-
-
-void *tickTurn(void *ptr){
-    struct timespec timer;
-    struct timespec remaining;
-    uint32_t  *ctx = (uint32_t *)ptr;
-
-    timer.tv_sec = 0;
-    timer.tv_nsec = 50000000;
-
-    for(;;){
-        nanosleep(&timer, &remaining);
-        TurnClient_HandleTick(*ctx);
-    }
-}
-
+static int numberOfThreads = 0;
+pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;
 
 static int sendRawUDP(int sockfd,
                       const void *buf,
@@ -95,11 +81,6 @@ static int SendRawStun(int sockfd,
 }
 
 
-/* Callback for management info  */
-static void  PrintTurnInfo(TurnInfoCategory_T category, char *ErrStr)
-{
-    //fprintf(stderr, "%s\n", ErrStr);
-}
 
 
 static void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData)
@@ -142,6 +123,9 @@ void *stunListen(void *ptr){
     int rv;
     int numbytes;
     bool isMsSTUN;
+
+    
+    printf("Listen: %i\n", config->sockfd);
 
     ufds[0].fd = config->sockfd;
     ufds[0].events = POLLIN | POLLPRI; // check for normal or out-of-band
@@ -188,18 +172,16 @@ void *stunListen(void *ptr){
 }
 
 
-void gather(struct sockaddr *host_addr, int sockfd, char *user, char *pass){
-    struct listenConfig listenConfig;
+void gather(struct sockaddr *host_addr, int sockfd, int requestedFamily, char *user, char *pass){
+    struct listenConfig listenConfig[10];
     int stunCtx;
     TurnCallBackData_T TurnCbData;
-    pthread_t turnTickThread;
-    pthread_t listenThread;
-
-    //Turn setup
-    TurnClient_Init(TEST_THREAD_CTX, 50, 50, PrintTurnInfo, false, "TestIce");
-
     
+    pthread_t listenThread[10];
 
+    pthread_mutex_lock( &mutex1 );
+    printf("Gather: Threads:%i   Sockfd:%i\n",numberOfThreads, sockfd);
+    
 
     stunCtx = TurnClient_startAllocateTransaction(TEST_THREAD_CTX,
                                                   NULL,
@@ -207,24 +189,26 @@ void gather(struct sockaddr *host_addr, int sockfd, char *user, char *pass){
                                                   user,
                                                   pass,
                                                   sockfd,                       /* socket */
-                                                  AF_INET6,
+                                                  requestedFamily,
                                                   SendRawStun,             /* send func */
                                                   NULL,  /* timeout list */
                                                   TurnStatusCallBack,
                                                   &TurnCbData,
                                                   false);
 
-    pthread_create( &turnTickThread, NULL, tickTurn, (void*) &TEST_THREAD_CTX);
+    
 
-    listenConfig.stunCtx = stunCtx;
-    listenConfig.sockfd = sockfd;
-    listenConfig.user = user;
-    listenConfig.pass = pass;
+    listenConfig[numberOfThreads].stunCtx = stunCtx;
+    listenConfig[numberOfThreads].sockfd = sockfd;
+    listenConfig[numberOfThreads].user = user;
+    listenConfig[numberOfThreads].pass = pass;
 
 
-
-    pthread_create( &listenThread,   NULL, stunListen, (void*) &listenConfig);
+    
+    pthread_create( &listenThread[numberOfThreads],   NULL, stunListen, (void*) &listenConfig[numberOfThreads]);
+    numberOfThreads++;
 
     //stunListen(&listenConfig);
-    pthread_join( &listenThread, NULL);
+    //pthread_join( &listenThread, NULL);
+    pthread_mutex_unlock( &mutex1 );
 }
