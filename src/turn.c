@@ -20,6 +20,14 @@
 
 
 
+struct listenConfig{
+    int stunCtx;
+    int sockfd;
+    char* user;
+    char* pass;
+
+
+};
 
 
 
@@ -159,18 +167,90 @@ static void *tickTurn(void *ptr){
     }
 }
 
+#define MAXBUFLEN 1024
+
+void stunListen(struct listenConfig config[], int len){
+    struct pollfd ufds[10];
+    //struct listenConfig *config = (struct listenConfig *)ptr;
+    struct sockaddr_storage their_addr;
+    char buf[MAXBUFLEN];
+    socklen_t addr_len;
+    int rv;
+    int numbytes;
+    bool isMsSTUN;
+    int i;
+    
+   
+    for (i=0;i<len;i++){
+        printf("Listen: %i\n", config[i].sockfd);
+         
+        ufds[i].fd = config[i].sockfd;
+        ufds[i].events = POLLIN | POLLPRI; // check for normal or out-of-band        
+    }
+
+    addr_len = sizeof their_addr;
+
+    while(1){
+        
+        rv = poll(ufds, len, -1);
+
+        //printf("rv:%i\n", rv);
+        if (rv == -1) {
+            perror("poll"); // error occurred in poll()
+        } else if (rv == 0) {
+            printf("Timeout occurred! (Should not happen)\n");
+        } else {
+            // check for events on s1:
+            
+            for(i=0;i<len;i++){
+                if (ufds[i].revents & POLLIN) {
+                                        
+                    if ((numbytes = recvfrom(config[i].sockfd, buf, MAXBUFLEN-1 , 0,
+                                             (struct sockaddr *)&their_addr, &addr_len)) == -1) {
+                    perror("recvfrom");
+                    exit(1);
+                    }
+
+                    printf("Event on : %i, bytes: %i\n", i, numbytes);
+                    if ( stunlib_isStunMsg(buf, numbytes, &isMsSTUN) ){
+                        StunMessage msg;
+                        
+                        
+                        stunlib_DecodeMessage(buf,
+                                              numbytes,
+                                              &msg,
+                                              NULL,
+                                              false,
+                                              false);
+                        
+                        
+                        
+                        TurnClient_HandleIncResp(TEST_THREAD_CTX,
+                                                 config[i].stunCtx,
+                                                 &msg,
+                                                 buf);
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 int main(int argc, char *argv[])
 {
     int sockfd_44, sockfd_46; 
     int sockfd_6;
     int sockfd;
+    int stunCtx;
 
     
     struct sockaddr_storage ss_addr;
     struct sockaddr_storage localIp4, localIp6;
     
     pthread_t turnTickThread;
+
+    struct listenConfig listenConfig[10];
 
     if (argc != 5) {
         fprintf(stderr,"usage: testice  iface [ip:port] user pass\n");
@@ -211,19 +291,33 @@ int main(int argc, char *argv[])
         }
         sockfd = sockfd_6;
     }
+
+
+
+
     //Turn setup
     TurnClient_Init(TEST_THREAD_CTX, 50, 50, PrintTurnInfo, false, "TestIce");
     pthread_create( &turnTickThread, NULL, tickTurn, (void*) &TEST_THREAD_CTX);
 
 
-    gather((struct sockaddr *)&ss_addr, sockfd_44, AF_INET, argv[3], argv[4]);
+    stunCtx = gather((struct sockaddr *)&ss_addr, sockfd_44, AF_INET, argv[3], argv[4]);
+    printf("Stunctx: %i\n", stunCtx);
+    listenConfig[0].stunCtx = stunCtx;
+    listenConfig[0].sockfd = sockfd_44;
+    listenConfig[0].user = argv[3];
+    listenConfig[0].pass = argv[4];
+    
 
-    gather((struct sockaddr *)&ss_addr, sockfd_46, AF_INET6, argv[3], argv[4]);
+    stunCtx= gather((struct sockaddr *)&ss_addr, sockfd_46, AF_INET6, argv[3], argv[4]);
+    printf("Stunctx: %i\n", stunCtx);
+    listenConfig[1].stunCtx = stunCtx;
+    listenConfig[1].sockfd = sockfd_46;
+    listenConfig[1].user = argv[3];
+    listenConfig[1].pass = argv[4];
+    
+    stunListen(listenConfig, 2);
 
-
-    while(1)
-        sleep(2);
-
+    
     close(sockfd);
 
     return 0;

@@ -23,11 +23,6 @@
 #include "gather.h"
 
 
-//#define  TEST_THREAD_CTX 1
-#define MAXBUFLEN 1024
-
-static int numberOfThreads = 0;
-pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;
 
 static int sendRawUDP(int sockfd,
                       const void *buf,
@@ -114,101 +109,34 @@ static void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData)
 
 
 
-void *stunListen(void *ptr){
-    struct pollfd ufds[1];
-    struct listenConfig *config = (struct listenConfig *)ptr;
-    struct sockaddr_storage their_addr;
-    char buf[MAXBUFLEN];
-    socklen_t addr_len;
-    int rv;
-    int numbytes;
-    bool isMsSTUN;
 
+
+int gather(struct sockaddr *host_addr, 
+            int sockfd, 
+            int requestedFamily, 
+            char *user, 
+            char *pass){
     
-    printf("Listen: %i\n", config->sockfd);
-
-    ufds[0].fd = config->sockfd;
-    ufds[0].events = POLLIN | POLLPRI; // check for normal or out-of-band
-
-    addr_len = sizeof their_addr;
-
-    while(1){
-        rv = poll(ufds, 1, -1);
-
-        if (rv == -1) {
-            perror("poll"); // error occurred in poll()
-        } else if (rv == 0) {
-            printf("Timeout occurred! (Should not happen)\n");
-        } else {
-            // check for events on s1:
-            if (ufds[0].revents & POLLIN) {
-
-                if ((numbytes = recvfrom(config->sockfd, buf, MAXBUFLEN-1 , 0,
-                                         (struct sockaddr *)&their_addr, &addr_len)) == -1) {
-                    perror("recvfrom");
-                    exit(1);
-                }
-
-                if ( stunlib_isStunMsg(buf, numbytes, &isMsSTUN) ){
-                    StunMessage msg;
-
-                    stunlib_DecodeMessage(buf,
-                                          numbytes,
-                                          &msg,
-                                          NULL,
-                                          false,
-                                          false);
-
-
-
-                    TurnClient_HandleIncResp(TEST_THREAD_CTX,
-                                             config->stunCtx,
-                                             &msg,
-                                             buf);
-                }
-            }
-        }
-    }
-}
-
-
-void gather(struct sockaddr *host_addr, int sockfd, int requestedFamily, char *user, char *pass){
-    struct listenConfig listenConfig[10];
     int stunCtx;
     TurnCallBackData_T TurnCbData;
     
-    pthread_t listenThread[10];
-
-    pthread_mutex_lock( &mutex1 );
-    printf("Gather: Threads:%i   Sockfd:%i\n",numberOfThreads, sockfd);
+    
+    
+    printf("Gather: Sockfd:%i\n", sockfd);
     
 
-    stunCtx = TurnClient_startAllocateTransaction(TEST_THREAD_CTX,
-                                                  NULL,
-                                                  host_addr,
-                                                  user,
-                                                  pass,
-                                                  sockfd,                       /* socket */
-                                                  requestedFamily,
-                                                  SendRawStun,             /* send func */
-                                                  NULL,  /* timeout list */
-                                                  TurnStatusCallBack,
-                                                  &TurnCbData,
-                                                  false);
+    return  TurnClient_startAllocateTransaction(TEST_THREAD_CTX,
+                                                NULL,
+                                                host_addr,
+                                                user,
+                                                pass,
+                                                sockfd,                       /* socket */
+                                                requestedFamily,
+                                                SendRawStun,             /* send func */
+                                                NULL,  /* timeout list */
+                                                TurnStatusCallBack,
+                                                &TurnCbData,
+                                                false);
 
-    
-
-    listenConfig[numberOfThreads].stunCtx = stunCtx;
-    listenConfig[numberOfThreads].sockfd = sockfd;
-    listenConfig[numberOfThreads].user = user;
-    listenConfig[numberOfThreads].pass = pass;
-
-
-    
-    pthread_create( &listenThread[numberOfThreads],   NULL, stunListen, (void*) &listenConfig[numberOfThreads]);
-    numberOfThreads++;
-
-    //stunListen(&listenConfig);
-    //pthread_join( &listenThread, NULL);
-    pthread_mutex_unlock( &mutex1 );
+            
 }
