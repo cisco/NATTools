@@ -1,4 +1,7 @@
-bin_PROGRAMS = testice
+bin_PROGRAMS = testturn testice
+
 AM_CPPFLAGS = -I../include
 
-testice_SOURCES = main.c gather.c
+testturn_SOURCES = turn.c gather.c
+
+testice_SOURCES = ice.c
