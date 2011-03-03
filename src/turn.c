@@ -167,6 +167,9 @@ static void *tickTurn(void *ptr){
     }
 }
 
+
+
+
 #define MAXBUFLEN 1024
 
 void stunListen(struct listenConfig config[], int len){
@@ -237,62 +240,173 @@ void stunListen(struct listenConfig config[], int len){
 }
 
 
+enum turn_ip_type{
+    turn_44 = 1,
+    turn_46 = 2,
+    turn_64 = 4,
+    turn_66 = 8,
+};
+
+#define FQDN_MAX_LEN 1024
+
+struct turn_info{
+    //Fully Qualified Domain Name
+    char fqdn[FQDN_MAX_LEN];
+
+    //Actual TURN server IP adresses
+    //Might not be what FQDN resolved to 
+    //because of the alternate server mechanism
+    struct sockaddr_storage remoteIp4;
+    struct sockaddr_storage remoteIp6;
+
+
+    //Local IP adresses
+    struct sockaddr_storage localIp4;
+    struct sockaddr_storage localIp6;
+
+
+    //socket descriptors
+    int sockfd_44;
+    int sockfd_46;
+    int sockfd_64;
+    int sockfd_66;
+
+};
+
+
+
+int getRemoteTurnServerIp(struct turn_info *turnInfo, char *fqdn)
+{
+    struct addrinfo hints, *res, *p;
+    int status;
+    char ipstr[INET6_ADDRSTRLEN];
+
+    
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_UNSPEC; // AF_INET or AF_INET6 to force version
+    hints.ai_socktype = SOCK_STREAM;
+
+    if ((status = getaddrinfo(fqdn, NULL, &hints, &res)) != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
+        return 2;
+    }
+
+    printf("IP addresses for %s:\n\n", fqdn);
+
+    for(p = res;p != NULL; p = p->ai_next) {
+        void *addr;
+        char *ipver;
+
+        // get the pointer to the address itself,
+        // different fields in IPv4 and IPv6:
+        if (p->ai_family == AF_INET) { // IPv4
+            struct sockaddr_in *ipv4 = (struct sockaddr_in *)p->ai_addr;
+            if ( ipv4->sin_port == 0 ) {
+                sockaddr_initFromIPv4Int((struct sockaddr_in *)&turnInfo->remoteIp4,
+                                         ipv4->sin_addr.s_addr,
+                                         htons(3478));
+            }
+        
+            addr = &(ipv4->sin_addr);
+            ipver = "IPv4";
+        } else { // IPv6
+            struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)p->ai_addr;
+            if ( ipv6->sin6_port == 0 ) {
+                sockaddr_initFromIPv6Int((struct sockaddr_in6 *)&turnInfo->remoteIp6,
+                                         ipv6->sin6_addr.s6_addr,
+                                         htons(3478));
+            }
+        
+
+            addr = &(ipv6->sin6_addr);
+            ipver = "IPv6";
+        }
+
+        // convert the IP to a string and print it:
+        inet_ntop(p->ai_family, addr, ipstr, sizeof ipstr);
+        printf("  %s: %s\n", ipver, ipstr);
+    }
+
+    freeaddrinfo(res); // free the linked list
+
+}
+
+int getLocalIPaddresses(struct turn_info *turnInfo, char *iface)
+{
+
+    if (!getLocalInterFaceAddrs( (struct sockaddr *)&turnInfo->localIp4, iface, AF_INET) ){
+        fprintf(stderr,"Unable to find local IPv4 interface addresses\n");
+    }else{
+        turnInfo->sockfd_44 = createLocalUDPSocket(AF_INET, 
+                                                   (struct sockaddr *)&turnInfo->localIp4, 
+                                                   53000);
+        turnInfo->sockfd_46 = createLocalUDPSocket(AF_INET, 
+                                                   (struct sockaddr *)&turnInfo->localIp4, 
+                                                   53001);
+    }
+
+    if (!getLocalInterFaceAddrs((struct sockaddr *)&turnInfo->localIp6, iface, AF_INET6) ){
+        fprintf(stderr,"Unable to find local IPv6 interface addresses\n");
+    }else{
+        turnInfo->sockfd_64 = createLocalUDPSocket(AF_INET6, 
+                                                   (struct sockaddr *)&turnInfo->localIp6, 
+                                                   54000);
+        turnInfo->sockfd_66 = createLocalUDPSocket(AF_INET6, 
+                                                   (struct sockaddr *)&turnInfo->localIp6, 
+                                                   54001);
+    }
+
+}
+
 int main(int argc, char *argv[])
 {
-    int sockfd_44, sockfd_46; 
-    int sockfd_6;
+    //int sockfd_44, sockfd_46; 
+    //int sockfd_64, sockfd_66;
     int sockfd;
     int stunCtx;
 
-    
-    struct sockaddr_storage ss_addr;
-    struct sockaddr_storage localIp4, localIp6;
+    struct turn_info turnInfo;
+
+    //struct sockaddr_storage remoteIp4, remoteIp6;
+    //struct sockaddr_storage localIp4, localIp6;
     
     pthread_t turnTickThread;
 
     struct listenConfig listenConfig[10];
+
+    bool useIPv6 = false;
+
 
     if (argc != 5) {
         fprintf(stderr,"usage: testice  iface [ip:port] user pass\n");
         exit(1);
     }
 
+    getRemoteTurnServerIp(&turnInfo, argv[2]);
 
-    if (!getLocalInterFaceAddrs((struct sockaddr *)&localIp4, argv[1], AF_INET) ){
-        fprintf(stderr,"Unable to find local IPv4 interface addresses\n");
-    }else{
-        sockfd_44 = createLocalUDPSocket(AF_INET, (struct sockaddr *)&localIp4, 53000);
-        sockfd_46 = createLocalUDPSocket(AF_INET, (struct sockaddr *)&localIp4, 53001);
-    }
-
-    if (!getLocalInterFaceAddrs((struct sockaddr *)&localIp6, argv[1], AF_INET6) ){
-        fprintf(stderr,"Unable to find local IPv6 interface addresses\n");
-    }else{
-        sockfd_6 = createLocalUDPSocket(AF_INET6, (struct sockaddr *)&localIp6, 53000);
-    }
-
-    sockaddr_initFromString((struct sockaddr *)&ss_addr,
-                            argv[2]);
+    getLocalIPaddresses(&turnInfo, argv[1]);
+    
+    //sockaddr_initFromString((struct sockaddr *)&ss_addr,
+    //                        argv[2]);
     
     
-    if(ss_addr.ss_family == AF_INET){
-        printf("Using IPv4 Socket\n");
-        //make sure the port is set
-        if (((struct sockaddr_in *)&ss_addr)->sin_port == 0 ) {
-            ((struct sockaddr_in *)&ss_addr)->sin_port = htons(3478);
-        }
-        sockfd = sockfd_44;
+    //if(ss_addr.ss_family == AF_INET){
+    //   printf("Using IPv4 Socket\n");
+    //   //make sure the port is set
+    //    if (((struct sockaddr_in *)&ss_addr)->sin_port == 0 ) {
+    //        ((struct sockaddr_in *)&ss_addr)->sin_port = htons(3478);
+    //    }
+        
 
-    }else if(ss_addr.ss_family == AF_INET6){
-        printf("Using IPv6 Socket\n");
-        //make sure the port is set
-        if (((struct sockaddr_in6 *)&ss_addr)->sin6_port == 0 ) {
-            ((struct sockaddr_in6 *)&ss_addr)->sin6_port = htons(3478);
-        }
-        sockfd = sockfd_6;
-    }
-
-
+    //}else if(ss_addr.ss_family == AF_INET6){
+    //    printf("Using IPv6 Socket\n");
+    //    //make sure the port is set
+    //    if (((struct sockaddr_in6 *)&ss_addr)->sin6_port == 0 ) {
+    //        ((struct sockaddr_in6 *)&ss_addr)->sin6_port = htons(3478);
+    //    }
+    //    useIPv6 = true;
+        
+    //}
 
 
     //Turn setup
@@ -300,22 +414,41 @@ int main(int argc, char *argv[])
     pthread_create( &turnTickThread, NULL, tickTurn, (void*) &TEST_THREAD_CTX);
 
 
-    stunCtx = gather((struct sockaddr *)&ss_addr, sockfd_44, AF_INET, argv[3], argv[4]);
+    stunCtx = gather((struct sockaddr *)&turnInfo.remoteIp4, turnInfo.sockfd_44, AF_INET, argv[3], argv[4]);
     printf("Stunctx: %i\n", stunCtx);
     listenConfig[0].stunCtx = stunCtx;
-    listenConfig[0].sockfd = sockfd_44;
+    listenConfig[0].sockfd = turnInfo.sockfd_44;
     listenConfig[0].user = argv[3];
     listenConfig[0].pass = argv[4];
     
-
-    stunCtx= gather((struct sockaddr *)&ss_addr, sockfd_46, AF_INET6, argv[3], argv[4]);
+        
+    stunCtx= gather((struct sockaddr *)&turnInfo.remoteIp4, turnInfo.sockfd_46, AF_INET6, argv[3], argv[4]);
     printf("Stunctx: %i\n", stunCtx);
     listenConfig[1].stunCtx = stunCtx;
-    listenConfig[1].sockfd = sockfd_46;
+    listenConfig[1].sockfd = turnInfo.sockfd_46;
     listenConfig[1].user = argv[3];
     listenConfig[1].pass = argv[4];
     
-    stunListen(listenConfig, 2);
+    stunCtx = gather((struct sockaddr *)&turnInfo.remoteIp6, turnInfo.sockfd_64, AF_INET, argv[3], argv[4]);
+    printf("Stunctx: %i\n", stunCtx);
+    listenConfig[2].stunCtx = stunCtx;
+    listenConfig[2].sockfd = turnInfo.sockfd_64;
+    listenConfig[2].user = argv[3];
+    listenConfig[2].pass = argv[4];
+
+    stunCtx= gather((struct sockaddr *)&turnInfo.remoteIp6, turnInfo.sockfd_66, AF_INET6, argv[3], argv[4]);
+    printf("Stunctx: %i\n", stunCtx);
+    listenConfig[3].stunCtx = stunCtx;
+    listenConfig[3].sockfd = turnInfo.sockfd_66;
+    listenConfig[3].user = argv[3];
+    listenConfig[3].pass = argv[4];
+        
+
+    
+    
+
+
+    stunListen(listenConfig, 4);
 
     
     close(sockfd);
