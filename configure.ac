@@ -21,6 +21,8 @@ AC_CHECK_LIB([stun], [TurnClient_Init], [], [AC_MSG_FAILURE([could not find stun
 
 AC_CHECK_LIB([pthread], [pthread_create], [], [AC_MSG_FAILURE([could not find pthread])])
 
+# AC_CHECK_LIB([curses], [getch], [], [AC_MSG_FAILURE([could not find curses])])
+
 
 
 

@@ -48,7 +48,8 @@ PROGRAMS = $(bin_PROGRAMS)
 am_testice_OBJECTS = ice.$(OBJEXT)
 testice_OBJECTS = $(am_testice_OBJECTS)
 testice_LDADD = $(LDADD)
-am_testturn_OBJECTS = turn.$(OBJEXT) gather.$(OBJEXT)
+am_testturn_OBJECTS = turn.$(OBJEXT) gather.$(OBJEXT) \
+	ipaddress_helper.$(OBJEXT)
 testturn_OBJECTS = $(am_testturn_OBJECTS)
 testturn_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
@@ -151,7 +152,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I../include
-testturn_SOURCES = turn.c gather.c
+testturn_SOURCES = turn.c gather.c ipaddress_helper.c
 testice_SOURCES = ice.c
 all: all-am
 
@@ -239,6 +240,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gather.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ice.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ipaddress_helper.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/turn.Po@am__quote@
 
 .c.o:

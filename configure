@@ -3925,6 +3925,8 @@ See \`config.log' for more details." "$LINENO" 5; }
 fi
 
 
+# AC_CHECK_LIB([curses], [getch], [], [AC_MSG_FAILURE([could not find curses])])
+
 
 
 

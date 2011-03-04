@@ -16,6 +16,8 @@ int getRemoteTurnServerIp(struct turn_info *turnInfo, char *fqdn)
     char ipstr[INET6_ADDRSTRLEN];
 
 
+    
+
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC; // AF_INET or AF_INET6 to force version
     hints.ai_socktype = SOCK_STREAM;
@@ -24,9 +26,7 @@ int getRemoteTurnServerIp(struct turn_info *turnInfo, char *fqdn)
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
         return 2;
     }
-
-    printf("IP addresses for %s:\n\n", fqdn);
-
+    
     for(p = res;p != NULL; p = p->ai_next) {
         void *addr;
         char *ipver;
@@ -73,10 +73,10 @@ int getLocalIPaddresses(struct turn_info *turnInfo, char *iface)
     }else{
         turnInfo->turnAlloc_44.sockfd = createLocalUDPSocket(AF_INET,
                                                              (struct sockaddr *)&turnInfo->localIp4,
-                                                             53000);
+                                                             0);
         turnInfo->turnAlloc_46.sockfd = createLocalUDPSocket(AF_INET,
                                                              (struct sockaddr *)&turnInfo->localIp4,
-                                                             53001);
+                                                             0);
     }
 
     if (!getLocalInterFaceAddrs((struct sockaddr *)&turnInfo->localIp6, iface, AF_INET6) ){
@@ -84,10 +84,10 @@ int getLocalIPaddresses(struct turn_info *turnInfo, char *iface)
     }else{
         turnInfo->turnAlloc_64.sockfd = createLocalUDPSocket(AF_INET6,
                                                              (struct sockaddr *)&turnInfo->localIp6,
-                                                             54000);
+                                                             0);
         turnInfo->turnAlloc_66.sockfd = createLocalUDPSocket(AF_INET6,
                                                              (struct sockaddr *)&turnInfo->localIp6,
-                                                             54001);
+                                                             0);
     }
 
 }
@@ -144,7 +144,7 @@ bool getLocalInterFaceAddrs(struct sockaddr *addr, char *iface, int ai_family){
     return false;
 }
 
-int createLocalUDPSocket(int ai_family, struct sockaddr * localIp, uint16_t port){
+int createLocalUDPSocket(int ai_family, struct sockaddr *localIp, uint16_t port){
     int sockfd;
 
     int rv;
@@ -156,6 +156,7 @@ int createLocalUDPSocket(int ai_family, struct sockaddr * localIp, uint16_t port
     sockaddr_toString(localIp, addr, sizeof addr, false);
 
     //itoa(port, service, 10);
+    
     snprintf(service, 8, "%d", port);
 
 
@@ -166,7 +167,7 @@ int createLocalUDPSocket(int ai_family, struct sockaddr * localIp, uint16_t port
     hints.ai_flags = AI_NUMERICHOST | AI_ADDRCONFIG;
 
 
-    if ((rv = getaddrinfo(addr, service, &hints, &ai)) != 0) {
+    if ((rv = getaddrinfo(addr, NULL, &hints, &ai)) != 0) {
         fprintf(stderr, "selectserver: %s ('%s')\n", gai_strerror(rv), addr);
         exit(1);
     }
@@ -182,7 +183,7 @@ int createLocalUDPSocket(int ai_family, struct sockaddr * localIp, uint16_t port
         }
 
         // lose the pesky "address already in use" error message
-        setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
+        //setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
         if (sockaddr_isAddrAny(p->ai_addr) ){
             printf("Ignoring any\n");
             continue;
@@ -195,7 +196,23 @@ int createLocalUDPSocket(int ai_family, struct sockaddr * localIp, uint16_t port
         }
 
         if (localIp != NULL){
+            struct sockaddr_storage ss;
+            socklen_t len = sizeof(ss);
+            
+            if (getsockname(sockfd, (struct sockaddr *)&ss, &len) == -1){
+                perror("getsockname");
+            }
+            else{
+                if (ss.ss_family == AF_INET) { 
+                    ((struct sockaddr_in *)p->ai_addr)->sin_port = ((struct sockaddr_in *)&ss)->sin_port;
+                }else{
+                    ((struct sockaddr_in6 *)p->ai_addr)->sin6_port = ((struct sockaddr_in6 *)&ss)->sin6_port;
+                }
+            }
+            
+
             sockaddr_copy(localIp, p->ai_addr);
+            
 
             printf("Bound to: '%s'\n",
                    sockaddr_toString(localIp, addr, sizeof(addr), true));
@@ -204,7 +221,7 @@ int createLocalUDPSocket(int ai_family, struct sockaddr * localIp, uint16_t port
 
         break;
     }
-    //printf("Soket open: %i\n", sockfd);
+   
     return sockfd;
 }
 
