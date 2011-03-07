@@ -12,9 +12,18 @@ enum turn_ip_type{
 };
 
 #define FQDN_MAX_LEN 1024
+#define MAX_PERMISSIONS 10
 
+struct turn_prmissions{
+    
+    int numPermissions;
+    struct sockaddr_storage permissions[MAX_PERMISSIONS];
+    
+    bool ok;
+};
 
 struct turn_allocation_result{
+    int stunCtx;
     int sockfd;
     struct sockaddr_storage activeTurnServerAddr;
     struct sockaddr_storage hostAddr;
@@ -28,7 +37,6 @@ struct turn_allocation_result{
 struct turn_info{
     int numPending;
 
-
     //Fully Qualified Domain Name
     char fqdn[FQDN_MAX_LEN];
 
@@ -39,16 +47,19 @@ struct turn_info{
     struct sockaddr_storage remoteIp4;
     struct sockaddr_storage remoteIp6;
 
-
     //Local IP adresses
     struct sockaddr_storage localIp4;
     struct sockaddr_storage localIp6;
 
-    
     struct turn_allocation_result turnAlloc_44;
     struct turn_allocation_result turnAlloc_46;
     struct turn_allocation_result turnAlloc_64;
     struct turn_allocation_result turnAlloc_66;
+
+    struct turn_prmissions turnPerm_44;
+    struct turn_prmissions turnPerm_46;
+    struct turn_prmissions turnPerm_64;
+    struct turn_prmissions turnPerm_66;
 
 
 };

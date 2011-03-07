@@ -71,6 +71,7 @@ int main(int argc, char *argv[])
     struct listenConfig listenConfig;
     
     int ch;
+    char perm_ip[200];
     static WINDOW *menuWin;
 
     if (argc != 5) {
@@ -123,8 +124,12 @@ int main(int argc, char *argv[])
             pthread_create( &turnListenThread, NULL, stunListen, (void*)&listenConfig);
             break;
         case 'p':
-            mvprintw(30,30 ,"Jalla");
+            mvprintw(29,0 ,"Enter ip: ");
             refresh();
+            echo();
+            scanw("%s", perm_ip);
+            noecho();
+            mvprintw(30,0,"got %s:", perm_ip);
             break;
         }
     } 

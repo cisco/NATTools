@@ -94,7 +94,7 @@ static void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData)
         sockaddr_copy((struct sockaddr *)&turnResult->rflxAddr, 
                       (struct sockaddr *)&retData->TurnResultData.AllocResp.rflxAddr);
 
-            sockaddr_copy((struct sockaddr *)&turnResult->relAddr, 
+        sockaddr_copy((struct sockaddr *)&turnResult->relAddr, 
                       (struct sockaddr *)&retData->TurnResultData.AllocResp.relAddr);
 
         turnResult->update_turninfo();
@@ -112,19 +112,21 @@ int gather(struct sockaddr *host_addr,
     TurnCallBackData_T TurnCbData;
     
     
-    return  TurnClient_startAllocateTransaction(TEST_THREAD_CTX,
-                                                turnResult,
-                                                host_addr,
-                                                user,
-                                                pass,
-                                                turnResult->sockfd,                       /* socket */
-                                                requestedFamily,
-                                                SendRawStun,             /* send func */
-                                                NULL,  /* timeout list */
-                                                TurnStatusCallBack,
-                                                &TurnCbData,
-                                                false);
+    stunCtx = TurnClient_startAllocateTransaction(TEST_THREAD_CTX,
+                                                  turnResult,
+                                                  host_addr,
+                                                  user,
+                                                  pass,
+                                                  turnResult->sockfd,                       /* socket */
+                                                  requestedFamily,
+                                                  SendRawStun,             /* send func */
+                                                  NULL,  /* timeout list */
+                                                  TurnStatusCallBack,
+                                                  &TurnCbData,
+                                                  false);
+    turnResult->stunCtx = stunCtx;
 
+    return stunCtx;
             
 }
 
@@ -199,7 +201,7 @@ void gatherAll(struct turn_info *turnInfo, struct listenConfig *listenConfig, vo
 
     }
     
-    listenConfig->numSockets = idx+1;
+    listenConfig->numSockets = idx;
 }
 
 
@@ -216,10 +218,9 @@ void *stunListen(void *ptr){
     bool isMsSTUN;
     int i;
 
-
     for (i=0;i<config->numSockets;i++){
         ufds[i].fd = config->socketConfig[i].sockfd;
-        ufds[i].events = POLLIN | POLLPRI; // check for normal or out-of-band
+        ufds[i].events = POLLIN; 
     }
 
     addr_len = sizeof their_addr;
@@ -228,7 +229,7 @@ void *stunListen(void *ptr){
 
         rv = poll(ufds, config->numSockets, -1);
 
-        //printf("rv:%i\n", rv);
+        
         if (rv == -1) {
             perror("poll"); // error occurred in poll()
         } else if (rv == 0) {
@@ -246,6 +247,7 @@ void *stunListen(void *ptr){
                     return;
                     }
 
+                    
                     if ( stunlib_isStunMsg(buf, numbytes, &isMsSTUN) ){
                         StunMessage msg;
 
