@@ -57,8 +57,8 @@ int getRemoteTurnServerIp(struct turn_info *turnInfo, char *fqdn)
         }
 
         // convert the IP to a string and print it:
-        inet_ntop(p->ai_family, addr, ipstr, sizeof ipstr);
-        printf("  %s: %s\n", ipver, ipstr);
+        //inet_ntop(p->ai_family, addr, ipstr, sizeof ipstr);
+        //printf("  %s: %s\n", ipver, ipstr);
     }
 
     freeaddrinfo(res); // free the linked list
@@ -69,24 +69,28 @@ int getLocalIPaddresses(struct turn_info *turnInfo, char *iface)
 {
 
     if (!getLocalInterFaceAddrs( (struct sockaddr *)&turnInfo->localIp4, iface, AF_INET) ){
-        fprintf(stderr,"Unable to find local IPv4 interface addresses\n");
+        //fprintf(stderr,"Unable to find local IPv4 interface addresses\n");
     }else{
         turnInfo->turnAlloc_44.sockfd = createLocalUDPSocket(AF_INET,
                                                              (struct sockaddr *)&turnInfo->localIp4,
+                                                             (struct sockaddr *)&turnInfo->turnAlloc_44.hostAddr,
                                                              0);
         turnInfo->turnAlloc_46.sockfd = createLocalUDPSocket(AF_INET,
                                                              (struct sockaddr *)&turnInfo->localIp4,
+                                                             (struct sockaddr *)&turnInfo->turnAlloc_46.hostAddr,
                                                              0);
     }
 
     if (!getLocalInterFaceAddrs((struct sockaddr *)&turnInfo->localIp6, iface, AF_INET6) ){
-        fprintf(stderr,"Unable to find local IPv6 interface addresses\n");
+        //fprintf(stderr,"Unable to find local IPv6 interface addresses\n");
     }else{
         turnInfo->turnAlloc_64.sockfd = createLocalUDPSocket(AF_INET6,
                                                              (struct sockaddr *)&turnInfo->localIp6,
+                                                             (struct sockaddr *)&turnInfo->turnAlloc_64.hostAddr,
                                                              0);
         turnInfo->turnAlloc_66.sockfd = createLocalUDPSocket(AF_INET6,
                                                              (struct sockaddr *)&turnInfo->localIp6,
+                                                             (struct sockaddr *)&turnInfo->turnAlloc_66.hostAddr,
                                                              0);
     }
 
@@ -144,7 +148,11 @@ bool getLocalInterFaceAddrs(struct sockaddr *addr, char *iface, int ai_family){
     return false;
 }
 
-int createLocalUDPSocket(int ai_family, struct sockaddr *localIp, uint16_t port){
+int createLocalUDPSocket(int ai_family, 
+                         const struct sockaddr *localIp, 
+                         struct sockaddr *hostaddr,
+                         uint16_t port)
+{
     int sockfd;
 
     int rv;
@@ -172,8 +180,6 @@ int createLocalUDPSocket(int ai_family, struct sockaddr *localIp, uint16_t port)
         exit(1);
     }
 
-
-
     for (p = ai; p != NULL; p = p->ai_next) {
 
         sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
@@ -181,11 +187,9 @@ int createLocalUDPSocket(int ai_family, struct sockaddr *localIp, uint16_t port)
             printf("Unable to open socket\n");
             continue;
         }
-
-        // lose the pesky "address already in use" error message
-        //setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
+        
         if (sockaddr_isAddrAny(p->ai_addr) ){
-            printf("Ignoring any\n");
+            //printf("Ignoring any\n");
             continue;
 
         }
@@ -211,11 +215,11 @@ int createLocalUDPSocket(int ai_family, struct sockaddr *localIp, uint16_t port)
             }
             
 
-            sockaddr_copy(localIp, p->ai_addr);
+            sockaddr_copy(hostaddr, p->ai_addr);
             
 
-            printf("Bound to: '%s'\n",
-                   sockaddr_toString(localIp, addr, sizeof(addr), true));
+            //printf("Bound to: '%s'\n",
+            //       sockaddr_toString(localIp, addr, sizeof(addr), true));
 
         }
 

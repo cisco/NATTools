@@ -102,6 +102,41 @@ void printAllocationResult(struct turn_allocation_result *result)
 
 }
 
+
+int printAllocationResultw(WINDOW *win, int startx, int starty, struct turn_allocation_result *result)
+{
+
+    char addr[SOCKADDR_MAX_STRLEN];
+    
+    mvwprintw(win, starty++, startx,"Active TURN server: '%s'\n",
+           sockaddr_toString((struct sockaddr *)&result->activeTurnServerAddr,
+                             addr,
+                             sizeof(addr),
+                             true));
+
+    mvwprintw(win, starty++, startx,"HOST addr:          '%s'\n",
+              sockaddr_toString((struct sockaddr *)&result->hostAddr,
+                                addr,
+                                sizeof(addr),
+                                true));
+    
+
+    mvwprintw(win, starty++, startx,"RFLX addr:          '%s'\n",
+           sockaddr_toString((struct sockaddr *)&result->rflxAddr,
+                             addr,
+                             sizeof(addr),
+                             true));
+    
+    mvwprintw(win, starty++, startx,"RELAY addr:         '%s'\n",
+           sockaddr_toString((struct sockaddr *)&result->relAddr,
+                             addr,
+                             sizeof(addr),
+                             true));
+    
+    return starty;
+}
+
+
 void printTurnInfo( struct turn_info *turnInfo )
 {
     char addr[SOCKADDR_MAX_STRLEN];
@@ -145,6 +180,49 @@ void printTurnInfo( struct turn_info *turnInfo )
     
 }
 
+void wprintTurnInfow( WINDOW *win, struct turn_info *turnInfo )
+{
+    char addr[SOCKADDR_MAX_STRLEN];
+    int starty = 1;
+    int startx = 2;
+
+    mvwprintw(win, starty++, startx, "TURN Server     : '%s'\n", turnInfo->fqdn);
+    mvwprintw(win, starty++, startx,"TURN Server IPv4: '%s'\n", sockaddr_toString((struct sockaddr *)&turnInfo->remoteIp4,
+                                                         addr,
+                                                         sizeof(addr),
+                                                         true));
+
+    mvwprintw(win, starty++, startx,"TURN Server IPv6: '%s'\n", sockaddr_toString((struct sockaddr *)&turnInfo->remoteIp6,
+                                                         addr,
+                                                         sizeof(addr),
+                                                         true));
+    
+    
+    mvwprintw(win, starty++, startx,"Loval IPv4      : '%s'\n", sockaddr_toString((struct sockaddr *)&turnInfo->localIp4,
+                                                         addr,
+                                                         sizeof(addr),
+                                                         false));
+
+    mvwprintw(win, starty++, startx,"Loval IPv6      : '%s'\n", sockaddr_toString((struct sockaddr *)&turnInfo->localIp6,
+                                                         addr,
+                                                         sizeof(addr),
+                                                         false));
+
+    mvwprintw(win, starty++, startx,"TURN 44 Result");
+    starty = printAllocationResultw(win, startx+5, starty, &turnInfo->turnAlloc_44);
+
+    mvwprintw(win, starty++, startx,"TURN 46 Result");
+    starty = printAllocationResultw(win, startx+5, starty, &turnInfo->turnAlloc_46);
+
+    mvwprintw(win, starty++, startx,"TURN 64 Result");
+    starty = printAllocationResultw(win, startx+5, starty, &turnInfo->turnAlloc_64);
+    
+    mvwprintw(win, starty++, startx,"TURN 66 Result");
+    starty = printAllocationResultw(win, startx+5, starty, &turnInfo->turnAlloc_66);
+
+    mvwprintw(win, starty, startx, "Pending allocations: %i", turnInfo->numPending);
+}
+
 
 
 static void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData)
@@ -153,7 +231,7 @@ static void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData)
     struct turn_allocation_result *turnResult = (struct turn_allocation_result *)ctx;
 
     
-    printf("Got TURN status callback (%i)\n", retData->turnResult);
+    //printf("Got TURN status callback (%i)\n", retData->turnResult);
 
     
     if ( retData->turnResult == TurnResult_AllocOk ){
@@ -165,22 +243,13 @@ static void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData)
         sockaddr_copy((struct sockaddr *)&turnResult->rflxAddr, 
                       (struct sockaddr *)&retData->TurnResultData.AllocResp.rflxAddr);
 
-        
-
-        sockaddr_copy((struct sockaddr *)&turnResult->relAddr, 
+            sockaddr_copy((struct sockaddr *)&turnResult->relAddr, 
                       (struct sockaddr *)&retData->TurnResultData.AllocResp.relAddr);
 
-        printAllocationResult(turnResult);
+        turnResult->update_turninfo();
 
     }
-    
-
 }
-
-
-
-
-
 
 int gather(struct sockaddr *host_addr, 
            int requestedFamily, 
@@ -209,16 +278,19 @@ int gather(struct sockaddr *host_addr,
 }
 
 
-void gatherAll(struct turn_info *turnInfo, struct listenConfig *listenConfig)
+void gatherAll(struct turn_info *turnInfo, struct listenConfig *listenConfig, void(*update_turninfo)(void))
 {
 
     int stunCtx;
     int idx = 0;
 
+    turnInfo->numPending = 0;
     
     if( sockaddr_isSet((struct sockaddr *)&turnInfo->localIp4) &&
         sockaddr_isSet((struct sockaddr *)&turnInfo->remoteIp4) )
     {
+        turnInfo->numPending++;
+        turnInfo->turnAlloc_44.update_turninfo = update_turninfo;
         stunCtx = gather((struct sockaddr *)&turnInfo->remoteIp4, 
                          AF_INET, 
                          turnInfo->user, 
@@ -229,7 +301,9 @@ void gatherAll(struct turn_info *turnInfo, struct listenConfig *listenConfig)
         listenConfig->socketConfig[idx].user = turnInfo->user;
         listenConfig->socketConfig[idx].pass = turnInfo->pass;
         idx++;
-
+        
+        turnInfo->numPending++;
+        turnInfo->turnAlloc_46.update_turninfo = update_turninfo;
         stunCtx = gather((struct sockaddr *)&turnInfo->remoteIp4, 
                          AF_INET6, 
                          turnInfo->user, 
@@ -245,6 +319,9 @@ void gatherAll(struct turn_info *turnInfo, struct listenConfig *listenConfig)
     if( sockaddr_isSet((struct sockaddr *)&turnInfo->localIp6) &&
         sockaddr_isSet((struct sockaddr *)&turnInfo->remoteIp6) )
     {
+
+        turnInfo->numPending++;
+        turnInfo->turnAlloc_64.update_turninfo = update_turninfo;
         stunCtx = gather((struct sockaddr *)&turnInfo->remoteIp6, 
                          AF_INET, 
                          turnInfo->user, 
@@ -256,6 +333,8 @@ void gatherAll(struct turn_info *turnInfo, struct listenConfig *listenConfig)
         listenConfig->socketConfig[idx].pass = turnInfo->pass;
         idx++;
 
+        turnInfo->numPending++;
+        turnInfo->turnAlloc_66.update_turninfo = update_turninfo;
         stunCtx = gather((struct sockaddr *)&turnInfo->remoteIp6, 
                          AF_INET6, 
                          turnInfo->user, 
@@ -311,8 +390,9 @@ void *stunListen(void *ptr){
 
                     if ((numbytes = recvfrom(config->socketConfig[i].sockfd, buf, MAXBUFLEN-1 , 0,
                                              (struct sockaddr *)&their_addr, &addr_len)) == -1) {
-                    perror("recvfrom");
-                    exit(1);
+                        //perror("recvfrom");
+                        //exit(1);
+                    return;
                     }
 
                     if ( stunlib_isStunMsg(buf, numbytes, &isMsSTUN) ){

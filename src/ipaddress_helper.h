@@ -8,7 +8,10 @@ int getLocalIPaddresses(struct turn_info *turnInfo, char *iface);
 
 bool getLocalInterFaceAddrs(struct sockaddr *addr, char *iface, int ai_family);
 
-int createLocalUDPSocket(int ai_family, struct sockaddr * localIp, uint16_t port);
+int createLocalUDPSocket(int ai_family, 
+                         const struct sockaddr * localIp, 
+                         struct sockaddr *hostaddr, 
+                         uint16_t port);
 
 
 #endif

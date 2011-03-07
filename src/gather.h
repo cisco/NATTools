@@ -8,6 +8,8 @@
 #include <netdb.h>
 #include <ifaddrs.h>
 
+#include <curses.h>
+
 #include <turnclient.h>
 
 static const uint32_t TEST_THREAD_CTX = 1;
@@ -27,11 +29,18 @@ enum turn_ip_type{
 struct turn_allocation_result{
     int sockfd;
     struct sockaddr_storage activeTurnServerAddr;
+    struct sockaddr_storage hostAddr;
     struct sockaddr_storage rflxAddr;
     struct sockaddr_storage relAddr;
+    
+    void (*update_turninfo)(void);
+
 };
 
 struct turn_info{
+    int numPending;
+
+
     //Fully Qualified Domain Name
     char fqdn[FQDN_MAX_LEN];
 
@@ -59,7 +68,7 @@ struct turn_info{
 
 #define MAX_LISTEN_SOCKETS 10
 
-
+void (*update_turninfo)(void);
 
 struct socketConfig{
     int stunCtx;
@@ -86,7 +95,8 @@ int gather(struct sockaddr *host_addr,
            struct turn_allocation_result *turnresult);
 
 
-void gatherAll(struct turn_info *turnInfo, struct listenConfig *listenConfig);
+void gatherAll(struct turn_info *turnInfo, struct listenConfig *listenConfig, void(*update_turninfo)(void));
+//void gatherAll(struct turn_info *turnInfo, struct listenConfig *listenConfig);
 
 void *stunListen(void *ptr);
 
