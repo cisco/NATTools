@@ -91,6 +91,7 @@ int main(int argc, char *argv[])
     
     
     initscr();
+    start_color();
     clear();
     noecho();
     cbreak();	/* Line buffering disabled. pass on everything */

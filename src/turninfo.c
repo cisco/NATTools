@@ -39,14 +39,20 @@ void printAllocationResult(struct turn_allocation_result *result)
 int printPermissionsw(WINDOW *win, int startx, int starty, struct turn_permissions *perm)
 {
     char addr[SOCKADDR_MAX_STRLEN];
+    init_pair(1, COLOR_CYAN, COLOR_BLACK);
+    
+    
 
     mvwprintw(win, starty++, startx,"Permissions: '%s'\n",
            sockaddr_toString((struct sockaddr *)&perm->permissions[0],
                              addr,
                              sizeof(addr),
                              false));
+    
+    
+    
     if(perm->ok){
-        mvwprintw(win, starty++, startx,"OK");
+        mvwchgat(win, starty-1, startx, -1, A_BLINK, 1, NULL);
     }
 
     return starty;
@@ -212,22 +218,28 @@ void fillPermissions(struct turn_info *turnInfo, char *string)
                                 string) ){
         
         if(addr.ss_family == AF_INET){
-            sockaddr_copy((struct sockaddr *)&turnInfo->turnAlloc_44.turnPerm.permissions[turnInfo->turnAlloc_44.turnPerm.numPermissions++],
-                          (struct sockaddr *)&addr);
+            if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_44.relAddr)){
+                sockaddr_copy((struct sockaddr *)&turnInfo->turnAlloc_44.turnPerm.permissions[turnInfo->turnAlloc_44.turnPerm.numPermissions++],
+                              (struct sockaddr *)&addr);
+            }
             
-            sockaddr_copy((struct sockaddr *)&turnInfo->turnAlloc_64.turnPerm.permissions[turnInfo->turnAlloc_64.turnPerm.numPermissions++],
-                          (struct sockaddr *)&addr);
-            
+            if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_64.relAddr)){
+                sockaddr_copy((struct sockaddr *)&turnInfo->turnAlloc_64.turnPerm.permissions[turnInfo->turnAlloc_64.turnPerm.numPermissions++],
+                              (struct sockaddr *)&addr);
+            }
         }
         if (addr.ss_family == AF_INET6){
-            sockaddr_copy((struct sockaddr *)&turnInfo->turnAlloc_46.turnPerm.permissions[turnInfo->turnAlloc_46.turnPerm.numPermissions++],
-                          (struct sockaddr *)&addr);
+            if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_46.relAddr)){
+                sockaddr_copy((struct sockaddr *)&turnInfo->turnAlloc_46.turnPerm.permissions[turnInfo->turnAlloc_46.turnPerm.numPermissions++],
+                              (struct sockaddr *)&addr);
+            }    
+            if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_66.relAddr)){
+                sockaddr_copy((struct sockaddr *)&turnInfo->turnAlloc_66.turnPerm.permissions[turnInfo->turnAlloc_66.turnPerm.numPermissions++],
+                              (struct sockaddr *)&addr);
+            }
             
-            sockaddr_copy((struct sockaddr *)&turnInfo->turnAlloc_66.turnPerm.permissions[turnInfo->turnAlloc_66.turnPerm.numPermissions++],
-                          (struct sockaddr *)&addr);
+            
             
         }
-        
-        
     }
 }
