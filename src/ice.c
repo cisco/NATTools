@@ -151,6 +151,8 @@ int main(int argc, char *argv[])
                 echo();
                 wgetstr(input_win, perm_ip);
                 noecho();
+                fillPermissions(&turnInfo, perm_ip);
+                sendPermissionsAll(&turnInfo);
                 print_status(status_win, &turnInfo);
                 break;
                 

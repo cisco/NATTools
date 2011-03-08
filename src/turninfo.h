@@ -15,7 +15,7 @@ enum turn_ip_type{
 #define FQDN_MAX_LEN 1024
 #define MAX_PERMISSIONS 10
 
-struct turn_prmissions{
+struct turn_permissions{
     
     int numPermissions;
     struct sockaddr_storage permissions[MAX_PERMISSIONS];
@@ -55,10 +55,10 @@ struct turn_info{
     struct turn_allocation_result turnAlloc_64;
     struct turn_allocation_result turnAlloc_66;
 
-    struct turn_prmissions turnPerm_44;
-    struct turn_prmissions turnPerm_46;
-    struct turn_prmissions turnPerm_64;
-    struct turn_prmissions turnPerm_66;
+    struct turn_permissions turnPerm_44;
+    struct turn_permissions turnPerm_46;
+    struct turn_permissions turnPerm_64;
+    struct turn_permissions turnPerm_66;
 
 
 };
@@ -68,5 +68,6 @@ void printAllocationResult(struct turn_allocation_result *result);
 void printTurnInfo( struct turn_info *turnInfo );
 void wprintTurnInfow( WINDOW *win, struct turn_info *turnInfo );
 
+void fillPermissions(struct turn_info *turnInfo, char *string);
 
 #endif
