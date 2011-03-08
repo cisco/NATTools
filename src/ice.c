@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <ncurses.h>
 #include <string.h>
+#include <time.h>
 
 
 #include "ipaddress_helper.h"
