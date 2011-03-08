@@ -154,6 +154,5 @@ void wprintTurnInfow( WINDOW *win, struct turn_info *turnInfo )
     mvwprintw(win, starty++, startx,"TURN 66 Result");
     starty = printAllocationResultw(win, startx+5, starty, &turnInfo->turnAlloc_66);
 
-    mvwprintw(win, starty, startx, "Pending allocations: %i", turnInfo->numPending);
 }
 

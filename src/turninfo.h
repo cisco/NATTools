@@ -36,8 +36,6 @@ struct turn_allocation_result{
 };
 
 struct turn_info{
-    int numPending;
-
     //Fully Qualified Domain Name
     char fqdn[FQDN_MAX_LEN];
 

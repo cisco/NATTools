@@ -138,12 +138,9 @@ void gatherAll(struct turn_info *turnInfo, struct listenConfig *listenConfig, vo
     int stunCtx;
     int idx = 0;
 
-    turnInfo->numPending = 0;
-    
     if( sockaddr_isSet((struct sockaddr *)&turnInfo->localIp4) &&
         sockaddr_isSet((struct sockaddr *)&turnInfo->remoteIp4) )
     {
-        turnInfo->numPending++;
         turnInfo->turnAlloc_44.update_turninfo = update_turninfo;
         stunCtx = gather((struct sockaddr *)&turnInfo->remoteIp4, 
                          AF_INET, 
@@ -156,7 +153,6 @@ void gatherAll(struct turn_info *turnInfo, struct listenConfig *listenConfig, vo
         listenConfig->socketConfig[idx].pass = turnInfo->pass;
         idx++;
         
-        turnInfo->numPending++;
         turnInfo->turnAlloc_46.update_turninfo = update_turninfo;
         stunCtx = gather((struct sockaddr *)&turnInfo->remoteIp4, 
                          AF_INET6, 
@@ -174,7 +170,6 @@ void gatherAll(struct turn_info *turnInfo, struct listenConfig *listenConfig, vo
         sockaddr_isSet((struct sockaddr *)&turnInfo->remoteIp6) )
     {
 
-        turnInfo->numPending++;
         turnInfo->turnAlloc_64.update_turninfo = update_turninfo;
         stunCtx = gather((struct sockaddr *)&turnInfo->remoteIp6, 
                          AF_INET, 
@@ -187,7 +182,6 @@ void gatherAll(struct turn_info *turnInfo, struct listenConfig *listenConfig, vo
         listenConfig->socketConfig[idx].pass = turnInfo->pass;
         idx++;
 
-        turnInfo->numPending++;
         turnInfo->turnAlloc_66.update_turninfo = update_turninfo;
         stunCtx = gather((struct sockaddr *)&turnInfo->remoteIp6, 
                          AF_INET6, 

@@ -54,8 +54,7 @@ WINDOW *create_newwin(int height, int width, int starty, int startx)
 }
 
 void update_turnInfo(){
-    turnInfo.numPending--;
-    
+        
     wprintTurnInfow(turnInfoWin, &turnInfo);
     wborder(turnInfoWin, '|', '|', '-', '-', '+', '+', '+', '+');
     wrefresh(turnInfoWin);
