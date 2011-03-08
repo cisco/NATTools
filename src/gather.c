@@ -110,7 +110,7 @@ int gather(struct sockaddr *host_addr,
            struct turn_allocation_result *turnResult){
     
     int stunCtx;
-    TurnCallBackData_T TurnCbData;
+    //TurnCallBackData_T TurnCbData;
     
     
     stunCtx = TurnClient_startAllocateTransaction(TEST_THREAD_CTX,
@@ -123,7 +123,7 @@ int gather(struct sockaddr *host_addr,
                                                   SendRawStun,             /* send func */
                                                   NULL,  /* timeout list */
                                                   TurnStatusCallBack,
-                                                  &TurnCbData,
+                                                  &turnResult->TurnCbData,
                                                   false);
     turnResult->stunCtx = stunCtx;
 

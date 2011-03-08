@@ -39,17 +39,17 @@ void print_input(WINDOW *input_win);
 void print_status(WINDOW *status_win, struct turn_info *turnInfo);
 
 static struct turn_info turnInfo;
-
+static WINDOW *status_win;
 
 void update_turnInfo(){
-    //print_status(status_win, &turnInfo);
+    print_status(status_win, &turnInfo);
 }
 
 
 int main(int argc, char *argv[])
 {	
     WINDOW *menu_win, *input_win;
-    WINDOW *status_win;
+
     int highlight = 1;
     int choice = 0;
     int c;

@@ -32,7 +32,7 @@ struct turn_allocation_result{
     struct sockaddr_storage relAddr;
     
     void (*update_turninfo)(void);
-
+    TurnCallBackData_T TurnCbData;
 };
 
 struct turn_info{
