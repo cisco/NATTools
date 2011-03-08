@@ -4,4 +4,4 @@ AM_CPPFLAGS = -I../include
 
 testturn_SOURCES = turn.c gather.c turninfo.c ipaddress_helper.c
 
-testice_SOURCES = ice.c
+testice_SOURCES = ice.c gather.c turninfo.c ipaddress_helper.c

@@ -78,7 +78,7 @@ static int SendRawStun(int sockfd,
 
 static void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData)
 {
-
+    
     struct turn_allocation_result *turnResult = (struct turn_allocation_result *)ctx;
 
     
@@ -100,6 +100,7 @@ static void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData)
         turnResult->update_turninfo();
 
     }
+    
 }
 
 int gather(struct sockaddr *host_addr, 
@@ -218,6 +219,7 @@ void *stunListen(void *ptr){
     bool isMsSTUN;
     int i;
 
+    
     for (i=0;i<config->numSockets;i++){
         ufds[i].fd = config->socketConfig[i].sockfd;
         ufds[i].events = POLLIN; 
@@ -228,7 +230,7 @@ void *stunListen(void *ptr){
     while(1){
 
         rv = poll(ufds, config->numSockets, -1);
-
+        
         
         if (rv == -1) {
             perror("poll"); // error occurred in poll()
@@ -236,13 +238,13 @@ void *stunListen(void *ptr){
             printf("Timeout occurred! (Should not happen)\n");
         } else {
             // check for events on s1:
-
+            
             for(i=0;i<config->numSockets;i++){
                 if (ufds[i].revents & POLLIN) {
-
+                    
                     if ((numbytes = recvfrom(config->socketConfig[i].sockfd, buf, MAXBUFLEN-1 , 0,
                                              (struct sockaddr *)&their_addr, &addr_len)) == -1) {
-                        //perror("recvfrom");
+                        perror("recvfrom");
                         //exit(1);
                     return;
                     }
@@ -266,10 +268,14 @@ void *stunListen(void *ptr){
                                                  &msg,
                                                  buf);
                     }
+                    
                 }
             }
+            
         }
+        
     }
+    
 }
 
 

@@ -1,6 +1,7 @@
 #ifndef IPADDRESS_HELPER_H
 #define IPADDRESS_HELPER_H
 
+#include "turninfo.h"
 
 int getRemoteTurnServerIp(struct turn_info *turnInfo, char *fqdn);
 

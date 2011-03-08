@@ -12,6 +12,12 @@
 /* Define to 1 if you have the `form' library (-lform). */
 #undef HAVE_LIBFORM
 
+/* Define to 1 if you have the `menu' library (-lmenu). */
+#undef HAVE_LIBMENU
+
+/* Define to 1 if you have the `panel' library (-lpanel). */
+#undef HAVE_LIBPANEL
+
 /* Define to 1 if you have the `pthread' library (-lpthread). */
 #undef HAVE_LIBPTHREAD
 
@@ -87,6 +93,9 @@
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
 
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
@@ -97,7 +106,7 @@
 #undef VERSION
 
 /* Define for Solaris 2.5.1 so the uint8_t typedef from <sys/synch.h>,
-   <pthread.h>, or <semaphore.h> is not used. If the typedef was allowed, the
+   <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
    #define below would cause a syntax error. */
 #undef _UINT8_T
 

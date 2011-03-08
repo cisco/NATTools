@@ -3,6 +3,7 @@
 
 #include <sys/socket.h>
 #include <turnclient.h>
+#include <curses.h>
 
 enum turn_ip_type{
     turn_44 = 1,
@@ -67,7 +68,7 @@ struct turn_info{
 
 void printAllocationResult(struct turn_allocation_result *result);
 void printTurnInfo( struct turn_info *turnInfo );
-
+void wprintTurnInfow( WINDOW *win, struct turn_info *turnInfo );
 
 
 #endif

@@ -92,8 +92,8 @@ int main(int argc, char *argv[])
     
     
 
-    turnInfoWin = create_newwin(28,70,0,0);
-    //menuWin = create_newwin(10,70,28,0);
+    turnInfoWin = create_newwin(28,90,0,0);
+    menuWin = create_newwin(10,70,28,0);
 
    
     mvprintw(30,0,"Gather all (a), Send Permission (p), Send Message (m), Quit (q)");
@@ -109,13 +109,12 @@ int main(int argc, char *argv[])
     TurnClient_Init(TEST_THREAD_CTX, 50, 50, PrintTurnInfo, false, "TestIce");
     pthread_create( &turnTickThread, NULL, tickTurn, (void*) &TEST_THREAD_CTX);
 
+    update_turnInfo();
     
-    
-    while(1){
-        ch = getch();
-
+    while((ch = getch()) != 'q'){
         switch(ch){
         case 'q':
+            mvprintw(29,0 ,"Bye bye!! ");
             endwin();
             //Close socets as well?
             return 0;
