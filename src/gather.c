@@ -82,9 +82,6 @@ static void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData)
     struct turn_allocation_result *turnResult = (struct turn_allocation_result *)ctx;
 
     
-    //printf("Got TURN status callback (%i)\n", retData->turnResult);
-
-    
     if ( retData->turnResult == TurnResult_AllocOk ){
 
         sockaddr_copy((struct sockaddr *)&turnResult->activeTurnServerAddr, 
@@ -99,6 +96,11 @@ static void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData)
 
         turnResult->update_turninfo();
 
+    }else if (retData->turnResult == TurnResult_CreatePermissionOk) {
+        
+        turnResult->turnPerm.ok = true;
+        
+        turnResult->update_turninfo();
     }
     
 }

@@ -11,55 +11,56 @@ void sendPermissionsAll(struct turn_info *turnInfo)
 
 
 
-    if(turnInfo->turnPerm_44.numPermissions > 0){
-        for (i=0;i<turnInfo->turnPerm_44.numPermissions;i++){
-            perm[i] = (struct sockaddr *)&turnInfo->turnPerm_44.permissions[i];
+    if(turnInfo->turnAlloc_44.turnPerm.numPermissions > 0){
+        for (i=0;i<turnInfo->turnAlloc_44.turnPerm.numPermissions;i++){
+            perm[i] = (struct sockaddr *)&turnInfo->turnAlloc_44.turnPerm.permissions[i];
         }
-    
+        turnInfo->turnAlloc_44.turnPerm.ok = false;
 
         TurnClient_StartCreatePermissionReq(PERMISSIONS_THREAD_CTX,
                                             turnInfo->turnAlloc_44.stunCtx,
-                                            turnInfo->turnPerm_44.numPermissions,
+                                            turnInfo->turnAlloc_44.turnPerm.numPermissions,
                                             perm);
 
     }
 
 
-    if(turnInfo->turnPerm_46.numPermissions > 0){
-        for (i=0;i<turnInfo->turnPerm_46.numPermissions;i++){
-            perm[i] = (struct sockaddr *)&turnInfo->turnPerm_46.permissions[i];
+    if(turnInfo->turnAlloc_46.turnPerm.numPermissions > 0){
+        for (i=0;i<turnInfo->turnAlloc_46.turnPerm.numPermissions;i++){
+            perm[i] = (struct sockaddr *)&turnInfo->turnAlloc_46.turnPerm.permissions[i];
         }
-    
-
+        
+        
+        turnInfo->turnAlloc_46.turnPerm.ok = false;
         TurnClient_StartCreatePermissionReq(PERMISSIONS_THREAD_CTX,
                                             turnInfo->turnAlloc_46.stunCtx,
-                                            turnInfo->turnPerm_46.numPermissions,
+                                            turnInfo->turnAlloc_46.turnPerm.numPermissions,
                                             perm);
 
     }
 
-    if(turnInfo->turnPerm_64.numPermissions > 0){
-        for (i=0;i<turnInfo->turnPerm_64.numPermissions;i++){
-            perm[i] = (struct sockaddr *)&turnInfo->turnPerm_64.permissions[i];
+    if(turnInfo->turnAlloc_64.turnPerm.numPermissions > 0){
+        for (i=0;i<turnInfo->turnAlloc_64.turnPerm.numPermissions;i++){
+            perm[i] = (struct sockaddr *)&turnInfo->turnAlloc_64.turnPerm.permissions[i];
         }
-    
+        turnInfo->turnAlloc_64.turnPerm.ok = false;
 
         TurnClient_StartCreatePermissionReq(PERMISSIONS_THREAD_CTX,
                                             turnInfo->turnAlloc_64.stunCtx,
-                                            turnInfo->turnPerm_64.numPermissions,
+                                            turnInfo->turnAlloc_64.turnPerm.numPermissions,
                                             perm);
 
     }
 
-    if(turnInfo->turnPerm_66.numPermissions > 0){
-        for (i=0;i<turnInfo->turnPerm_66.numPermissions;i++){
-            perm[i] = (struct sockaddr *)&turnInfo->turnPerm_66.permissions[i];
+    if(turnInfo->turnAlloc_66.turnPerm.numPermissions > 0){
+        for (i=0;i<turnInfo->turnAlloc_66.turnPerm.numPermissions;i++){
+            perm[i] = (struct sockaddr *)&turnInfo->turnAlloc_66.turnPerm.permissions[i];
         }
     
-
+        turnInfo->turnAlloc_66.turnPerm.ok = false;
         TurnClient_StartCreatePermissionReq(PERMISSIONS_THREAD_CTX,
                                             turnInfo->turnAlloc_66.stunCtx,
-                                            turnInfo->turnPerm_66.numPermissions,
+                                            turnInfo->turnAlloc_66.turnPerm.numPermissions,
                                             perm);
 
     }

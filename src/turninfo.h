@@ -18,8 +18,7 @@ enum turn_ip_type{
 struct turn_permissions{
     
     int numPermissions;
-    struct sockaddr_storage permissions[MAX_PERMISSIONS];
-    
+    struct sockaddr_storage permissions[MAX_PERMISSIONS];    
     bool ok;
 };
 
@@ -30,7 +29,9 @@ struct turn_allocation_result{
     struct sockaddr_storage hostAddr;
     struct sockaddr_storage rflxAddr;
     struct sockaddr_storage relAddr;
-    
+    struct turn_permissions turnPerm;
+
+
     void (*update_turninfo)(void);
     TurnCallBackData_T TurnCbData;
 };
@@ -55,12 +56,8 @@ struct turn_info{
     struct turn_allocation_result turnAlloc_64;
     struct turn_allocation_result turnAlloc_66;
 
-    struct turn_permissions turnPerm_44;
-    struct turn_permissions turnPerm_46;
-    struct turn_permissions turnPerm_64;
-    struct turn_permissions turnPerm_66;
-
-
+    
+    
 };
 
 
