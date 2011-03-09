@@ -725,12 +725,12 @@ int TurnClient_createSendIndication(unsigned char   *stunBuf,
     if (dstAddr->sa_family == AF_INET){
         
         activeDstAddr.familyType =  STUN_ADDR_IPv4Family;
-        activeDstAddr.addr.v4.port = ((struct sockaddr_in *)dstAddr)->sin_port;
-        activeDstAddr.addr.v4.addr = ((struct sockaddr_in *)dstAddr)->sin_addr.s_addr;
+        activeDstAddr.addr.v4.port = ntohs(((struct sockaddr_in *)dstAddr)->sin_port);
+        activeDstAddr.addr.v4.addr = ntohl(((struct sockaddr_in *)dstAddr)->sin_addr.s_addr);
 
     }else if (dstAddr->sa_family == AF_INET6){
         activeDstAddr.familyType =  STUN_ADDR_IPv6Family;
-        activeDstAddr.addr.v6.port = ((struct sockaddr_in6 *)dstAddr)->sin6_port;
+        activeDstAddr.addr.v6.port = ntohs(((struct sockaddr_in6 *)dstAddr)->sin6_port);
         memcpy( activeDstAddr.addr.v6.addr ,
                 ((struct sockaddr_in6 *)dstAddr)->sin6_addr.s6_addr,
                 sizeof(activeDstAddr.addr.v6.addr) );
@@ -1514,12 +1514,12 @@ static void BuildChannelBindReq(TURN_INSTANCE_DATA *pInst, StunMessage  *pReq)
     if (peerAddr->sa_family == AF_INET){
         
         peerTrnspAddr.familyType =  STUN_ADDR_IPv4Family;
-        peerTrnspAddr.addr.v4.port = ((struct sockaddr_in *)peerAddr)->sin_port;
-        peerTrnspAddr.addr.v4.addr = ((struct sockaddr_in *)peerAddr)->sin_addr.s_addr;
+        peerTrnspAddr.addr.v4.port = ntohs(((struct sockaddr_in *)peerAddr)->sin_port);
+        peerTrnspAddr.addr.v4.addr = ntohl(((struct sockaddr_in *)peerAddr)->sin_addr.s_addr);
 
     }else if (peerAddr->sa_family == AF_INET6){
         peerTrnspAddr.familyType =  STUN_ADDR_IPv6Family;
-        peerTrnspAddr.addr.v6.port = ((struct sockaddr_in6 *)peerAddr)->sin6_port;
+        peerTrnspAddr.addr.v6.port = ntohs(((struct sockaddr_in6 *)peerAddr)->sin6_port);
         memcpy( peerTrnspAddr.addr.v6.addr ,
                 ((struct sockaddr_in6 *)peerAddr)->sin6_addr.s6_addr,
                 sizeof(peerTrnspAddr.addr.v6.addr) );
@@ -1559,12 +1559,12 @@ static void BuildCreatePermReq(TURN_INSTANCE_DATA *pInst, StunMessage  *pReq)
         if (peerAddr->sa_family == AF_INET){
             
             peerTrnspAddr.familyType =  STUN_ADDR_IPv4Family;
-            peerTrnspAddr.addr.v4.port = ((struct sockaddr_in *)peerAddr)->sin_port;
-            peerTrnspAddr.addr.v4.addr = ((struct sockaddr_in *)peerAddr)->sin_addr.s_addr;
+            peerTrnspAddr.addr.v4.port = ntohs(((struct sockaddr_in *)peerAddr)->sin_port);
+            peerTrnspAddr.addr.v4.addr = ntohl(((struct sockaddr_in *)peerAddr)->sin_addr.s_addr);
             
         }else if (peerAddr->sa_family == AF_INET6){
             peerTrnspAddr.familyType =  STUN_ADDR_IPv6Family;
-            peerTrnspAddr.addr.v6.port = ((struct sockaddr_in6 *)peerAddr)->sin6_port;
+            peerTrnspAddr.addr.v6.port = ntohs(((struct sockaddr_in6 *)peerAddr)->sin6_port);
             memcpy( peerTrnspAddr.addr.v6.addr ,
                     ((struct sockaddr_in6 *)peerAddr)->sin6_addr.s6_addr,
                 sizeof(peerTrnspAddr.addr.v6.addr) );
@@ -1603,12 +1603,12 @@ static void BuildSetActiveDestReq(TURN_INSTANCE_DATA *pInst, StunMessage  *pReq)
     if (peerAddr->sa_family == AF_INET){
             
             peerTrnspAddr.familyType =  STUN_ADDR_IPv4Family;
-            peerTrnspAddr.addr.v4.port = ((struct sockaddr_in *)peerAddr)->sin_port;
-            peerTrnspAddr.addr.v4.addr = ((struct sockaddr_in *)peerAddr)->sin_addr.s_addr;
+            peerTrnspAddr.addr.v4.port = ntohs(((struct sockaddr_in *)peerAddr)->sin_port);
+            peerTrnspAddr.addr.v4.addr = ntohl(((struct sockaddr_in *)peerAddr)->sin_addr.s_addr);
             
         }else if (peerAddr->sa_family == AF_INET6){
             peerTrnspAddr.familyType =  STUN_ADDR_IPv6Family;
-            peerTrnspAddr.addr.v6.port = ((struct sockaddr_in6 *)peerAddr)->sin6_port;
+            peerTrnspAddr.addr.v6.port = ntohs(((struct sockaddr_in6 *)peerAddr)->sin6_port);
             memcpy( peerTrnspAddr.addr.v6.addr ,
                     ((struct sockaddr_in6 *)peerAddr)->sin6_addr.s6_addr,
                 sizeof(peerTrnspAddr.addr.v6.addr) );
