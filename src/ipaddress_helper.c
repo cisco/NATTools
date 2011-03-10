@@ -391,7 +391,6 @@ int sendMessage(struct turn_info *turnInfo, char *dstAddr, char *message)
         if (addr.ss_family == AF_INET){
             if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_44.relAddr)){
 
-
                 sendRawUDP(turnInfo->turnAlloc_44.sockfd,
                            stunBuf,
                            msg_len,
@@ -402,12 +401,41 @@ int sendMessage(struct turn_info *turnInfo, char *dstAddr, char *message)
 
             }
 
-            if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_64.relAddr)){
+            else if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_64.relAddr)){
+                
+                sendRawUDP(turnInfo->turnAlloc_64.sockfd,
+                           stunBuf,
+                           msg_len,
+                           (struct sockaddr *)&turnInfo->remoteIp6,
+                           sizeof( struct sockaddr_storage));
 
             }
 
         }
 
+        if (addr.ss_family == AF_INET6){
+            
+            if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_46.relAddr)){
+                sendRawUDP(turnInfo->turnAlloc_46.sockfd,
+                           stunBuf,
+                           msg_len,
+                           (struct sockaddr *)&turnInfo->remoteIp4,
+                           sizeof( struct sockaddr_storage));
+
+
+
+            }
+
+            else if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_66.relAddr)){
+                sendRawUDP(turnInfo->turnAlloc_66.sockfd,
+                           stunBuf,
+                           msg_len,
+                           (struct sockaddr *)&turnInfo->remoteIp6,
+                           sizeof( struct sockaddr_storage));
+
+            }
+
+        }
 
     }
     else{
