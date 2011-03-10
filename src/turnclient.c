@@ -746,7 +746,6 @@ int TurnClient_createSendIndication(unsigned char   *stunBuf,
         stunMsg.msgHdr.msgType =  STUN_MSG_SendIndicationMsg;
         stunMsg.xorPeerAddrEntries = 1;
         memcpy(&stunMsg.xorPeerAddress[0], &activeDstAddr, sizeof(StunIPAddress));
-        stunMsg.xorPeerAddress[0].familyType =  STUN_ADDR_IPv4Family;
         stunMsg.hasData      = true;
         stunMsg.data.dataLen = payloadLength; 
         stunMsg.data.pData   = dataBuf;             /*The data (RTP packet) follows anyway..*/
