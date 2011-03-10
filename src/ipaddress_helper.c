@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/poll.h>
@@ -16,7 +15,7 @@ int getRemoteTurnServerIp(struct turn_info *turnInfo, char *fqdn)
     char ipstr[INET6_ADDRSTRLEN];
 
 
-    
+
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC; // AF_INET or AF_INET6 to force version
@@ -26,7 +25,7 @@ int getRemoteTurnServerIp(struct turn_info *turnInfo, char *fqdn)
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
         return 2;
     }
-    
+
     for(p = res;p != NULL; p = p->ai_next) {
         void *addr;
         char *ipver;
@@ -148,8 +147,8 @@ bool getLocalInterFaceAddrs(struct sockaddr *addr, char *iface, int ai_family){
     return false;
 }
 
-int createLocalUDPSocket(int ai_family, 
-                         const struct sockaddr *localIp, 
+int createLocalUDPSocket(int ai_family,
+                         const struct sockaddr *localIp,
                          struct sockaddr *hostaddr,
                          uint16_t port)
 {
@@ -164,7 +163,7 @@ int createLocalUDPSocket(int ai_family,
     sockaddr_toString(localIp, addr, sizeof addr, false);
 
     //itoa(port, service, 10);
-    
+
     snprintf(service, 8, "%d", port);
 
 
@@ -187,7 +186,7 @@ int createLocalUDPSocket(int ai_family,
             printf("Unable to open socket\n");
             continue;
         }
-        
+
         if (sockaddr_isAddrAny(p->ai_addr) ){
             //printf("Ignoring any\n");
             continue;
@@ -202,21 +201,21 @@ int createLocalUDPSocket(int ai_family,
         if (localIp != NULL){
             struct sockaddr_storage ss;
             socklen_t len = sizeof(ss);
-            
+
             if (getsockname(sockfd, (struct sockaddr *)&ss, &len) == -1){
                 perror("getsockname");
             }
             else{
-                if (ss.ss_family == AF_INET) { 
+                if (ss.ss_family == AF_INET) {
                     ((struct sockaddr_in *)p->ai_addr)->sin_port = ((struct sockaddr_in *)&ss)->sin_port;
                 }else{
                     ((struct sockaddr_in6 *)p->ai_addr)->sin6_port = ((struct sockaddr_in6 *)&ss)->sin6_port;
                 }
             }
-            
+
 
             sockaddr_copy(hostaddr, p->ai_addr);
-            
+
 
             //printf("Bound to: '%s'\n",
             //       sockaddr_toString(localIp, addr, sizeof(addr), true));
@@ -225,7 +224,7 @@ int createLocalUDPSocket(int ai_family,
 
         break;
     }
-   
+
     return sockfd;
 }
 
@@ -235,7 +234,7 @@ int sendRawUDP(int sockfd,
                size_t len,
                struct sockaddr * p,
                socklen_t t){
-    
+
     int numbytes;
     char addr[256];
     int rv;
@@ -276,7 +275,7 @@ int SendRawStun(int sockfd,
                 struct sockaddr *addr,
                 socklen_t t,
                 void *userdata){
-    
+
     return  sendRawUDP(sockfd, buf, len, addr, t);
 
 }
@@ -294,10 +293,10 @@ void *stunListen(void *ptr){
     bool isMsSTUN;
     int i;
 
-    
+
     for (i=0;i<config->numSockets;i++){
         ufds[i].fd = config->socketConfig[i].sockfd;
-        ufds[i].events = POLLIN; 
+        ufds[i].events = POLLIN;
     }
 
     addr_len = sizeof their_addr;
@@ -305,29 +304,29 @@ void *stunListen(void *ptr){
     while(1){
 
         rv = poll(ufds, config->numSockets, -1);
-        
-        
+
+
         if (rv == -1) {
             perror("poll"); // error occurred in poll()
         } else if (rv == 0) {
             printf("Timeout occurred! (Should not happen)\n");
         } else {
             // check for events on s1:
-            
+
             for(i=0;i<config->numSockets;i++){
                 if (ufds[i].revents & POLLIN) {
-                    
+
                     if ((numbytes = recvfrom(config->socketConfig[i].sockfd, buf, MAXBUFLEN-1 , 0,
                                              (struct sockaddr *)&their_addr, &addr_len)) == -1) {
                         perror("recvfrom");
                         //exit(1);
                     return;
                     }
-                    
-                    
+
+
                     if ( stunlib_isStunMsg(buf, numbytes, &isMsSTUN) ){
                         StunMessage msg;
-                        
+
                         stunlib_DecodeMessage(buf,
                                               numbytes,
                                               &msg,
@@ -337,19 +336,15 @@ void *stunListen(void *ptr){
 
 
                         if (msg.msgHdr.msgType == STUN_MSG_DataIndicationMsg){
-                            
+
                             if (msg.hasData){
                                 buf[numbytes] = '\0';
                                 //config->update_inc_status(msg.data.pData);
                                 config->update_inc_status(&buf[msg.data.offset]);
 
                             }
-
-
-                            
-                                                        
                         }
-                            
+
                         TurnClient_HandleIncResp(TEST_THREAD_CTX,
                                                  config->socketConfig[i].stunCtx,
                                                  &msg,
@@ -360,14 +355,13 @@ void *stunListen(void *ptr){
                         config->update_inc_status(buf);
 
                     }
-                    
                 }
             }
-            
+
         }
-        
+
     }
-    
+
 }
 
 
@@ -387,16 +381,16 @@ int sendMessage(struct turn_info *turnInfo, char *dstAddr, char *message)
         msg_len = TurnClient_createSendIndication(stunBuf,
                                                   message,
                                                   sizeof(stunBuf),
-                                                  strlen(message), 
+                                                  strlen(message),
                                                   (struct sockaddr *)&addr,
                                                   false,
                                                   0,
-                                                  0);  
+                                                  0);
 
 
         if (addr.ss_family == AF_INET){
             if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_44.relAddr)){
-                
+
 
                 sendRawUDP(turnInfo->turnAlloc_44.sockfd,
                            stunBuf,
@@ -431,7 +425,7 @@ int sendMessage(struct turn_info *turnInfo, char *dstAddr, char *message)
 int sendKeepalive(struct turn_info *turnInfo)
 {
     char m[] = "KeepAlive";
-        
+
     if (sockaddr_isSet((struct sockaddr *)&turnInfo->remoteIp4))
     {
 
@@ -441,19 +435,19 @@ int sendKeepalive(struct turn_info *turnInfo)
                        m,
                        sizeof(m),
                        (struct sockaddr *)&turnInfo->remoteIp4,
-                       sizeof( struct sockaddr_storage));       
+                       sizeof( struct sockaddr_storage));
         }
-        
+
         if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_46.relAddr))
         {
             sendRawUDP(turnInfo->turnAlloc_46.sockfd,
                        m,
                        sizeof(m),
                        (struct sockaddr *)&turnInfo->remoteIp4,
-                       sizeof( struct sockaddr_storage));       
+                       sizeof( struct sockaddr_storage));
         }
     }
-    
+
     if (sockaddr_isSet((struct sockaddr *)&turnInfo->remoteIp6)){
         if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_64.relAddr))
         {
@@ -461,18 +455,16 @@ int sendKeepalive(struct turn_info *turnInfo)
                        m,
                        sizeof(m),
                        (struct sockaddr *)&turnInfo->remoteIp6,
-                       sizeof( struct sockaddr_storage));       
+                       sizeof( struct sockaddr_storage));
         }
-        
+
         if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_66.relAddr))
         {
             sendRawUDP(turnInfo->turnAlloc_66.sockfd,
                        m,
                        sizeof(m),
                        (struct sockaddr *)&turnInfo->remoteIp6,
-                       sizeof( struct sockaddr_storage));       
+                       sizeof( struct sockaddr_storage));
         }
     }
 }
-
-
