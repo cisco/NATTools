@@ -13,19 +13,8 @@
 #define HEIGHT 5 
 
 
-static void *tickTurn(void *ptr){
-    struct timespec timer;
-    struct timespec remaining;
-    uint32_t  *ctx = (uint32_t *)ptr;
-
-    timer.tv_sec = 0;
-    timer.tv_nsec = 50000000;
-
-    for(;;){
-        nanosleep(&timer, &remaining);
-        TurnClient_HandleTick(*ctx);
-    }
-}
+static int keep_ticks; //Used to determine if it is time to send keepalives
+static void *tickTurn(void *ptr);
 
 
 char *choices[] = { 
@@ -37,10 +26,12 @@ char *choices[] = {
 int n_choices = sizeof(choices) / sizeof(char *);
 void print_menu(WINDOW *menu_win, int highlight);
 void print_input(WINDOW *input_win);
+void print_input_status(char *message);
 void print_status(WINDOW *status_win, struct turn_info *turnInfo);
 
 static struct turn_info turnInfo;
 static WINDOW *status_win;
+static WINDOW *input_win;
 
 void update_turnInfo(){
     print_status(status_win, &turnInfo);
@@ -49,7 +40,7 @@ void update_turnInfo(){
 
 int main(int argc, char *argv[])
 {	
-    WINDOW *menu_win, *input_win;
+    WINDOW *menu_win;
 
     int highlight = 1;
     int choice = 0;
@@ -61,7 +52,10 @@ int main(int argc, char *argv[])
     int start_input_x = 0;
     int start_input_y = 0;
     
-    char perm_ip[200];
+    char perm_ip[800];
+    char message[100];
+    char message_dst[50];
+    
     
     
     pthread_t turnTickThread;
@@ -81,6 +75,8 @@ int main(int argc, char *argv[])
     strncpy(turnInfo.pass, argv[4], STUN_MSG_MAX_PASSWORD_LENGTH);
     
     
+    listenConfig.update_inc_status = print_input_status;
+
     getRemoteTurnServerIp(&turnInfo, argv[2]);
     
     getLocalIPaddresses(&turnInfo, argv[1]);
@@ -157,6 +153,16 @@ int main(int argc, char *argv[])
                 sendPermissionsAll(&turnInfo);
                 print_status(status_win, &turnInfo);
                 break;
+            case 3:
+                mvwprintw(input_win,1, 1, "Enter Message: ");
+                wrefresh(input_win);
+                echo();
+                wgetstr(input_win, message);
+                mvwprintw(input_win,1, 1, "Enter Ip: ");
+                wrefresh(input_win);
+                wgetstr(input_win, message_dst);
+                noecho();
+                sendMessage(&turnInfo, message_dst, message);
                 
             }
         }
@@ -177,7 +183,7 @@ void print_status(WINDOW *status_win, struct turn_info *turnInfo)
     werase(status_win);
     box(status_win, 0, 0);
 
-    //mvwprintw(status_win, 23, 2, "'%s'", message);
+    //
     wprintTurnInfow(status_win, turnInfo);
     box(status_win, 0, 0);
 
@@ -189,6 +195,7 @@ void print_input(WINDOW *input_win)
 {
     werase(input_win);
     box(input_win, 0, 0);
+    mvwprintw(input_win, 0, 2, "Input");
 
     wrefresh(input_win);
 }
@@ -200,6 +207,7 @@ void print_menu(WINDOW *menu_win, int highlight)
 	x = 2;
 	y = 2;
 	box(menu_win, 0, 0);
+        mvwprintw(menu_win, 0, 2, "Menu (Use left/right arrow keys)");
 	for(i = 0; i < n_choices; ++i)
 	{	
             if(highlight == i + 1) /* High light the present choice */
@@ -217,5 +225,34 @@ void print_menu(WINDOW *menu_win, int highlight)
 	wrefresh(menu_win);
 }
 
+void print_input_status(char *message)
+{
+    werase(input_win);
+    box(input_win, 0, 0);
+    mvwprintw(input_win, 1, 1, "%s", message);
+    wrefresh(input_win);
+
+}
+
+static void *tickTurn(void *ptr){
+    struct timespec timer;
+    struct timespec remaining;
+    uint32_t  *ctx = (uint32_t *)ptr;
+
+    timer.tv_sec = 0;
+    timer.tv_nsec = 50000000;
+
+    for(;;){
+        keep_ticks++;
+        nanosleep(&timer, &remaining);
+        TurnClient_HandleTick(*ctx);
+
+        if(keep_ticks>100){
+            sendKeepalive(&turnInfo);
+            keep_ticks = 0;
+        }
+    }
+    
+}
 
 

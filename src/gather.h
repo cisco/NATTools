@@ -13,6 +13,7 @@
 #include <turnclient.h>
 
 #include "turninfo.h"
+#include "ipaddress_helper.h"
 
 static const uint32_t TEST_THREAD_CTX = 1;
 
@@ -21,25 +22,9 @@ static const uint32_t TEST_THREAD_CTX = 1;
 
 
 
-#define MAX_LISTEN_SOCKETS 10
+
 
 void (*update_turninfo)(void);
-
-struct socketConfig{
-    int stunCtx;
-    int sockfd;
-    char* user;
-    char* pass;
-
-
-};
-
-
-struct listenConfig{
-    struct socketConfig socketConfig[MAX_LISTEN_SOCKETS];
-    int numSockets;
-};
-
 
 
 

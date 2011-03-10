@@ -1,7 +1,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <sys/poll.h>
 
 #include <sockaddr_util.h>
 
@@ -228,4 +228,251 @@ int createLocalUDPSocket(int ai_family,
    
     return sockfd;
 }
+
+
+int sendRawUDP(int sockfd,
+               const void *buf,
+               size_t len,
+               struct sockaddr * p,
+               socklen_t t){
+    
+    int numbytes;
+    char addr[256];
+    int rv;
+
+    struct pollfd ufds[1];
+
+
+    ufds[0].fd = sockfd;
+    ufds[0].events = POLLOUT;
+
+    rv = poll(ufds, 1, 3500);
+
+    if (rv == -1) {
+        perror("poll"); // error occurred in poll()
+    } else if (rv == 0) {
+        printf("Timeout occurred!  Not possible to send for 3.5 seconds.\n");
+    } else {
+        // check for events on s1:
+        if (ufds[0].revents & POLLOUT) {
+
+            numbytes = sendto(sockfd, buf, len, 0,
+                              p , t);
+
+            sockaddr_toString(p, addr, 256, true);
+            //printf("Sending Raw (To: '%s'(%i), Bytes:%i/%i  )\n", addr, sockfd, numbytes, (int)len);
+
+            return numbytes;
+        }
+    }
+
+    return -1;
+}
+
+
+int SendRawStun(int sockfd,
+                uint8_t *buf,
+                int len,
+                struct sockaddr *addr,
+                socklen_t t,
+                void *userdata){
+    
+    return  sendRawUDP(sockfd, buf, len, addr, t);
+
+}
+
+#define MAXBUFLEN 1024
+
+void *stunListen(void *ptr){
+    struct pollfd ufds[10];
+    struct listenConfig *config = (struct listenConfig *)ptr;
+    struct sockaddr_storage their_addr;
+    char buf[MAXBUFLEN];
+    socklen_t addr_len;
+    int rv;
+    int numbytes;
+    bool isMsSTUN;
+    int i;
+
+    
+    for (i=0;i<config->numSockets;i++){
+        ufds[i].fd = config->socketConfig[i].sockfd;
+        ufds[i].events = POLLIN; 
+    }
+
+    addr_len = sizeof their_addr;
+
+    while(1){
+
+        rv = poll(ufds, config->numSockets, -1);
+        
+        
+        if (rv == -1) {
+            perror("poll"); // error occurred in poll()
+        } else if (rv == 0) {
+            printf("Timeout occurred! (Should not happen)\n");
+        } else {
+            // check for events on s1:
+            
+            for(i=0;i<config->numSockets;i++){
+                if (ufds[i].revents & POLLIN) {
+                    
+                    if ((numbytes = recvfrom(config->socketConfig[i].sockfd, buf, MAXBUFLEN-1 , 0,
+                                             (struct sockaddr *)&their_addr, &addr_len)) == -1) {
+                        perror("recvfrom");
+                        //exit(1);
+                    return;
+                    }
+                    
+                    
+                    if ( stunlib_isStunMsg(buf, numbytes, &isMsSTUN) ){
+                        StunMessage msg;
+                        
+                        stunlib_DecodeMessage(buf,
+                                              numbytes,
+                                              &msg,
+                                              NULL,
+                                              false,
+                                              false);
+
+
+                        if (msg.msgHdr.msgType == STUN_MSG_DataIndicationMsg){
+                            
+                            if (msg.hasData){
+                                buf[numbytes] = '\0';
+                                //config->update_inc_status(msg.data.pData);
+                                config->update_inc_status(&buf[msg.data.offset]);
+
+                            }
+
+
+                            
+                                                        
+                        }
+                            
+                        TurnClient_HandleIncResp(TEST_THREAD_CTX,
+                                                 config->socketConfig[i].stunCtx,
+                                                 &msg,
+                                                 buf);
+                    }
+                    else{
+                        buf[numbytes] = '\0';
+                        config->update_inc_status(buf);
+
+                    }
+                    
+                }
+            }
+            
+        }
+        
+    }
+    
+}
+
+
+int sendMessage(struct turn_info *turnInfo, char *dstAddr, char *message)
+{
+    struct sockaddr_storage addr;
+    unsigned char stunBuf[200];
+    int msg_len;
+
+
+    if (dstAddr != NULL)
+    {
+        sockaddr_initFromString((struct sockaddr *)&addr,
+                            dstAddr);
+
+
+        msg_len = TurnClient_createSendIndication(stunBuf,
+                                                  message,
+                                                  sizeof(stunBuf),
+                                                  strlen(message), 
+                                                  (struct sockaddr *)&addr,
+                                                  false,
+                                                  0,
+                                                  0);  
+
+
+        if (addr.ss_family == AF_INET){
+            if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_44.relAddr)){
+                
+
+                sendRawUDP(turnInfo->turnAlloc_44.sockfd,
+                           stunBuf,
+                           msg_len,
+                           (struct sockaddr *)&turnInfo->remoteIp4,
+                           sizeof( struct sockaddr_storage));
+
+
+
+            }
+
+            if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_64.relAddr)){
+
+            }
+
+        }
+
+
+    }
+    else{
+        //Send messge only where channel is bound
+
+
+    }
+
+
+}
+
+
+
+
+int sendKeepalive(struct turn_info *turnInfo)
+{
+    char m[] = "KeepAlive";
+        
+    if (sockaddr_isSet((struct sockaddr *)&turnInfo->remoteIp4))
+    {
+
+        if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_44.relAddr))
+        {
+            sendRawUDP(turnInfo->turnAlloc_44.sockfd,
+                       m,
+                       sizeof(m),
+                       (struct sockaddr *)&turnInfo->remoteIp4,
+                       sizeof( struct sockaddr_storage));       
+        }
+        
+        if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_46.relAddr))
+        {
+            sendRawUDP(turnInfo->turnAlloc_46.sockfd,
+                       m,
+                       sizeof(m),
+                       (struct sockaddr *)&turnInfo->remoteIp4,
+                       sizeof( struct sockaddr_storage));       
+        }
+    }
+    
+    if (sockaddr_isSet((struct sockaddr *)&turnInfo->remoteIp6)){
+        if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_64.relAddr))
+        {
+            sendRawUDP(turnInfo->turnAlloc_64.sockfd,
+                       m,
+                       sizeof(m),
+                       (struct sockaddr *)&turnInfo->remoteIp6,
+                       sizeof( struct sockaddr_storage));       
+        }
+        
+        if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_66.relAddr))
+        {
+            sendRawUDP(turnInfo->turnAlloc_66.sockfd,
+                       m,
+                       sizeof(m),
+                       (struct sockaddr *)&turnInfo->remoteIp6,
+                       sizeof( struct sockaddr_storage));       
+        }
+    }
+}
+
 

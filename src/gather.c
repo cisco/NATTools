@@ -7,7 +7,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/poll.h>
+
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -19,61 +19,11 @@
 
 #include "turnclient.h"
 #include "sockaddr_util.h"
+#include "ipaddress_helper.h"
 
 #include "gather.h"
 
 
-
-static int sendRawUDP(int sockfd,
-                      const void *buf,
-                      size_t len,
-                      struct sockaddr * p,
-                      socklen_t t){
-
-    int numbytes;
-    char addr[256];
-    int rv;
-
-    struct pollfd ufds[1];
-
-
-    ufds[0].fd = sockfd;
-    ufds[0].events = POLLOUT;
-
-    rv = poll(ufds, 1, 3500);
-
-    if (rv == -1) {
-        perror("poll"); // error occurred in poll()
-    } else if (rv == 0) {
-        printf("Timeout occurred!  Not possible to send for 3.5 seconds.\n");
-    } else {
-        // check for events on s1:
-        if (ufds[0].revents & POLLOUT) {
-
-            numbytes = sendto(sockfd, buf, len, 0,
-                              p , t);
-
-            sockaddr_toString(p, addr, 256, true);
-            //printf("Sending Raw (To: '%s'(%i), Bytes:%i/%i  )\n", addr, sockfd, numbytes, (int)len);
-
-            return numbytes;
-        }
-    }
-
-    return -1;
-}
-
-
-static int SendRawStun(int sockfd,
-                       uint8_t *buf,
-                       int len,
-                       struct sockaddr *addr,
-                       socklen_t t,
-                       void *userdata){
-
-    return  sendRawUDP(sockfd, buf, len, addr, t);
-
-}
 
 
 static void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData)
@@ -201,77 +151,5 @@ void gatherAll(struct turn_info *turnInfo, struct listenConfig *listenConfig, vo
     listenConfig->numSockets = idx;
 }
 
-
-#define MAXBUFLEN 1024
-
-void *stunListen(void *ptr){
-    struct pollfd ufds[10];
-    struct listenConfig *config = (struct listenConfig *)ptr;
-    struct sockaddr_storage their_addr;
-    char buf[MAXBUFLEN];
-    socklen_t addr_len;
-    int rv;
-    int numbytes;
-    bool isMsSTUN;
-    int i;
-
-    
-    for (i=0;i<config->numSockets;i++){
-        ufds[i].fd = config->socketConfig[i].sockfd;
-        ufds[i].events = POLLIN; 
-    }
-
-    addr_len = sizeof their_addr;
-
-    while(1){
-
-        rv = poll(ufds, config->numSockets, -1);
-        
-        
-        if (rv == -1) {
-            perror("poll"); // error occurred in poll()
-        } else if (rv == 0) {
-            printf("Timeout occurred! (Should not happen)\n");
-        } else {
-            // check for events on s1:
-            
-            for(i=0;i<config->numSockets;i++){
-                if (ufds[i].revents & POLLIN) {
-                    
-                    if ((numbytes = recvfrom(config->socketConfig[i].sockfd, buf, MAXBUFLEN-1 , 0,
-                                             (struct sockaddr *)&their_addr, &addr_len)) == -1) {
-                        perror("recvfrom");
-                        //exit(1);
-                    return;
-                    }
-
-                    
-                    if ( stunlib_isStunMsg(buf, numbytes, &isMsSTUN) ){
-                        StunMessage msg;
-
-
-                        stunlib_DecodeMessage(buf,
-                                              numbytes,
-                                              &msg,
-                                              NULL,
-                                              false,
-                                              false);
-
-
-
-                        TurnClient_HandleIncResp(TEST_THREAD_CTX,
-                                                 config->socketConfig[i].stunCtx,
-                                                 &msg,
-                                                 buf);
-                    }
-                    
-                }
-            }
-            
-        }
-        
-    }
-    
-}
 
 
