@@ -51,6 +51,21 @@ static void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData)
         turnResult->turnPerm.ok = true;
         
         turnResult->update_turninfo();
+
+    }else if (retData->turnResult == TurnResult_RelayReleaseComplete){
+        
+        turnResult->stunCtx = -1;
+        
+        memset(&turnResult->activeTurnServerAddr, 0,sizeof(struct sockaddr_storage));
+        //memset(&turnResult->hostAddr, 0,sizeof(struct sockaddr_storage));
+        memset(&turnResult->rflxAddr, 0,sizeof(struct sockaddr_storage));
+        memset(&turnResult->relAddr, 0,sizeof(struct sockaddr_storage));
+        memset(&turnResult->turnPerm, 0,sizeof(struct turn_permissions));
+        
+        update_turninfo = NULL;
+
+        turnResult->update_turninfo();
+
     }
     
 }

@@ -18,16 +18,20 @@ static void *tickTurn(void *ptr);
 
 
 char *choices[] = { 
-			"Gather All",
-			"Send Permissions",
-			"Send Message",
-                        "Exit",
-		  };
+    "Gather All",
+    "Send Permissions",
+    "Send Message",
+    "Release",
+    "Exit",
+};
+
 int n_choices = sizeof(choices) / sizeof(char *);
 void print_menu(WINDOW *menu_win, int highlight);
 void print_input(WINDOW *input_win);
 void print_input_status(char *message);
 void print_status(WINDOW *status_win, struct turn_info *turnInfo);
+void releaseAll(struct turn_info *turnInfo);
+
 
 static struct turn_info turnInfo;
 static WINDOW *status_win;
@@ -134,7 +138,7 @@ int main(int argc, char *argv[])
         print_menu(menu_win, highlight);
         print_input(input_win);
         if(choice != 0){	/* User did a choice come out of the infinite loop */
-            if(choice == 4){
+            if(choice == 5){
                 break;
             }
             switch(choice){
@@ -163,6 +167,8 @@ int main(int argc, char *argv[])
                 wgetstr(input_win, message_dst);
                 noecho();
                 sendMessage(&turnInfo, message_dst, message);
+            case 4:
+                releaseAll(&turnInfo);
                 
             }
         }
@@ -171,12 +177,45 @@ int main(int argc, char *argv[])
 	
     }	
     mvprintw(23, 0, "You chose choice %d with choice string %s\n", choice, choices[choice - 1]);
+
+
+
     clrtoeol();
     refresh();
     endwin();
+
+    close(turnInfo.turnAlloc_44.sockfd);
+    close(turnInfo.turnAlloc_46.sockfd);
+    close(turnInfo.turnAlloc_64.sockfd);
+    close(turnInfo.turnAlloc_66.sockfd);
     return 0;
 }
 
+
+void releaseAll(struct turn_info *turnInfo)
+{
+    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_44.relAddr)){
+
+        TurnClient_Deallocate(TEST_THREAD_CTX, turnInfo->turnAlloc_44.stunCtx);
+    }
+
+    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_46.relAddr)){
+
+        TurnClient_Deallocate(TEST_THREAD_CTX, turnInfo->turnAlloc_46.stunCtx);
+    }
+
+    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_64.relAddr)){
+
+        TurnClient_Deallocate(TEST_THREAD_CTX, turnInfo->turnAlloc_64.stunCtx);
+    }
+    
+    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_66.relAddr)){
+
+        TurnClient_Deallocate(TEST_THREAD_CTX, turnInfo->turnAlloc_66.stunCtx);
+    }
+
+
+}
 
 void print_status(WINDOW *status_win, struct turn_info *turnInfo)
 {
