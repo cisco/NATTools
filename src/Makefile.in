@@ -49,7 +49,8 @@ am_testice_OBJECTS = ice.$(OBJEXT)
 testice_OBJECTS = $(am_testice_OBJECTS)
 testice_LDADD = $(LDADD)
 am_testturn_OBJECTS = testturn.$(OBJEXT) gather.$(OBJEXT) \
-	turninfo.$(OBJEXT) permissions.$(OBJEXT) iphelper.$(OBJEXT)
+	turninfo.$(OBJEXT) permissions.$(OBJEXT) iphelper.$(OBJEXT) \
+	view.$(OBJEXT)
 testturn_OBJECTS = $(am_testturn_OBJECTS)
 testturn_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
@@ -152,7 +153,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I../include
-testturn_SOURCES = testturn.c gather.c turninfo.c permissions.c iphelper.c
+testturn_SOURCES = testturn.c gather.c turninfo.c permissions.c iphelper.c view.c
 testice_SOURCES = ice.c
 all: all-am
 
@@ -244,6 +245,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/permissions.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testturn.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/turninfo.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/view.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

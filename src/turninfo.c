@@ -8,6 +8,23 @@
 
 
 
+void initTurnInfo(struct turn_info *turnInfo)
+{
+
+    memset(turnInfo, 0, sizeof( struct turn_info));
+
+}
+
+void addCredentials(struct turn_info *turnInfo, char *fqdn, char *user, char *pass)
+{
+    
+    strncpy(turnInfo->fqdn, fqdn, FQDN_MAX_LEN);
+    strncpy(turnInfo->user, user, STUN_MSG_MAX_USERNAME_LENGTH);
+    strncpy(turnInfo->pass, pass, STUN_MSG_MAX_PASSWORD_LENGTH);
+    
+
+}
+
 #if 0
 void printAllocationResult(struct turn_allocation_result *result)
 {

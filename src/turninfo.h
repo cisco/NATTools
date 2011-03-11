@@ -60,6 +60,9 @@ struct turn_info{
     
 };
 
+void initTurnInfo(struct turn_info *turnInfo);
+
+void addCredentials(struct turn_info *turnInfod, char *fqdn, char *user, char *pass);
 
 void printAllocationResult(struct turn_allocation_result *result);
 void printTurnInfo( struct turn_info *turnInfo );

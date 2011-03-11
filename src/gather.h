@@ -14,6 +14,7 @@
 
 #include "turninfo.h"
 #include "iphelper.h"
+#include "view.h"
 
 static const uint32_t TEST_THREAD_CTX = 1;
 
