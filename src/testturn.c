@@ -20,8 +20,11 @@ static pthread_t turnListenThread;
 
 static char permission_ip[1000];
 static char message[100];
+static char rcv_message[100];
 static char message_dst[50];
 static int highlight = 1;    
+
+
 
 
 void update_turnInfo(){
@@ -35,6 +38,17 @@ void init_view();
 void cleanup();
 void doChoice(int choice);
 
+
+void messageCB(char *message)
+{
+    int n = sizeof(rcv_message);
+    strncpy(rcv_message, message, n);
+    if (n > 0)
+        rcv_message[n - 1]= '\0';
+    
+    print_message(message_win, rcv_message);
+
+}
 
 int main(int argc, char *argv[])
 {	
@@ -54,7 +68,7 @@ int main(int argc, char *argv[])
     initTurnInfo(&turnInfo);
     addCredentials(&turnInfo, argv[2], argv[3], argv[4]);
     
-    listenConfig.update_inc_status = print_input_status;
+    listenConfig.update_inc_status = messageCB;
 
     getRemoteTurnServerIp(&turnInfo, argv[2]);
     
@@ -158,6 +172,9 @@ void init_view()
     int start_input_x = 0;
     int start_input_y = 0;
     
+    int start_message_x = 0;
+    int start_message_y = 0;
+    
 
 
 
@@ -174,15 +191,22 @@ void init_view()
     menu_win = newwin(HEIGHT, max_x, start_menu_y, start_menu_x);
     keypad(menu_win, TRUE);
     
+    
     start_input_x = 0;
     start_input_y = start_menu_y - 3;
     input_win = newwin(3, max_x, start_input_y, start_input_x);
     
+    start_message_x = 0;
+    start_message_y = start_input_y - 3;
+    message_win = newwin(3, max_x, start_message_y, start_message_x);
     
-    status_win = newwin(start_input_y-1, max_x, 0, 0);
+
+
+    status_win = newwin(start_message_y-1, max_x, 0, 0);
     
     print_menu(menu_win, 1);
     print_input(input_win);
+    print_message(message_win, " ");
 
     //print_status(status_win, &turnInfo);
 }
@@ -209,7 +233,7 @@ void doChoice(int choice)
         break;
         
     case 2:
-        mvwprintw(input_win,1, 1, "Enter Ip adresses: ");
+        mvwprintw(input_win,1, 1, "Enter Ip adresses (enter for rflx): ");
         wrefresh(input_win);
         echo();
         wgetstr(input_win, permission_ip);

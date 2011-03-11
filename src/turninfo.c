@@ -234,6 +234,35 @@ void wprintTurnInfow( WINDOW *win, struct turn_info *turnInfo )
 }
 
 
+char * getRflxAddrAsString(char *string, struct turn_info *turnInfo)
+{
+    //string must be big enough. Not our problem.. :-)
+    char addr[SOCKADDR_MAX_STRLEN];
+
+    string[0] = '\0';
+
+    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_44.rflxAddr)){
+        sockaddr_toString((struct sockaddr *)&turnInfo->turnAlloc_44.rflxAddr,
+                          addr,
+                          sizeof(addr),
+                          true);
+        strcat(string, addr);
+        strcat(string, " ");
+    }
+
+    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_66.rflxAddr)){
+        sockaddr_toString((struct sockaddr *)&turnInfo->turnAlloc_66.rflxAddr,
+                          addr,
+                          sizeof(addr),
+                          true);
+        strcat(string, addr);
+        strcat(string, " ");
+    }
+        
+    return string;
+}
+
+
 void fillPermissions(struct turn_info *turnInfo, char *string)
 {
     int n;
@@ -242,6 +271,16 @@ void fillPermissions(struct turn_info *turnInfo, char *string)
     struct sockaddr_storage addr;
     bool moreAddr = true;
     char *idx;
+
+    if( string[0] == '\0') {
+        //We fill it with reflexive adresses
+        //Makes it easy to test with netcat from the same machine
+        getRflxAddrAsString(string, turnInfo);
+                    
+
+
+    }
+
 
     while(moreAddr)
     {

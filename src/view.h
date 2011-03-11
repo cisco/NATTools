@@ -25,7 +25,7 @@ static int n_choices = sizeof(choices) / sizeof(char *);
 
 void print_menu(WINDOW *menu_win, int highlight);
 void print_input(WINDOW *input_win);
-void print_input_status(char *message);
+void print_message(WINDOW *input_win, char *message);
 void print_status(WINDOW *status_win, struct turn_info *turnInfo);
 void releaseAll(struct turn_info *turnInfo);
 
@@ -34,5 +34,6 @@ void releaseAll(struct turn_info *turnInfo);
 static WINDOW *status_win;
 static WINDOW *input_win;
 static WINDOW *menu_win;
+static WINDOW *message_win;
 
 #endif

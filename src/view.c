@@ -51,11 +51,14 @@ void print_menu(WINDOW *menu_win, int highlight)
 	wrefresh(menu_win);
 }
 
-void print_input_status(char *message)
+void print_message(WINDOW *message_win, char *message)
 {
-    werase(input_win);
-    box(input_win, 0, 0);
-    mvwprintw(input_win, 1, 1, "%s", message);
-    wrefresh(input_win);
+    
+    box(message_win, 0, 0);
+    mvwprintw(message_win, 0, 2, "Incomming Messages");
+    mvwprintw(message_win, 1, 1, "%s", message);
+    wrefresh(message_win);
+    
+    
 
 }

@@ -340,6 +340,8 @@ void *stunListen(void *ptr){
                             if (msg.hasData){
                                 buf[numbytes] = '\0';
                                 //config->update_inc_status(msg.data.pData);
+
+                                
                                 config->update_inc_status(&buf[msg.data.offset]);
 
                             }
