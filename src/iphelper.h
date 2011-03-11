@@ -63,4 +63,6 @@ void *stunListen(void *ptr);
 
 int sendKeepalive(struct turn_info *turnInfo);
 
+void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData);
+
 #endif

@@ -26,49 +26,6 @@
 
 
 
-static void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData)
-{
-    
-    struct turn_allocation_result *turnResult = (struct turn_allocation_result *)ctx;
-
-    
-    if ( retData->turnResult == TurnResult_AllocOk ){
-
-        sockaddr_copy((struct sockaddr *)&turnResult->activeTurnServerAddr, 
-                      (struct sockaddr *)&retData->TurnResultData.AllocResp.activeTurnServerAddr);
-
-        
-        sockaddr_copy((struct sockaddr *)&turnResult->rflxAddr, 
-                      (struct sockaddr *)&retData->TurnResultData.AllocResp.rflxAddr);
-
-        sockaddr_copy((struct sockaddr *)&turnResult->relAddr, 
-                      (struct sockaddr *)&retData->TurnResultData.AllocResp.relAddr);
-
-        turnResult->update_turninfo();
-
-    }else if (retData->turnResult == TurnResult_CreatePermissionOk) {
-        
-        turnResult->turnPerm.ok = true;
-        
-        turnResult->update_turninfo();
-
-    }else if (retData->turnResult == TurnResult_RelayReleaseComplete){
-        
-        turnResult->stunCtx = -1;
-        
-        memset(&turnResult->activeTurnServerAddr, 0,sizeof(struct sockaddr_storage));
-        //memset(&turnResult->hostAddr, 0,sizeof(struct sockaddr_storage));
-        memset(&turnResult->rflxAddr, 0,sizeof(struct sockaddr_storage));
-        memset(&turnResult->relAddr, 0,sizeof(struct sockaddr_storage));
-        memset(&turnResult->turnPerm, 0,sizeof(struct turn_permissions));
-        
-        update_turninfo = NULL;
-
-        turnResult->update_turninfo();
-
-    }
-    
-}
 
 int gather(struct sockaddr *host_addr, 
            int requestedFamily, 

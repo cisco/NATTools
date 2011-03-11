@@ -21,11 +21,13 @@ static pthread_t turnListenThread;
 static char permission_ip[800];
 static char message[100];
 static char message_dst[50];
-    
+static int highlight = 1;    
 
 
 void update_turnInfo(){
     print_status(status_win, &turnInfo);
+    print_menu(menu_win, highlight);
+    print_input(input_win);
 }
 
 
@@ -36,7 +38,7 @@ void doChoice(int choice);
 
 int main(int argc, char *argv[])
 {	
-    int highlight = 1;
+
     int choice = 0;
     int c;
     
