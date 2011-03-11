@@ -272,8 +272,8 @@ char * getDefaultAddrAsString(char *string, struct turn_info *turnInfo)
 
 
 
-    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_66.rflxAddr)){
-        sockaddr_toString((struct sockaddr *)&turnInfo->turnAlloc_66.rflxAddr,
+    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_66.hostAddr)){
+        sockaddr_toString((struct sockaddr *)&turnInfo->turnAlloc_66.hostAddr,
                           addr,
                           sizeof(addr),
                           true);
