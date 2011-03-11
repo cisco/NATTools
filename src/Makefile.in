@@ -45,12 +45,11 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_testice_OBJECTS = ice.$(OBJEXT) gather.$(OBJEXT) turninfo.$(OBJEXT) \
-	permissions.$(OBJEXT) ipaddress_helper.$(OBJEXT)
+am_testice_OBJECTS = ice.$(OBJEXT)
 testice_OBJECTS = $(am_testice_OBJECTS)
 testice_LDADD = $(LDADD)
-am_testturn_OBJECTS = turn.$(OBJEXT) gather.$(OBJEXT) \
-	turninfo.$(OBJEXT) ipaddress_helper.$(OBJEXT)
+am_testturn_OBJECTS = testturn.$(OBJEXT) gather.$(OBJEXT) \
+	turninfo.$(OBJEXT) permissions.$(OBJEXT) iphelper.$(OBJEXT)
 testturn_OBJECTS = $(am_testturn_OBJECTS)
 testturn_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
@@ -153,8 +152,8 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I../include
-testturn_SOURCES = turn.c gather.c turninfo.c ipaddress_helper.c
-testice_SOURCES = ice.c gather.c turninfo.c permissions.c ipaddress_helper.c
+testturn_SOURCES = testturn.c gather.c turninfo.c permissions.c iphelper.c
+testice_SOURCES = ice.c
 all: all-am
 
 .SUFFIXES:
@@ -241,9 +240,9 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gather.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ice.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ipaddress_helper.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/iphelper.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/permissions.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/turn.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testturn.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/turninfo.Po@am__quote@
 
 .c.o:

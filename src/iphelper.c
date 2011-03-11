@@ -6,7 +6,7 @@
 
 #include "gather.h"
 
-#include "ipaddress_helper.h"
+#include "iphelper.h"
 
 int getRemoteTurnServerIp(struct turn_info *turnInfo, char *fqdn)
 {

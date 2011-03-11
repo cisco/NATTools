@@ -2,6 +2,6 @@ bin_PROGRAMS = testturn testice
 
 AM_CPPFLAGS = -I../include
 
-testturn_SOURCES = turn.c gather.c turninfo.c ipaddress_helper.c
+testturn_SOURCES = testturn.c gather.c turninfo.c permissions.c iphelper.c
 
-testice_SOURCES = ice.c gather.c turninfo.c permissions.c ipaddress_helper.c
+testice_SOURCES = ice.c

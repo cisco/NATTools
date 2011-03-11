@@ -13,7 +13,7 @@
 #include <turnclient.h>
 
 #include "turninfo.h"
-#include "ipaddress_helper.h"
+#include "iphelper.h"
 
 static const uint32_t TEST_THREAD_CTX = 1;
 
