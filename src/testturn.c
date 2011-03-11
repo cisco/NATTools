@@ -18,7 +18,7 @@ static struct turn_info turnInfo;
 static struct listenConfig listenConfig;
 static pthread_t turnListenThread;
 
-static char permission_ip[800];
+static char permission_ip[1000];
 static char message[100];
 static char message_dst[50];
 static int highlight = 1;    
