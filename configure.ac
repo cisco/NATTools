@@ -3,7 +3,7 @@
 
 AC_PREREQ([2.61])
 AC_INIT([testice], [0.1], [palmarti@cisco.com])
-AC_CONFIG_SRCDIR([src/turn.c])
+AC_CONFIG_SRCDIR([src/testturn.c])
 AC_CONFIG_HEADERS([config.h])
 
 AC_CONFIG_AUX_DIR([build-aux])

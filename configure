@@ -557,7 +557,7 @@ PACKAGE_STRING='testice 0.1'
 PACKAGE_BUGREPORT='palmarti@cisco.com'
 PACKAGE_URL=''
 
-ac_unique_file="src/turn.c"
+ac_unique_file="src/testturn.c"
 # Factoring default headers for most tests.
 ac_includes_default="\
 #include <stdio.h>
