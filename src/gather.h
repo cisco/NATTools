@@ -29,16 +29,17 @@ void (*update_turninfo)(void);
 
 
 
-int gather(struct sockaddr *host_addr, 
-           int requestedFamily, 
-           char *user, 
+int gather(struct sockaddr *host_addr,
+           int requestedFamily,
+           char *user,
            char *pass,
            struct turn_allocation_result *turnresult);
 
 
 void gatherAll(struct turn_info *turnInfo, struct listenConfig *listenConfig, void(*update_turninfo)(void));
-//void gatherAll(struct turn_info *turnInfo, struct listenConfig *listenConfig);
 
-void *stunListen(void *ptr);
+void releaseAll(struct turn_info *turnInfo);
+
+
 
 #endif

@@ -1,4 +1,3 @@
-
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,16 +26,16 @@
 
 
 
-int gather(struct sockaddr *host_addr, 
-           int requestedFamily, 
-           char *user, 
+int gather(struct sockaddr *host_addr,
+           int requestedFamily,
+           char *user,
            char *pass,
            struct turn_allocation_result *turnResult){
-    
+
     int stunCtx;
     //TurnCallBackData_T TurnCbData;
-    
-    
+
+
     stunCtx = TurnClient_startAllocateTransaction(TEST_THREAD_CTX,
                                                   turnResult,
                                                   host_addr,
@@ -52,7 +51,7 @@ int gather(struct sockaddr *host_addr,
     turnResult->stunCtx = stunCtx;
 
     return stunCtx;
-            
+
 }
 
 
@@ -66,9 +65,9 @@ void gatherAll(struct turn_info *turnInfo, struct listenConfig *listenConfig, vo
         sockaddr_isSet((struct sockaddr *)&turnInfo->remoteIp4) )
     {
         turnInfo->turnAlloc_44.update_turninfo = update_turninfo;
-        stunCtx = gather((struct sockaddr *)&turnInfo->remoteIp4, 
-                         AF_INET, 
-                         turnInfo->user, 
+        stunCtx = gather((struct sockaddr *)&turnInfo->remoteIp4,
+                         AF_INET,
+                         turnInfo->user,
                          turnInfo->pass,
                          &turnInfo->turnAlloc_44);
         listenConfig->socketConfig[idx].stunCtx = stunCtx;
@@ -76,11 +75,11 @@ void gatherAll(struct turn_info *turnInfo, struct listenConfig *listenConfig, vo
         listenConfig->socketConfig[idx].user = turnInfo->user;
         listenConfig->socketConfig[idx].pass = turnInfo->pass;
         idx++;
-        
+
         turnInfo->turnAlloc_46.update_turninfo = update_turninfo;
-        stunCtx = gather((struct sockaddr *)&turnInfo->remoteIp4, 
-                         AF_INET6, 
-                         turnInfo->user, 
+        stunCtx = gather((struct sockaddr *)&turnInfo->remoteIp4,
+                         AF_INET6,
+                         turnInfo->user,
                          turnInfo->pass,
                          &turnInfo->turnAlloc_46);
         listenConfig->socketConfig[idx].stunCtx = stunCtx;
@@ -89,15 +88,15 @@ void gatherAll(struct turn_info *turnInfo, struct listenConfig *listenConfig, vo
         listenConfig->socketConfig[idx].pass = turnInfo->pass;
         idx++;
     }
-    
+
     if( sockaddr_isSet((struct sockaddr *)&turnInfo->localIp6) &&
         sockaddr_isSet((struct sockaddr *)&turnInfo->remoteIp6) )
     {
 
         turnInfo->turnAlloc_64.update_turninfo = update_turninfo;
-        stunCtx = gather((struct sockaddr *)&turnInfo->remoteIp6, 
-                         AF_INET, 
-                         turnInfo->user, 
+        stunCtx = gather((struct sockaddr *)&turnInfo->remoteIp6,
+                         AF_INET,
+                         turnInfo->user,
                          turnInfo->pass,
                          &turnInfo->turnAlloc_64);
         listenConfig->socketConfig[idx].stunCtx = stunCtx;
@@ -107,9 +106,9 @@ void gatherAll(struct turn_info *turnInfo, struct listenConfig *listenConfig, vo
         idx++;
 
         turnInfo->turnAlloc_66.update_turninfo = update_turninfo;
-        stunCtx = gather((struct sockaddr *)&turnInfo->remoteIp6, 
-                         AF_INET6, 
-                         turnInfo->user, 
+        stunCtx = gather((struct sockaddr *)&turnInfo->remoteIp6,
+                         AF_INET6,
+                         turnInfo->user,
                          turnInfo->pass,
                          &turnInfo->turnAlloc_66);
         listenConfig->socketConfig[idx].stunCtx = stunCtx;
@@ -119,9 +118,33 @@ void gatherAll(struct turn_info *turnInfo, struct listenConfig *listenConfig, vo
         idx++;
 
     }
-    
+
     listenConfig->numSockets = idx;
 }
 
 
 
+void releaseAll(struct turn_info *turnInfo)
+{
+    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_44.relAddr)){
+
+        TurnClient_Deallocate(TEST_THREAD_CTX, turnInfo->turnAlloc_44.stunCtx);
+    }
+
+    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_46.relAddr)){
+
+        TurnClient_Deallocate(TEST_THREAD_CTX, turnInfo->turnAlloc_46.stunCtx);
+    }
+
+    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_64.relAddr)){
+
+        TurnClient_Deallocate(TEST_THREAD_CTX, turnInfo->turnAlloc_64.stunCtx);
+    }
+
+    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_66.relAddr)){
+
+        TurnClient_Deallocate(TEST_THREAD_CTX, turnInfo->turnAlloc_66.stunCtx);
+    }
+
+
+}
