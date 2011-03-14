@@ -4,7 +4,7 @@
 
 #include <string.h>
 #include <time.h>
-
+#include <pthread.h>
 
 #include "iphelper.h"
 #include "gather.h"
@@ -25,10 +25,12 @@ static char message_dst[50];
 static int highlight = 1;    
 
 
-
+pthread_mutex_t turnInfo_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void update_turnInfo(){
+    pthread_mutex_lock( &turnInfo_mutex );
     print_status(status_win, &turnInfo);
+    pthread_mutex_unlock( &turnInfo_mutex );
     print_menu(menu_win, highlight);
     print_input(input_win);
 }
