@@ -14,6 +14,7 @@
 # PARTICULAR PURPOSE.
 
 @SET_MAKE@
+
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
@@ -33,10 +34,11 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-TESTS = check_sockaddrutil$(EXEEXT)
-check_PROGRAMS = check_sockaddrutil$(EXEEXT)
+@CHECK_TRUE@TESTS = check_sockaddrutil$(EXEEXT)
+@CHECK_TRUE@check_PROGRAMS = check_sockaddrutil$(EXEEXT)
 subdir = test
-DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
+DIST_COMMON = $(am__include_HEADERS_DIST) $(srcdir)/Makefile.am \
+	$(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
 	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
@@ -48,16 +50,15 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am_check_sockaddrutil_OBJECTS =  \
-	check_sockaddrutil-sockaddr_test.$(OBJEXT) \
-	check_sockaddrutil-testmain.$(OBJEXT)
+am__check_sockaddrutil_SOURCES_DIST = sockaddr_test.c testmain.c \
+	../src/sockaddr_util.c
+@CHECK_TRUE@am_check_sockaddrutil_OBJECTS = sockaddr_test.$(OBJEXT) \
+@CHECK_TRUE@	testmain.$(OBJEXT) sockaddr_util.$(OBJEXT)
 check_sockaddrutil_OBJECTS = $(am_check_sockaddrutil_OBJECTS)
-check_sockaddrutil_DEPENDENCIES =  \
-	$(top_builddir)/src/libsockaddrutil.la
+check_sockaddrutil_LDADD = $(LDADD)
 check_sockaddrutil_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) \
-	$(check_sockaddrutil_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
-	$(LDFLAGS) -o $@
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(check_sockaddrutil_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
@@ -72,7 +73,31 @@ LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
 SOURCES = $(check_sockaddrutil_SOURCES)
-DIST_SOURCES = $(check_sockaddrutil_SOURCES)
+DIST_SOURCES = $(am__check_sockaddrutil_SOURCES_DIST)
+am__include_HEADERS_DIST = ../include/sockaddr_util.h
+am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
+am__vpath_adj = case $$p in \
+    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
+    *) f=$$p;; \
+  esac;
+am__strip_dir = f=`echo $$p | sed -e 's|^.*/||'`;
+am__install_max = 40
+am__nobase_strip_setup = \
+  srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`
+am__nobase_strip = \
+  for p in $$list; do echo "$$p"; done | sed -e "s|$$srcdirstrip/||"
+am__nobase_list = $(am__nobase_strip_setup); \
+  for p in $$list; do echo "$$p $$p"; done | \
+  sed "s| $$srcdirstrip/| |;"' / .*\//!s/ .*/ ./; s,\( .*\)/[^/]*$$,\1,' | \
+  $(AWK) 'BEGIN { files["."] = "" } { files[$$2] = files[$$2] " " $$1; \
+    if (++n[$$2] == $(am__install_max)) \
+      { print $$2, files[$$2]; n[$$2] = 0; files[$$2] = "" } } \
+    END { for (dir in files) print dir, files[dir] }'
+am__base_list = \
+  sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
+  sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
+am__installdirs = "$(DESTDIR)$(includedir)"
+HEADERS = $(include_HEADERS)
 ETAGS = etags
 CTAGS = ctags
 am__tty_colors = \
@@ -88,8 +113,6 @@ AWK = @AWK@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
-CHECK_CFLAGS = @CHECK_CFLAGS@
-CHECK_LIBS = @CHECK_LIBS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CYGPATH_W = @CYGPATH_W@
@@ -112,6 +135,7 @@ INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
+LIBCHECK = @LIBCHECK@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
 LIBTOOL = @LIBTOOL@
@@ -193,10 +217,12 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-AM_CPPFLAGS = -I../include
-check_sockaddrutil_SOURCES = sockaddr_test.c testmain.c
-check_sockaddrutil_CFLAGS = @CHECK_CFLAGS@
-check_sockaddrutil_LDADD = $(top_builddir)/src/libsockaddrutil.la @CHECK_LIBS@
+@CHECK_TRUE@check_sockaddrutil_SOURCES = sockaddr_test.c testmain.c ../src/sockaddr_util.c
+@CHECK_TRUE@@GCOV_FALSE@AM_CPPFLAGS = -I../include
+@CHECK_TRUE@@GCOV_TRUE@AM_CPPFLAGS = -I../include -fprofile-arcs -ftest-coverage
+@CHECK_TRUE@@GCOV_FALSE@check_sockaddrutil_LDFLAGS = -lcheck
+@CHECK_TRUE@@GCOV_TRUE@check_sockaddrutil_LDFLAGS = -lcheck -lgcov
+@CHECK_TRUE@include_HEADERS = ../include/sockaddr_util.h
 all: all-am
 
 .SUFFIXES:
@@ -250,8 +276,9 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_sockaddrutil-sockaddr_test.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_sockaddrutil-testmain.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sockaddr_test.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sockaddr_util.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testmain.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -274,39 +301,45 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
 
-check_sockaddrutil-sockaddr_test.o: sockaddr_test.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_sockaddrutil_CFLAGS) $(CFLAGS) -MT check_sockaddrutil-sockaddr_test.o -MD -MP -MF $(DEPDIR)/check_sockaddrutil-sockaddr_test.Tpo -c -o check_sockaddrutil-sockaddr_test.o `test -f 'sockaddr_test.c' || echo '$(srcdir)/'`sockaddr_test.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_sockaddrutil-sockaddr_test.Tpo $(DEPDIR)/check_sockaddrutil-sockaddr_test.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sockaddr_test.c' object='check_sockaddrutil-sockaddr_test.o' libtool=no @AMDEPBACKSLASH@
+sockaddr_util.o: ../src/sockaddr_util.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sockaddr_util.o -MD -MP -MF $(DEPDIR)/sockaddr_util.Tpo -c -o sockaddr_util.o `test -f '../src/sockaddr_util.c' || echo '$(srcdir)/'`../src/sockaddr_util.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/sockaddr_util.Tpo $(DEPDIR)/sockaddr_util.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../src/sockaddr_util.c' object='sockaddr_util.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_sockaddrutil_CFLAGS) $(CFLAGS) -c -o check_sockaddrutil-sockaddr_test.o `test -f 'sockaddr_test.c' || echo '$(srcdir)/'`sockaddr_test.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sockaddr_util.o `test -f '../src/sockaddr_util.c' || echo '$(srcdir)/'`../src/sockaddr_util.c
 
-check_sockaddrutil-sockaddr_test.obj: sockaddr_test.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_sockaddrutil_CFLAGS) $(CFLAGS) -MT check_sockaddrutil-sockaddr_test.obj -MD -MP -MF $(DEPDIR)/check_sockaddrutil-sockaddr_test.Tpo -c -o check_sockaddrutil-sockaddr_test.obj `if test -f 'sockaddr_test.c'; then $(CYGPATH_W) 'sockaddr_test.c'; else $(CYGPATH_W) '$(srcdir)/sockaddr_test.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_sockaddrutil-sockaddr_test.Tpo $(DEPDIR)/check_sockaddrutil-sockaddr_test.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sockaddr_test.c' object='check_sockaddrutil-sockaddr_test.obj' libtool=no @AMDEPBACKSLASH@
+sockaddr_util.obj: ../src/sockaddr_util.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sockaddr_util.obj -MD -MP -MF $(DEPDIR)/sockaddr_util.Tpo -c -o sockaddr_util.obj `if test -f '../src/sockaddr_util.c'; then $(CYGPATH_W) '../src/sockaddr_util.c'; else $(CYGPATH_W) '$(srcdir)/../src/sockaddr_util.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/sockaddr_util.Tpo $(DEPDIR)/sockaddr_util.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../src/sockaddr_util.c' object='sockaddr_util.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_sockaddrutil_CFLAGS) $(CFLAGS) -c -o check_sockaddrutil-sockaddr_test.obj `if test -f 'sockaddr_test.c'; then $(CYGPATH_W) 'sockaddr_test.c'; else $(CYGPATH_W) '$(srcdir)/sockaddr_test.c'; fi`
-
-check_sockaddrutil-testmain.o: testmain.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_sockaddrutil_CFLAGS) $(CFLAGS) -MT check_sockaddrutil-testmain.o -MD -MP -MF $(DEPDIR)/check_sockaddrutil-testmain.Tpo -c -o check_sockaddrutil-testmain.o `test -f 'testmain.c' || echo '$(srcdir)/'`testmain.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_sockaddrutil-testmain.Tpo $(DEPDIR)/check_sockaddrutil-testmain.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='testmain.c' object='check_sockaddrutil-testmain.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_sockaddrutil_CFLAGS) $(CFLAGS) -c -o check_sockaddrutil-testmain.o `test -f 'testmain.c' || echo '$(srcdir)/'`testmain.c
-
-check_sockaddrutil-testmain.obj: testmain.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_sockaddrutil_CFLAGS) $(CFLAGS) -MT check_sockaddrutil-testmain.obj -MD -MP -MF $(DEPDIR)/check_sockaddrutil-testmain.Tpo -c -o check_sockaddrutil-testmain.obj `if test -f 'testmain.c'; then $(CYGPATH_W) 'testmain.c'; else $(CYGPATH_W) '$(srcdir)/testmain.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_sockaddrutil-testmain.Tpo $(DEPDIR)/check_sockaddrutil-testmain.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='testmain.c' object='check_sockaddrutil-testmain.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_sockaddrutil_CFLAGS) $(CFLAGS) -c -o check_sockaddrutil-testmain.obj `if test -f 'testmain.c'; then $(CYGPATH_W) 'testmain.c'; else $(CYGPATH_W) '$(srcdir)/testmain.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sockaddr_util.obj `if test -f '../src/sockaddr_util.c'; then $(CYGPATH_W) '../src/sockaddr_util.c'; else $(CYGPATH_W) '$(srcdir)/../src/sockaddr_util.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
 
 clean-libtool:
 	-rm -rf .libs _libs
+install-includeHEADERS: $(include_HEADERS)
+	@$(NORMAL_INSTALL)
+	test -z "$(includedir)" || $(MKDIR_P) "$(DESTDIR)$(includedir)"
+	@list='$(include_HEADERS)'; test -n "$(includedir)" || list=; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_HEADER) $$files '$(DESTDIR)$(includedir)'"; \
+	  $(INSTALL_HEADER) $$files "$(DESTDIR)$(includedir)" || exit $$?; \
+	done
+
+uninstall-includeHEADERS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(include_HEADERS)'; test -n "$(includedir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	test -n "$$files" || exit 0; \
+	echo " ( cd '$(DESTDIR)$(includedir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(includedir)" && rm -f $$files
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
@@ -500,8 +533,11 @@ check-am: all-am
 	$(MAKE) $(AM_MAKEFLAGS) $(check_PROGRAMS)
 	$(MAKE) $(AM_MAKEFLAGS) check-TESTS
 check: check-am
-all-am: Makefile
+all-am: Makefile $(HEADERS)
 installdirs:
+	for dir in "$(DESTDIR)$(includedir)"; do \
+	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
+	done
 install: install-am
 install-exec: install-exec-am
 install-data: install-data-am
@@ -534,7 +570,7 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-checkPROGRAMS clean-generic clean-libtool \
+clean-am: clean-checkPROGRAMS clean-generic clean-libtool clean-local \
 	mostlyclean-am
 
 distclean: distclean-am
@@ -555,7 +591,7 @@ info: info-am
 
 info-am:
 
-install-data-am:
+install-data-am: install-includeHEADERS
 
 install-dvi: install-dvi-am
 
@@ -601,24 +637,28 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am:
+uninstall-am: uninstall-includeHEADERS
 
 .MAKE: check-am install-am install-strip
 
 .PHONY: CTAGS GTAGS all all-am check check-TESTS check-am clean \
-	clean-checkPROGRAMS clean-generic clean-libtool cscopelist \
-	ctags distclean distclean-compile distclean-generic \
+	clean-checkPROGRAMS clean-generic clean-libtool clean-local \
+	cscopelist ctags distclean distclean-compile distclean-generic \
 	distclean-libtool distclean-tags distdir dvi dvi-am html \
 	html-am info info-am install install-am install-data \
 	install-data-am install-dvi install-dvi-am install-exec \
-	install-exec-am install-html install-html-am install-info \
-	install-info-am install-man install-pdf install-pdf-am \
-	install-ps install-ps-am install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags uninstall uninstall-am
+	install-exec-am install-html install-html-am \
+	install-includeHEADERS install-info install-info-am \
+	install-man install-pdf install-pdf-am install-ps \
+	install-ps-am install-strip installcheck installcheck-am \
+	installdirs maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-compile mostlyclean-generic \
+	mostlyclean-libtool pdf pdf-am ps ps-am tags uninstall \
+	uninstall-am uninstall-includeHEADERS
 
+
+clean-local:
+	rm *.g*
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
