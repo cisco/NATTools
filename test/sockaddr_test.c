@@ -151,6 +151,10 @@ START_TEST (test_sockaddr_int_IPv4_init)
 
     fail_unless( sockaddr_alike( (struct sockaddr *)&a_addr, (struct sockaddr *)&b_addr) );
 
+    fail_if(sockaddr_initFromIPv4String((struct sockaddr_in *)&b_addr, "158.38.48.10.45"));
+
+    fail_if(sockaddr_initFromIPv4String((struct sockaddr_in *)&b_addr, "158.38.48.10.45.45.67.87:4556"));
+
 
 
 }
@@ -161,6 +165,7 @@ START_TEST (test_sockaddr_int_IPv6_init)
 {
 
     char addr_str[256];
+    char addr_str_small[4];
     uint8_t a[16] = {0x20, 0x1, 0x4, 0x70, 0xdc, 0x88, 0x0, 0x2, 0x2, 0x26, 0x18, 0xff, 0xfe, 0x92, 0x6d, 0x53};
     uint16_t port = 4567;
     struct sockaddr_storage a_addr;
@@ -179,6 +184,12 @@ START_TEST (test_sockaddr_int_IPv6_init)
     fail_unless( sockaddr_alike( (struct sockaddr *)&a_addr, (struct sockaddr *)&b_addr) );
 
 
+    fail_if( sockaddr_initFromIPv6String((struct sockaddr_in6 *)&b_addr, "[2001:470:dc88:2:226:18ff:fe92:6d53"));
+
+    fail_if( sockaddr_initFromIPv6String((struct sockaddr_in6 *)&b_addr, "[2001:470:dc88:2:226:18ff:fe92:6d53:456]"));
+
+
+    fail_if( sockaddr_initFromIPv6String((struct sockaddr_in6 *)&b_addr, "2001:470:dc88:2:226:18ff:fe92:6d53:4567]:4567"));
 
 }
 END_TEST
@@ -335,12 +346,19 @@ END_TEST
 START_TEST (sockaddr_IPv4_isAny)
 {
 
+    struct sockaddr_storage addr;
+
+    addr.ss_family = 12;
+
     fail_unless( sockaddr_isAddrAny((struct sockaddr *)sockaddr_IPv4_any),
                  "isAny failed");
 
     fail_if( sockaddr_isAddrAny((struct sockaddr *)sockaddr_IPv4_1),
              "isAny failed");
 
+    fail_if( sockaddr_isAddrAny( (struct sockaddr *)&addr ));
+
+    
 
 
 }
@@ -364,6 +382,8 @@ END_TEST
 START_TEST (sockaddr_IPv4_toString)
 {
     char ipaddr[SOCKADDR_MAX_STRLEN];
+    char ipaddr_small[10];
+    struct sockaddr_storage ss;
 
     fail_unless( strncmp(ipv4_1_str,
                          sockaddr_toString((const struct sockaddr *)sockaddr_IPv4_1,
@@ -390,7 +410,21 @@ START_TEST (sockaddr_IPv4_toString)
                          SOCKADDR_MAX_STRLEN ) == 0 ,
                  "sockaddr toString failed ('%s'", ipaddr);
 
+    fail_if( strncmp(ipv4_any_str,
+                     sockaddr_toString((const struct sockaddr *)sockaddr_IPv4_any_2,
+                                       ipaddr_small,
+                                       10,
+                                       true),
+                     SOCKADDR_MAX_STRLEN ) == 0 ,
+             "sockaddr toString failed ('%s'", ipaddr);
 
+
+    ss.ss_family = 12;
+
+    fail_unless( NULL ==  sockaddr_toString((const struct sockaddr *)&ss,
+                                            ipaddr,
+                                            SOCKADDR_MAX_STRLEN,
+                                            true) );
 
 
 }
@@ -463,6 +497,21 @@ START_TEST (sockaddr_IPv6_copy)
 }
 END_TEST
 
+
+START_TEST (test_initFromString)
+{
+    struct sockaddr_storage ip;
+    
+    fail_if( sockaddr_initFromString( (struct sockaddr *)&ip, "" ));
+
+    fail_if( sockaddr_initFromString( (struct sockaddr *)&ip, "1.2.3.4.5" ));
+
+
+
+
+}
+END_TEST
+
 START_TEST (sockaddr_IPv4_setPort)
 {
     struct sockaddr_storage ip;
@@ -479,6 +528,8 @@ START_TEST (sockaddr_IPv4_setPort)
     fail_if( sockaddr_alike((struct sockaddr *)&ip,
                             (struct sockaddr *)sockaddr_IPv4_1),
                  "setPort failed");
+
+    
 
 
 }
@@ -511,10 +562,14 @@ END_TEST
 START_TEST (sockaddr_IPv4_loopback)
 {
     struct sockaddr_storage ip;
+    struct sockaddr_storage addr;
+    addr.ss_family = 12;
+
     sockaddr_initFromString( (struct sockaddr *)&ip, "127.0.0.1" );
 
     fail_unless( sockaddr_isAddrLoopBack( (struct sockaddr *)&ip ));
 
+    fail_if( sockaddr_isAddrLoopBack(  (struct sockaddr *)&addr ));
 
 
 }
@@ -536,13 +591,26 @@ END_TEST
 
 START_TEST (sockaddr_IPv6_linklocal)
 {
-    struct sockaddr_storage ip;
-    sockaddr_initFromString( (struct sockaddr *)&ip, "fe80::226:18ff:fe92:6d53" );
+    struct sockaddr_storage ip_link;
+    struct sockaddr_storage ip_4;
+    struct sockaddr_storage ip_6;
+    struct sockaddr_storage ip_wrong;
 
-    fail_unless( sockaddr_isAddrLinkLocal( (struct sockaddr *)&ip ));
+    sockaddr_initFromString( (struct sockaddr *)&ip_link, "fe80::226:18ff:fe92:6d53" );
+
+    sockaddr_initFromString( (struct sockaddr *)&ip_4, "1.2.3.4" );
+    sockaddr_initFromString( (struct sockaddr *)&ip_6, "2001:470:dc88:2:226:18ff:fe92:6d53" );
+
+    fail_unless( sockaddr_isAddrLinkLocal( (struct sockaddr *)&ip_link ));
 
 
+    fail_if( sockaddr_isAddrLinkLocal( (struct sockaddr *)&ip_4 ));
+    
+    fail_if( sockaddr_isAddrLinkLocal( (struct sockaddr *)&ip_6 ));
 
+
+    ip_wrong.ss_family = 12;
+    fail_if( sockaddr_isAddrLinkLocal( (struct sockaddr *)&ip_wrong ));
 }
 END_TEST
 
@@ -556,6 +624,7 @@ Suite * sockaddr_suite (void)
       tcase_add_test (tc_core, test_sockaddr_create);
       tcase_add_test (tc_core, test_sockaddr_int_IPv4_init);
       tcase_add_test (tc_core, test_sockaddr_int_IPv6_init);
+      tcase_add_test (tc_core, test_initFromString);
       suite_add_tcase (s, tc_core);
   }
 

@@ -37,8 +37,9 @@ bool sockaddr_initFromIPv6String(struct sockaddr_in6 *sa,
         const char * p = strchr(addr_str, ']');
         size_t len = p ? (size_t) (p - addr_str - 1): 0;
 
-        if (!p || len >= sizeof(tmp))
+        if (!p || len >= sizeof(tmp)){
             return false;
+        }
 
         memcpy(tmp, addr_str + 1, len);
         tmp[len] = '\0';
