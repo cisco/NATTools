@@ -20,5 +20,5 @@ include_HEADERS = ../include/sockaddr_util.h
 
 endif
 clean-local:
-	rm *.g*
+	rm -f *.g*
 
