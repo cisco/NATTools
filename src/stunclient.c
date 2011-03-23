@@ -1021,8 +1021,8 @@ static void  CommonRetryTimeoutHandler(STUN_INSTANCE_DATA *pInst, StunResult_T s
     }
     else
     {
-        char transid[STUN_MSG_ID_SIZE*2+3];
-        StunPrint(pInst->threadCtx, StunInfoCategory_Trace, "<STUNCLIENT:%02d> %s failed from %s to %s ('%s')",pInst->inst, errStr, pInst->stunBindReq.baseAddr, pInst->stunBindReq.serverAddr, stunlib_transactionIdtoStr( transid, pInst->stunBindReq.transactionId));
+        //char transid[STUN_MSG_ID_SIZE*2+3];
+        //StunPrint(pInst->threadCtx, StunInfoCategory_Trace, "<STUNCLIENT:%02d> %s failed from %s to %s ('%s')",pInst->inst, errStr, pInst->stunBindReq.baseAddr, pInst->stunBindReq.serverAddr, stunlib_transactionIdtoStr( transid, pInst->stunBindReq.transactionId));
         CallBack(pInst, stunResult);
         SetNextState(pInst, FailedState);
         StunClientStats.Failures++;
@@ -1121,8 +1121,8 @@ static void  StunAllState(STUN_INSTANCE_DATA *pInst, STUN_SIGNAL sig, uint8_t *p
     {
         default:
         {
-            char transid[STUN_MSG_ID_SIZE*2+3];
-            StunPrint(pInst->threadCtx, StunInfoCategory_Error, "<STUNCLIENT:%02d> undefned signal %s in state %d ('%s')", pInst->inst, StunsigToStr(sig), pInst->state, stunlib_transactionIdtoStr( transid, pInst->stunBindReq.transactionId) );
+            //char transid[STUN_MSG_ID_SIZE*2+3];
+            //StunPrint(pInst->threadCtx, StunInfoCategory_Error, "<STUNCLIENT:%02d> undefned signal %s in state %d ('%s')", pInst->inst, StunsigToStr(sig), pInst->state, stunlib_transactionIdtoStr( transid, pInst->stunBindReq.transactionId) );
         }
     }
 }

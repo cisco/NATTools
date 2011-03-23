@@ -897,6 +897,21 @@ START_TEST( channel_encode_decode )
 }
 END_TEST
 
+START_TEST (print)
+{
+
+    StunMessage stunMsg;
+    
+    fail_unless( stunlib_DecodeMessage( req,
+                                        108,
+                                        &stunMsg,
+                                        NULL,
+                                        stderr,
+                                        false ));
+
+}
+END_TEST
+
 
 Suite * stunlib_suite (void)
 {
@@ -937,6 +952,15 @@ Suite * stunlib_suite (void)
       tcase_add_test (tc_strAttr, string_username_encode_decode);
       suite_add_tcase (s, tc_strAttr);
   }
+
+  {
+      TCase *tc_print = tcase_create ("Print");
+      tcase_add_test (tc_print, print);
+      
+      suite_add_tcase (s, tc_print);
+  }
+
+
 
   return s;
 }

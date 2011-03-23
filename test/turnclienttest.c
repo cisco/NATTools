@@ -675,6 +675,8 @@ START_TEST( SendIndication )
     unsigned char stunBuf[200];
     char message[] = "Some useful data\0";
     int msg_len;
+    bool isMsSTUN;
+    StunMessage msg;
     
     
     sockaddr_initFromString((struct sockaddr *)&addr,
@@ -690,8 +692,152 @@ START_TEST( SendIndication )
                                               0);
     fail_unless(msg_len == 52);
     
-    printf("Msg len: %i\n", msg_len);
+        
+    fail_unless( stunlib_isStunMsg(stunBuf, msg_len, &isMsSTUN) );
+        
+    fail_unless( stunlib_DecodeMessage(stunBuf,
+                                       msg_len,
+                                       &msg,
+                                       NULL,
+                                       false,
+                                       false) );
 
+    
+    fail_unless( msg.msgHdr.msgType == STUN_MSG_SendIndicationMsg );
+        
+    fail_unless( msg.hasData );
+    
+    
+    fail_unless( 0 == strncmp(&stunBuf[msg.data.offset], message, strlen(message)) );
+          
+           
+    
+}
+END_TEST
+
+
+START_TEST (GetMessageName)
+{
+    fail_unless( 0 == strcmp(stunlib_getMessageName(STUN_MSG_BindRequestMsg), "BindRequest") );
+    fail_unless( 0 == strcmp(stunlib_getMessageName(STUN_MSG_BindResponseMsg), "BindResponse") );
+    fail_unless( 0 == strcmp(stunlib_getMessageName(STUN_MSG_BindIndicationMsg), "BindInd") );
+    fail_unless( 0 == strcmp(stunlib_getMessageName(STUN_MSG_BindErrorResponseMsg), "BindErrorResponse") );
+    fail_unless( 0 == strcmp(stunlib_getMessageName(STUN_MSG_AllocateRequestMsg), "AllocateRequest") );
+    fail_unless( 0 == strcmp(stunlib_getMessageName(STUN_MSG_AllocateResponseMsg), "AllocateResponse") );
+    fail_unless( 0 == strcmp(stunlib_getMessageName(STUN_MSG_AllocateErrorResponseMsg), "AllocateErrorResponse") );
+    fail_unless( 0 == strcmp(stunlib_getMessageName(STUN_MSG_CreatePermissionRequestMsg), "CreatePermissionReq") );
+    fail_unless( 0 == strcmp(stunlib_getMessageName(STUN_MSG_CreatePermissionResponseMsg), "CreatePermissionResp") );
+    fail_unless( 0 == strcmp(stunlib_getMessageName(STUN_MSG_CreatePermissionErrorResponseMsg), "CreatePermissionError") );
+    fail_unless( 0 == strcmp(stunlib_getMessageName(STUN_MSG_ChannelBindRequestMsg),  "ChannelBindRequest") );
+    fail_unless( 0 == strcmp(stunlib_getMessageName(STUN_MSG_ChannelBindResponseMsg),  "ChannelBindResponse") );
+    fail_unless( 0 == strcmp(stunlib_getMessageName(STUN_MSG_ChannelBindErrorResponseMsg),   "ChannelBindErrorResponse") );
+    fail_unless( 0 == strcmp(stunlib_getMessageName(STUN_MSG_RefreshRequestMsg),   "RefreshRequest") );
+    fail_unless( 0 == strcmp(stunlib_getMessageName(STUN_MSG_RefreshResponseMsg),   "RefreshResponse") );
+    fail_unless( 0 == strcmp(stunlib_getMessageName(STUN_MSG_RefreshErrorResponseMsg),   "RefreshErrorResponse") );
+    fail_unless( 0 == strcmp(stunlib_getMessageName(STUN_MSG_DataIndicationMsg),   "DataIndication") );
+    fail_unless( 0 == strcmp(stunlib_getMessageName(STUN_MSG_SendIndicationMsg),   "STUN_MSG_SendInd") );
+
+    fail_unless( 0 == strcmp(stunlib_getMessageName(STUN_MSG_MS2_DataIndicationMsg),   "DataIndication") );
+    fail_unless( 0 == strcmp(stunlib_getMessageName(STUN_MSG_MS2_SetActiveDestReqMsg),   "SetActiveDestReq") );
+    fail_unless( 0 == strcmp(stunlib_getMessageName(STUN_MSG_MS2_SetActiveDestResponseMsg),   "SetActiveDestResp") );
+    fail_unless( 0 == strcmp(stunlib_getMessageName(STUN_MSG_MS2_SetActiveDestErrorResponseMsg),   "SetActiveDestErrorResp") );
+
+
+
+    fail_unless( 0 == strcmp(stunlib_getMessageName(123),   "???") );
+
+}
+END_TEST
+
+
+START_TEST( SuccessResp )
+{
+    StunMessage msg;
+
+    msg.msgHdr.msgType = STUN_MSG_BindResponseMsg;
+    fail_unless( stunlib_isSuccessResponse(&msg) );
+
+}
+END_TEST
+
+START_TEST( ErrorResp )
+{
+    StunMessage msg;
+
+    msg.msgHdr.msgType = STUN_MSG_BindErrorResponseMsg;
+    fail_unless( stunlib_isErrorResponse(&msg) );
+
+}
+END_TEST
+
+START_TEST( Resp )
+{
+    StunMessage msg;
+
+    msg.msgHdr.msgType = STUN_MSG_BindErrorResponseMsg;
+    fail_unless( stunlib_isResponse(&msg) );
+
+}
+END_TEST
+
+START_TEST( Ind )
+{
+    StunMessage msg;
+
+    msg.msgHdr.msgType = STUN_MSG_SendIndicationMsg;
+    fail_unless( stunlib_isIndication(&msg) );
+
+}
+END_TEST
+
+
+START_TEST( Req )
+{
+    StunMessage msg;
+
+    msg.msgHdr.msgType = STUN_MSG_BindRequestMsg;
+    fail_unless( stunlib_isRequest(&msg) );
+
+}
+END_TEST
+
+
+START_TEST( isTurnChan )
+{
+    unsigned char req[] =
+        "Kinda buffer ready to be overwritten";
+
+    /* We overwrite some of the data, but in this case who cares.. */
+    stunlib_encodeTurnChannelNumber(0x4001,
+                                    sizeof(req),
+                                    (uint8_t*)req);
+
+    fail_unless( stunlib_isTurnChannelData(req) );
+
+}
+END_TEST
+
+
+START_TEST ( GetErrorReason )
+{
+    fail_unless( 0 == strcmp(stunlib_getErrorReason(3, 0),"Try Alternate" ) );
+    fail_unless( 0 == strcmp(stunlib_getErrorReason(4, 0),"Bad Request" ) );
+    fail_unless( 0 == strcmp(stunlib_getErrorReason(4, 1),"Unauthorized" ) );
+    fail_unless( 0 == strcmp(stunlib_getErrorReason(4, 20),"Unknown Attribute" ) );
+    fail_unless( 0 == strcmp(stunlib_getErrorReason(4, 30),"Stale Credentials" ) );
+    fail_unless( 0 == strcmp(stunlib_getErrorReason(4, 31),"Integrity Check Failure" ) );
+    fail_unless( 0 == strcmp(stunlib_getErrorReason(4, 32),"Missing Username" ) );
+    fail_unless( 0 == strcmp(stunlib_getErrorReason(4, 37),"No Binding" ) );
+    fail_unless( 0 == strcmp(stunlib_getErrorReason(4, 38),"Stale Nonce" ) );
+    fail_unless( 0 == strcmp(stunlib_getErrorReason(4, 41),"Wrong Username" ) );
+    fail_unless( 0 == strcmp(stunlib_getErrorReason(4, 42),"Unsupported Transport Protocol" ) );
+    fail_unless( 0 == strcmp(stunlib_getErrorReason(5, 00),"Server Error" ) );
+    fail_unless( 0 == strcmp(stunlib_getErrorReason(6, 00),"Global Failure" ) );
+    fail_unless( 0 == strcmp(stunlib_getErrorReason(4, 86),"Allocation Quota Reached" ) );
+    fail_unless( 0 == strcmp(stunlib_getErrorReason(5, 8),"Insufficient Capacity" ) );
+    fail_unless( 0 == strcmp(stunlib_getErrorReason(4, 87),"Role Conflict" ) );
+
+    fail_unless( 0 == strcmp(stunlib_getErrorReason(2, 43),"???" ) );
     
 }
 END_TEST
@@ -777,7 +923,15 @@ Suite * stunclient_suite (void)
       TCase *tc_misc = tcase_create ("TURN Misc");
       
       tcase_add_test ( tc_misc, SendIndication );
-
+      tcase_add_test ( tc_misc, GetMessageName );
+      tcase_add_test ( tc_misc, SuccessResp );
+      tcase_add_test ( tc_misc, ErrorResp );
+      tcase_add_test ( tc_misc, Resp );
+      tcase_add_test ( tc_misc, Ind );
+      tcase_add_test ( tc_misc, Req );
+      tcase_add_test ( tc_misc, isTurnChan );
+      tcase_add_test ( tc_misc, GetErrorReason );
+      //tcase_add_test ( tc_misc, print );
       suite_add_tcase (s, tc_misc);
 
   }

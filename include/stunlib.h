@@ -17,6 +17,7 @@
 #ifndef STUNMSG_H
 #define STUNMSG_H
 
+#include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -548,7 +549,7 @@ bool stunlib_DecodeMessage(unsigned char* buf,
                            unsigned int bufLen,
                            StunMessage* message,
                            StunAtrUnknown* unknowns,
-                           bool verbose,
+                           FILE *stream,
                            bool isMsStun);
 
 
@@ -633,7 +634,7 @@ unsigned int stunlib_encodeMessage(StunMessage *message,
                                unsigned int     bufLen,
                                unsigned char   *key,
                                unsigned int     keyLen,
-                               bool             verbose,
+                               FILE            *stream,
                                bool             isMsStun);
 
 
@@ -697,7 +698,7 @@ void stunlib_setIP4Address(StunIPAddress* pIpAdr, uint32_t addr, uint16_t port);
 /* Addr is 4 long. With most significant DWORD in pos 0 */
 void stunlib_setIP6Address(StunIPAddress *pIpAdr, uint8_t addr[16], uint16_t port);
 
-void stunlib_printBuffer(uint8_t *pBuf, int len, char const * szHead);
+void stunlib_printBuffer(FILE *stream, uint8_t *pBuf, int len, char const * szHead);
 
 
 uint32_t crc32(uint32_t crc, const void *buf, uint32_t size);
@@ -733,8 +734,8 @@ void stunlib_createMD5Key(unsigned char *md5key,
 
 
 /* helpers */
-char *stunlib_transactionIdtoStr(char* s, StunMsgId tId);
-void  stunlib_transactionIdDump(StunMsgId tId);
+//char *stunlib_transactionIdtoStr(char* s, StunMsgId tId);
+//void  stunlib_transactionIdDump(FILE *stream, StunMsgId tId);
 
 
 #if 0

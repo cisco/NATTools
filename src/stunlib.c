@@ -39,7 +39,7 @@ uint32_t stunlib_calculateFingerprint(const uint8_t *buf, size_t len);
  * Local helper funcs
  ********************************/
 
-static void printError(const char *fmt, ...)
+static void printError(FILE *stream, const char *fmt, ...)
 {
     va_list ap;
     va_start(ap,fmt);
@@ -48,7 +48,7 @@ static void printError(const char *fmt, ...)
         (errFunc)(fmt, ap);
     else
     {
-        vfprintf(stderr, fmt, ap);
+        vfprintf(stream, fmt, ap);
         fflush(stderr);
     }
     va_end(ap);
@@ -423,7 +423,7 @@ stunEncodeIPAddrAtr(StunIPAddress *pAddr, uint16_t attrtype, uint8_t **pBuf, int
     else if (pAddr && pAddr->familyType == STUN_ADDR_IPv6Family)
         return stunEncodeIP6AddrAtr(&pAddr->addr.v6, attrtype, pBuf, nBufLen);
     else
-        printError("unknown IP family type (%02x) to encode!\n", (pAddr ? pAddr->familyType : 0xdead));
+        printError(stderr, "unknown IP family type (%02x) to encode!\n", (pAddr ? pAddr->familyType : 0xdead));
     return false;
 }
 
@@ -436,7 +436,7 @@ stunEncodeIPAddrAtrXOR(StunIPAddress *pAddr, uint16_t attrtype, uint8_t **pBuf, 
     else if (pAddr && pAddr->familyType == STUN_ADDR_IPv6Family)
         return stunEncodeIP6AddrAtrXOR(&pAddr->addr.v6, attrtype, pBuf, nBufLen, pMsgId);
     else
-        printError("unknown IP family type (%x) to encode!\n", (pAddr ? pAddr->familyType : 0xdead));
+        printError(stderr, "unknown IP family type (%x) to encode!\n", (pAddr ? pAddr->familyType : 0xdead));
     return false;
 }
 
@@ -589,7 +589,7 @@ stunEncodeDataAtr(StunData *pData, uint8_t **pBuf, int *nBufLen, bool isMsStun)
 
     if ((uint32_t)(*nBufLen) < 4+pData->dataLen+padding)
     {
-        printError("<stunEncodeDataAtr> Unable to encode data attr!!\n");
+        printError(stderr, "<stunEncodeDataAtr> Unable to encode data attr!!\n");
         return false;
     }
     write_16(pBuf, STUN_ATTR_Data);     /* Attr type */
@@ -730,7 +730,7 @@ static bool stunDecodeStringAtrAlligned(StunAtrString *pStr, uint8_t **pBuf, int
 
     if (*nBufLen < atrLen)
     {
-        printError("stunDecodeStringAtr: failed nBufLen %d atrLen %d\n", *nBufLen, atrLen);
+        printError(stderr, "stunDecodeStringAtr: failed nBufLen %d atrLen %d\n", *nBufLen, atrLen);
         return false;
     }
 
@@ -758,7 +758,7 @@ stunDecodeMagicCookieAtr(uint8_t *cookieDest, uint8_t **pBuf, int *nBufLen, int 
 {
     if (atrLen != 4)
     {
-        printError("stunDecodeMagicCookieAtr() failed len %d, should be 4\n", atrLen);
+        printError(stderr, "stunDecodeMagicCookieAtr() failed len %d, should be 4\n", atrLen);
         return false;
     }
     read_8n(pBuf, cookieDest, atrLen);
@@ -882,7 +882,7 @@ stunDecodeIPAddrAtr(StunIPAddress *pAddr, uint8_t **pBuf, int *nBufLen)
     }
     else
     {
-        printError("Decode IP: Got unfamiliar IP family type: %02x\n", flagtype & 0xff);
+        printError(stderr, "Decode IP: Got unfamiliar IP family type: %02x\n", flagtype & 0xff);
         return false;
     }
     return true;
@@ -935,7 +935,7 @@ stunDecodeIPAddrAtrXOR(StunIPAddress *pAddr, uint8_t **pBuf, int *nBufLen, StunM
     }
     else
     {
-        printError("Decode IP: Got unfamiliar IP family type: %02x\n", flagtype & 0xff);
+        printError(stderr, "Decode IP: Got unfamiliar IP family type: %02x\n", flagtype & 0xff);
         return false;
     }
     return true;
@@ -961,7 +961,7 @@ static bool stunDecodeErrorAtrAlligned(StunAtrError *pError, uint8_t **pBuf, int
 
     if (*nBufLen < atrLen)
     {
-        printError("stunDecodeErrorAtr: failed nBufLen %d atrLen %d\n", *nBufLen, atrLen);
+        printError(stderr, "stunDecodeErrorAtr: failed nBufLen %d atrLen %d\n", *nBufLen, atrLen);
         return false;
     }
     read_16(pBuf, &pError->reserved);
@@ -1035,9 +1035,9 @@ static bool StunDecodeSequenceNum(StunAttrSequenceNum *pSeq, uint8_t **pBuf, int
 
 /**** DEBUGING ****/
 static void
-stun_printIP4Address(char const * szHead, StunAddress4 * pAdr)
+stun_printIP4Address(FILE *stream, char const * szHead, StunAddress4 * pAdr)
 {
-    printError("  %s \t= {%d.%d.%d.%d:%d}\n", szHead,
+    printError(stream, "  %s \t= {%d.%d.%d.%d:%d}\n", szHead,
            pAdr->addr >> 24 & 0xff,
            pAdr->addr >> 16 & 0xff,
            pAdr->addr >> 8 & 0xff,
@@ -1047,9 +1047,9 @@ stun_printIP4Address(char const * szHead, StunAddress4 * pAdr)
 
 
 static void
-stun_printIP6Address(char const * szHead, StunAddress6 *pAdr)
+stun_printIP6Address(FILE *stream, char const * szHead, StunAddress6 *pAdr)
 {
-    printError("  %s \t= { %02x%02x : %02x%02x : %02x%02x : %02x%02x : %02x%02x : %02x%02x : %02x%02x : %02x%02x - %d}\n", szHead,
+    printError(stream, "  %s \t= { %02x%02x : %02x%02x : %02x%02x : %02x%02x : %02x%02x : %02x%02x : %02x%02x : %02x%02x - %d}\n", szHead,
                pAdr->addr[0],
                pAdr->addr[1],
                pAdr->addr[2],
@@ -1071,203 +1071,203 @@ stun_printIP6Address(char const * szHead, StunAddress6 *pAdr)
 
 
 static void
-stun_printIPAddress(char const * szHead, StunIPAddress *pAdr)
+stun_printIPAddress(FILE *stream, char const * szHead, StunIPAddress *pAdr)
 {
     if (pAdr->familyType == STUN_ADDR_IPv4Family)
-        stun_printIP4Address(szHead, &pAdr->addr.v4);
+        stun_printIP4Address(stream,szHead, &pAdr->addr.v4);
     else if (pAdr->familyType == STUN_ADDR_IPv6Family)
-        stun_printIP6Address(szHead, &pAdr->addr.v6);
+        stun_printIP6Address(stream, szHead, &pAdr->addr.v6);
     else
-        printError("  %s \t [Illegal IP family type: %02x]\n", szHead, pAdr->familyType);
+        printError(stream,"  %s \t [Illegal IP family type: %02x]\n", szHead, pAdr->familyType);
 }
 
 
 static void
-stun_printString(char const * szHead, StunAtrString *pStr)
+stun_printString(FILE *stream, char const * szHead, StunAtrString *pStr)
 {
     char buf[1512];
     memcpy(buf, pStr->value, pStr->sizeValue);
     buf[pStr->sizeValue] = '\0';
-    printError("  %s \t= \"%s\"\n", szHead, buf);
+    printError(stream,"  %s \t= \"%s\"\n", szHead, buf);
 }
 
 
 static void
-stun_printValue(char const * szHead, StunAtrValue *pVal)
+stun_printValue(FILE *stream, char const * szHead, StunAtrValue *pVal)
 {
-    printError("  %s \t= 0x%04x\n", szHead, pVal->value);
+    printError(stream, "  %s \t= 0x%04x\n", szHead, pVal->value);
 }
 
 static void
-stun_printByteValue(char const * szHead, uint8_t *pVal)
+stun_printByteValue(FILE *stream, char const * szHead, uint8_t *pVal)
 {
-    printError("  %s \t= 0x%02x\n", szHead, *pVal);
+    printError(stream, "  %s \t= 0x%02x\n", szHead, *pVal);
 }
 
 
 static void
-stun_printDoubleValue(char const * szHead, StunAtrDoubleValue *pVal)
+stun_printDoubleValue(FILE *stream, char const * szHead, StunAtrDoubleValue *pVal)
 {
 
-    printError("  %s \t= ", szHead);
-    //printError("%" PRIu64, pVal->value);
-    printError("0x%llx", pVal->value);
-    printError("\n");
+    printError(stream, "  %s \t= ", szHead);
+    //printError(stream, "%" PRIu64, pVal->value);
+    printError(stream, "0x%llx", pVal->value);
+    printError(stream,"\n");
 }
 
 
 static void
-stun_printFlag(char const * szHead, bool bIsSet)
+stun_printFlag(FILE *stream,char const * szHead, bool bIsSet)
 {
-    printError("  %s \t= %s\n", szHead, (bIsSet ? "true" : "false"));
+    printError(stream, "  %s \t= %s\n", szHead, (bIsSet ? "true" : "false"));
 }
 
 
 static void
-stun_printErrorCode(StunAtrError *pErr)
+stun_printErrorCode(FILE *stream, StunAtrError *pErr)
 {
     char buf[1512];
     memcpy(buf, pErr->reason, pErr->sizeReason);
     buf[pErr->sizeReason] = '\0';
-    printError("  error = {%d %d, \"%s\"[%d]}\n",
+    printError(stream, "  error = {%d %d, \"%s\"[%d]}\n",
            pErr->errorClass, pErr->number, buf, pErr->sizeReason);
 }
 
 static void
-stun_printUnknown(StunAtrUnknown *pUnk)
+stun_printUnknown(FILE *stream, StunAtrUnknown *pUnk)
 {
     int i;
-    printError("  unknownAttribute = [%d]{", pUnk->numAttributes);
+    printError(stream, "  unknownAttribute = [%d]{", pUnk->numAttributes);
     for (i = 0; i < pUnk->numAttributes; i++)
-        printError("%c%04x ", (i ? ',' : ' '), pUnk->attrType[i]);
-    printError("\n");
+        printError(stream, "%c%04x ", (i ? ',' : ' '), pUnk->attrType[i]);
+    printError(stream, "\n");
 }
 
 
 static void
-stun_printData(char const * szHead, StunData *pData)
+stun_printData(FILE *stream, char const * szHead, StunData *pData)
 {
     if (!szHead || !pData) return;
-    printError("  %s \t= %p (%d)\n", szHead, pData->pData, pData->dataLen);
+    printError(stream, "  %s \t= %p (%d)\n", szHead, pData->pData, pData->dataLen);
 }
 
 
 static void
-stun_printMessage(StunMessage *pMsg)
+stun_printMessage(FILE *stream, StunMessage *pMsg)
 {
     uint32_t i;
     StunMessage *message = pMsg;
     if (!pMsg)
     {
-        printError("NULL\n");
+        printError(stream, "NULL\n");
         return;
     }
-    printError("{\n");
-    printError("  msgHdr.type \t= %d\n", pMsg->msgHdr.msgType);
-    printError("  msgHdr.length \t= %d\n", pMsg->msgHdr.msgLength);
-    printError("  msgHdr.id[] \t = ");
+    printError(stream, "{\n");
+    printError(stream, "  msgHdr.type \t= %d\n", pMsg->msgHdr.msgType);
+    printError(stream, "  msgHdr.length \t= %d\n", pMsg->msgHdr.msgLength);
+    printError(stream, "  msgHdr.id[] \t = ");
     for (i = 0; i < 12; i++)
-        printError(" %02x", pMsg->msgHdr.id.octet[i]);
-    printError("\n");
+        printError(stream, " %02x", pMsg->msgHdr.id.octet[i]);
+    printError(stream, "\n");
 
 
     /* First write all attributes to calculate total length.... */
     if (message->hasMappedAddress)
-        stun_printIPAddress("mappedAddress", &pMsg->mappedAddress);
+        stun_printIPAddress(stream, "mappedAddress", &pMsg->mappedAddress);
 
     if (message->hasNonce)
-        stun_printString("nonce", &message->nonce);
+        stun_printString(stream, "nonce", &message->nonce);
 
     if (message->hasRealm)
-        stun_printString("realm", &message->realm);
+        stun_printString(stream, "realm", &message->realm);
 
     if (message->hasUsername)
-        stun_printString("username", &message->username);
+        stun_printString(stream, "username", &message->username);
 
     if (message->hasErrorCode)
-        stun_printErrorCode(&message->errorCode);
+        stun_printErrorCode(stream, &message->errorCode);
 
     if (message->hasUnknownAttributes)
-        stun_printUnknown(&message->unknownAttributes);
+        stun_printUnknown(stream, &message->unknownAttributes);
 
     if (message->hasXorMappedAddress)
-        stun_printIPAddress("xorMappedAddress", &message->xorMappedAddress);
+        stun_printIPAddress(stream, "xorMappedAddress", &message->xorMappedAddress);
 
     if (message->hasSoftware)
-        stun_printString("softwareName", &message->software);
+        stun_printString(stream, "softwareName", &message->software);
 
     /* TURN usage specific attributes */
     if (message->hasXorRelayAddress)
-        stun_printIPAddress("xorRelayAddress", &pMsg->xorRelayAddress);
+        stun_printIPAddress(stream, "xorRelayAddress", &pMsg->xorRelayAddress);
 
     if (message->hasLifetime)
-        stun_printValue("lifetime", &message->lifetime);
+        stun_printValue(stream, "lifetime", &message->lifetime);
 
     if (message->hasAlternateServer)
-        stun_printIPAddress("alternateServer", &message->alternateServer);
+        stun_printIPAddress(stream, "alternateServer", &message->alternateServer);
 
     if (message->xorPeerAddrEntries)
         for (i=0; i < message->xorPeerAddrEntries; i++)
-            stun_printIPAddress("xorPeerAddress", &message->xorPeerAddress[i]);
+            stun_printIPAddress(stream, "xorPeerAddress", &message->xorPeerAddress[i]);
 
     if (message->hasData)
-        stun_printData("data", &message->data);
+        stun_printData(stream, "data", &message->data);
 
     if (message->hasPriority)
-        stun_printValue("priority", &message->priority);
+        stun_printValue(stream, "priority", &message->priority);
 
     if (message->hasUseCandidate)
-        stun_printFlag("useCandidate", true);
+        stun_printFlag(stream, "useCandidate", true);
 
     if (message->hasDontFragment)
-        stun_printFlag("Dontfragment", true);
+        stun_printFlag(stream, "Dontfragment", true);
 
     if (message->hasEvenPort)
-        stun_printByteValue("evenPort", &message->evenPort.evenPort);
+        stun_printByteValue(stream, "evenPort", &message->evenPort.evenPort);
 
     if (message->hasReservationToken)
-        stun_printDoubleValue("reservationToken", &message->reservationToken);
+        stun_printDoubleValue(stream, "reservationToken", &message->reservationToken);
 
     if (message->hasControlling)
-        stun_printDoubleValue("controlling", &message->controlling);
+        stun_printDoubleValue(stream, "controlling", &message->controlling);
 
     if (message->hasControlled)
-        stun_printDoubleValue("controlled", &message->controlled);
+        stun_printDoubleValue(stream, "controlled", &message->controlled);
 
     if (message->hasMessageIntegrity)
     {
-        printError("  integrity.offset = %02u", message->messageIntegrity.offset);
-        printError("  integrity.hash[] = ");
+        printError(stream, "  integrity.offset = %02u", message->messageIntegrity.offset);
+        printError(stream, "  integrity.hash[] = ");
         for (i = 0; i < 20; i++)
-            printError("%02x ", message->messageIntegrity.hash[i]);
-        printError("\n");
+            printError(stream, "%02x ", message->messageIntegrity.hash[i]);
+        printError(stream, "\n");
     }
 
-    printError("}\n");
+    printError(stream, "}\n");
 }
 
 void
-stunlib_printBuffer(uint8_t *pBuf, int len, char const * szHead)
+stunlib_printBuffer(FILE *stream, uint8_t *pBuf, int len, char const * szHead)
 {
     int i;
     int linecnt = 0;
 
-    printError("%s Buffer (%i) = [\n", szHead, len);
+    printError(stream, "%s Buffer (%i) = [\n", szHead, len);
     for (i = 0; i < len; i++, linecnt++)
     {
         if (linecnt == 4)
         {
-            printError(",\n");
+            printError(stream, ",\n");
             linecnt = 0;
 
         }
         else
         {
-            printError("%c", (linecnt ? ',' : ' '));
+            printError(stream, "%c", (linecnt ? ',' : ' '));
         }
-        printError(" %02x", (uint8_t)(*((pBuf+i))));
+        printError(stream, " %02x", (uint8_t)(*((pBuf+i))));
     }
-    printError("];\n");
+    printError(stream, "];\n");
 }
 
 char const *
@@ -1393,7 +1393,7 @@ stunlib_DecodeMessage(unsigned char* buf,
                       unsigned int bufLen,
                       StunMessage* message,
                       StunAtrUnknown* unknowns,
-                      bool verbose,
+                      FILE *stream,
                       bool isMsStun)
 {
     uint8_t *pCurrPtr;
@@ -1402,53 +1402,53 @@ stunlib_DecodeMessage(unsigned char* buf,
 
     if (!buf || !message)
     {
-        if (verbose) printError("No buffer or no message recieved\n");
+        if (stream != NULL) printError(stderr, "No buffer or no message recieved\n");
         return false;
     }
 
     memset(message, 0, sizeof(StunMessage));
 
     if (unknowns) unknowns->numAttributes = 0;
-    if (verbose)
+    if (stream != NULL)
     {
-        printError("STUN_parse, buffer to parse: \n");
-        stunlib_printBuffer((uint8_t*)buf, bufLen, "STUN");
+        printError(stream,"STUN_parse, buffer to parse: \n");
+        stunlib_printBuffer(stream, (uint8_t*)buf, bufLen, "STUN");
     }
 
     pCurrPtr = (uint8_t *)buf;
 
     if (!stunDecodeHeader(&message->msgHdr, &pCurrPtr, &restlen))
     {
-        printError("stunlib_DecodeMessage: Failed to decode message header! (%d, %p)\n", restlen, pCurrPtr);
+        printError(stream, "stunlib_DecodeMessage: Failed to decode message header! (%d, %p)\n", restlen, pCurrPtr);
         return false;
     }
-    if (verbose)
+    if (stream != NULL)
     {
-        printError("After parsed header:\n");
-        stun_printMessage(message);
+        printError(stream, "After parsed header:\n");
+        stun_printMessage(stream, message);
     }
     if (restlen < message->msgHdr.msgLength)
     {
-        printError("stunlib_DecodeMessage: The length in msg (%d) is larger than rest of buffer (%d)!\n", message->msgHdr.msgLength, restlen);
+        printError(stream, "stunlib_DecodeMessage: The length in msg (%d) is larger than rest of buffer (%d)!\n", message->msgHdr.msgLength, restlen);
         return false; /* Should perhaps be == to avoid extra stuff */
     }
     restlen = message->msgHdr.msgLength;
     while (restlen > 0)
     {
-        if (verbose) printError("Parsing attribute head with restlen=%d at %p\n", restlen, pCurrPtr);
+        if (stream != NULL) printError(stream, "Parsing attribute head with restlen=%d at %p\n", restlen, pCurrPtr);
         if (!stunDecodeAttributeHead(&sAtr, &pCurrPtr, &restlen))
         {
-            printError("stunlib_DecodeMessage: Failed to parse Attribute head (%d)\n", restlen);
+            printError(stream, "stunlib_DecodeMessage: Failed to parse Attribute head (%d)\n", restlen);
             return false;
         }
-        if (verbose) printError("Attribute Header parsed: type == %d, length == %d\n", sAtr.type, sAtr.length);
+        if (stream != NULL) printError(stream, "Attribute Header parsed: type == %d, length == %d\n", sAtr.type, sAtr.length);
         switch (sAtr.type)
         {
             case STUN_ATTR_FingerPrint:
                 /* Length of message + header(20) - rest of message */
                 if (!stunlib_checkFingerPrint(buf, message->msgHdr.msgLength+20-restlen))
                 {
-                    printError("stunlib_DecodeMessage: --Fingerprint CRC error");
+                    printError(stream, "stunlib_DecodeMessage: --Fingerprint CRC error");
                 }
                 restlen -= 4;
                 break;
@@ -1737,20 +1737,20 @@ stunlib_DecodeMessage(unsigned char* buf,
     }
     if(restlen != 0)
     {
-        fprintf(stderr, "<stunmsg> Message length or attribute length error.\n");
+        fprintf(stream, "<stunmsg> Message length or attribute length error.\n");
         return false;
     }
 
 
 
-    if (verbose)
+    if (stream != NULL)
     {
-        printError("STUN_parse, message parsed: \n");
-        stun_printMessage(message);
+        printError(stream, "STUN_parse, message parsed: \n");
+        stun_printMessage(stream, message);
         if (unknowns && unknowns->numAttributes)
         {
-            printError("STUN_parse, Unknown attributes encountered\n");
-            stun_printUnknown(unknowns);
+            printError(stream, "STUN_parse, Unknown attributes encountered\n");
+            stun_printUnknown(stream, unknowns);
         }
     }
     return true;
@@ -1819,7 +1819,7 @@ bool stunlib_checkIntegrity(unsigned char* buf,
     }
     else
     {
-        printError("<stunmsg> Missing integrity attribute\n");
+        printError(stderr,"<stunmsg> Missing integrity attribute\n");
         return false;
     }
 
@@ -1910,7 +1910,7 @@ stunlib_encodeMessage(StunMessage* message,
                   unsigned int bufLen,
                   unsigned char *md5key,
                   unsigned int keyLen,
-                  bool verbose,
+                  FILE *stream,
                   bool isMsStun)
 {
     bool addFingerprint;
@@ -1920,7 +1920,7 @@ stunlib_encodeMessage(StunMessage* message,
 
     if (!message || !buf || bufLen < STUN_HEADER_SIZE)
     {
-        if (verbose) printError("invalid arguments (%p, %p, %d)\n", message, buf, bufLen);
+        if (stream != NULL) printError(stream,"invalid arguments (%p, %p, %d)\n", message, buf, bufLen);
         return 0;
     }
 
@@ -1944,7 +1944,7 @@ stunlib_encodeMessage(StunMessage* message,
                                               &pCurrPtr,
                                               &restlen))
     {
-        if (verbose) printError("Invalid STUN_ATTR_MS2_MsVersion\n");
+        if (stream != NULL) printError(stream,"Invalid STUN_ATTR_MS2_MsVersion\n");
         return 0;
     }
 
@@ -1954,7 +1954,7 @@ stunlib_encodeMessage(StunMessage* message,
                                                      &restlen,
                                                      isMsStun))
     {
-        if (verbose) printError("Invalid Software (Name)\n");
+        if (stream != NULL) printError(stream, "Invalid Software (Name)\n");
         return 0;
     }
 
@@ -1963,7 +1963,7 @@ stunlib_encodeMessage(StunMessage* message,
                                                     &pCurrPtr,
                                                     &restlen))
     {
-        if (verbose) printError("Invalid Priority attribute\n");
+        if (stream != NULL) printError(stream, "Invalid Priority attribute\n");
         return 0;
     }
 
@@ -1971,7 +1971,7 @@ stunlib_encodeMessage(StunMessage* message,
                                                             STUN_ATTR_ICEControlled,
                                                             &pCurrPtr, &restlen))
     {
-        if (verbose) printError("Invalid ICEControlled\n");
+        if (stream != NULL) printError(stream, "Invalid ICEControlled\n");
         return 0;
     }
 
@@ -1981,7 +1981,7 @@ stunlib_encodeMessage(StunMessage* message,
                                                      &restlen,
                                                      isMsStun))
     {
-        if (verbose) printError("Invalid Username\n");
+        if (stream != NULL) printError(stream, "Invalid Username\n");
         return 0;
     }
 
@@ -1991,7 +1991,7 @@ stunlib_encodeMessage(StunMessage* message,
                                                   &restlen,
                                                   isMsStun))
     {
-        if (verbose) printError("Invalid Nonce attribute\n");
+        if (stream != NULL) printError(stream, "Invalid Nonce attribute\n");
         return 0;
     }
 
@@ -2002,7 +2002,7 @@ stunlib_encodeMessage(StunMessage* message,
                                                   &restlen,
                                                   isMsStun))
     {
-        if (verbose) printError("Invalid Realm attribute\n");
+        if (stream != NULL) printError(stream, "Invalid Realm attribute\n");
         return 0;
     }
 
@@ -2011,7 +2011,7 @@ stunlib_encodeMessage(StunMessage* message,
                                                     &pCurrPtr,
                                                     &restlen))
     {
-        if (verbose) printError("Invalid Lifetime attribute\n");
+        if (stream != NULL) printError(stream, "Invalid Lifetime attribute\n");
         return 0;
     }
 
@@ -2021,7 +2021,7 @@ stunlib_encodeMessage(StunMessage* message,
                                               &pCurrPtr,
                                               &restlen))
     {
-        if (verbose) printError("Invalid Bandwidth attribute\n");
+        if (stream != NULL) printError(stream, "Invalid Bandwidth attribute\n");
         return 0;
     }
 
@@ -2031,7 +2031,7 @@ stunlib_encodeMessage(StunMessage* message,
                                                        &pCurrPtr,
                                                        &restlen))
     {
-        if (verbose) printError("Invalid Destination Address\n");
+        if (stream != NULL) printError(stream, "Invalid Destination Address\n");
         return 0;
     }
 
@@ -2041,7 +2041,7 @@ stunlib_encodeMessage(StunMessage* message,
                                                                         &pCurrPtr,
                                                                         &restlen))
     {
-        if (verbose) printError("Invalid RequestedTransport attribute\n");
+        if (stream != NULL) printError(stream, "Invalid RequestedTransport attribute\n");
         return 0;
     }
 
@@ -2049,7 +2049,7 @@ stunlib_encodeMessage(StunMessage* message,
                                                                           &pCurrPtr,
                                                                           &restlen))
     {
-        if (verbose) printError("Invalid RequestedAddressFamily attribute\n");
+        if (stream != NULL) printError(stream, "Invalid RequestedAddressFamily attribute\n");
         return 0;
     }
 
@@ -2057,7 +2057,7 @@ stunlib_encodeMessage(StunMessage* message,
                                                              STUN_ATTR_ICEControlling,
                                                              &pCurrPtr, &restlen))
     {
-        if (verbose) printError("Invalid IceControlling\n");
+        if (stream != NULL) printError(stream, "Invalid IceControlling\n");
         return 0;
     }
 
@@ -2066,7 +2066,7 @@ stunlib_encodeMessage(StunMessage* message,
                                                           &pCurrPtr,
                                                           &restlen))
     {
-        if (verbose) printError("mappedAddress failed \n");
+        if (stream != NULL) printError(stream, "mappedAddress failed \n");
         return 0;
     }
 
@@ -2075,14 +2075,14 @@ stunlib_encodeMessage(StunMessage* message,
                                                      &restlen,
                                                      isMsStun))
     {
-        if (verbose) printError("Invalid Error attribute\n");
+        if (stream != NULL) printError(stream, "Invalid Error attribute\n");
         return 0;
     }
     if (message->hasUnknownAttributes && !stunEncodeUnknownAtr(&message->unknownAttributes,
                                                                &pCurrPtr,
                                                                &restlen))
     {
-        if (verbose) printError("Invalid unknown attribute\n");
+        if (stream != NULL) printError(stream, "Invalid unknown attribute\n");
         return 0;
     }
 
@@ -2092,7 +2092,7 @@ stunlib_encodeMessage(StunMessage* message,
                                                                 &restlen,
                                                                 &message->msgHdr.id))
     {
-        if (verbose) printError("Invalid xorMappedAddress\n");
+        if (stream != NULL) printError(stream, "Invalid xorMappedAddress\n");
         return 0;
     }
 
@@ -2100,7 +2100,7 @@ stunlib_encodeMessage(StunMessage* message,
                                                            &pCurrPtr,
                                                            &restlen))
     {
-        if (verbose) printError("Invalid ChannelNumber attribute\n");
+        if (stream != NULL) printError(stream, "Invalid ChannelNumber attribute\n");
         return 0;
     }
 
@@ -2110,7 +2110,7 @@ stunlib_encodeMessage(StunMessage* message,
                                                             &pCurrPtr,
                                                             &restlen))
     {
-        if (verbose) printError("Invalid Alternate Server\n");
+        if (stream != NULL) printError(stream, "Invalid Alternate Server\n");
         return 0;
     }
     if (message->xorPeerAddrEntries)
@@ -2123,7 +2123,7 @@ stunlib_encodeMessage(StunMessage* message,
                                     &restlen,
                                     &message->msgHdr.id))
         {
-            printError("Invalid Peer Address entry  %d\n", i);
+            printError(stream, "Invalid Peer Address entry  %d\n", i);
             return 0;
         }
     }
@@ -2133,7 +2133,7 @@ stunlib_encodeMessage(StunMessage* message,
                                                                &restlen,
                                                                &message->msgHdr.id))
     {
-        if (verbose) printError("xorRelayAddress failed \n");
+        if (stream != NULL) printError(stream, "xorRelayAddress failed \n");
         return 0;
     }
 
@@ -2141,7 +2141,7 @@ stunlib_encodeMessage(StunMessage* message,
                                                        &pCurrPtr,
                                                        &restlen))
     {
-        if (verbose) printError("Invalid UseCandidate\n");
+        if (stream != NULL) printError(stream, "Invalid UseCandidate\n");
         return 0;
     }
 
@@ -2149,7 +2149,7 @@ stunlib_encodeMessage(StunMessage* message,
                                                        &pCurrPtr,
                                                        &restlen))
     {
-        if (verbose) printError("Invalid DontFragment\n");
+        if (stream != NULL) printError(stream, "Invalid DontFragment\n");
         return 0;
     }
 
@@ -2157,7 +2157,7 @@ stunlib_encodeMessage(StunMessage* message,
                                                     &pCurrPtr,
                                                     &restlen))
     {
-        if (verbose) printError("Invalid EvenPort attribute\n");
+        if (stream != NULL) printError(stream, "Invalid EvenPort attribute\n");
         return 0;
     }
 
@@ -2166,7 +2166,7 @@ stunlib_encodeMessage(StunMessage* message,
                                                                   &pCurrPtr,
                                                                   &restlen))
     {
-        if (verbose) printError("Invalid Reservation Token attribute\n");
+        if (stream != NULL) printError(stream, "Invalid Reservation Token attribute\n");
         return 0;
     }
 
@@ -2176,7 +2176,7 @@ stunlib_encodeMessage(StunMessage* message,
                                               &pCurrPtr,
                                               &restlen))
     {
-        if (verbose) printError("Invalid Sequence attribute\n");
+        if (stream != NULL) printError(stream, "Invalid Sequence attribute\n");
         return 0;
     }
 
@@ -2186,7 +2186,7 @@ stunlib_encodeMessage(StunMessage* message,
                                               &pCurrPtr,
                                               &restlen))
     {
-        if (verbose) printError("Invalid ServiceQuality attribute\n");
+        if (stream != NULL) printError(stream, "Invalid ServiceQuality attribute\n");
         return 0;
     }
 
@@ -2196,7 +2196,7 @@ stunlib_encodeMessage(StunMessage* message,
                                               &pCurrPtr,
                                               &restlen))
     {
-        if (verbose) printError("Invalid ServiceQuality attribute\n");
+        if (stream != NULL) printError(stream, "Invalid ServiceQuality attribute\n");
         return 0;
     }
 
@@ -2206,7 +2206,7 @@ stunlib_encodeMessage(StunMessage* message,
                                                &restlen,
                                                isMsStun))
     {
-        if (verbose) printError("Invalid Data attribute\n");
+        if (stream != NULL) printError(stream, "Invalid Data attribute\n");
         return 0;
     }
 
@@ -2219,7 +2219,7 @@ stunlib_encodeMessage(StunMessage* message,
                                     &restlen,
                                     bufLen))
         {
-            if (verbose) printError("Faild to encode integrity!\n");
+            if (stream != NULL) printError(stream, "Faild to encode integrity!\n");
             return 0;
         }
 
@@ -2245,7 +2245,7 @@ stunlib_encodeMessage(StunMessage* message,
         pCurrPtr = (uint8_t*)buf + message->messageIntegrity.offset;
         if (!stunEncodeIntegrityAtr(&message->messageIntegrity, &pCurrPtr, &restlen, bufLen))
         {
-            printError("Failed to write Integrity hash\n");
+            printError(stream, "Failed to write Integrity hash\n");
         }
 
     }
@@ -2268,7 +2268,7 @@ stunlib_encodeMessage(StunMessage* message,
                                       &restlen,
                                       bufLen))
         {
-            printError("Faild to add CRC Fingerprint\n");
+            printError(stream, "Faild to add CRC Fingerprint\n");
         }
         else
         {
@@ -2276,12 +2276,12 @@ stunlib_encodeMessage(StunMessage* message,
         }
 
     }
-    if (verbose)
+    if (stream != NULL)
     {
-        printError("STUN_encode, messages to encode: \n");
-        stun_printMessage(message);
-        printError("STUN_encode, buffer encoded: \n");
-        stunlib_printBuffer((uint8_t*)buf, msglen, "STUN");
+        printError(stream, "STUN_encode, messages to encode: \n");
+        stun_printMessage(stream, message);
+        printError(stream, "STUN_encode, buffer encoded: \n");
+        stunlib_printBuffer(stream, (uint8_t*)buf, msglen, "STUN");
     }
 
     return message->msgHdr.msgLength+STUN_HEADER_SIZE;
@@ -2311,7 +2311,6 @@ stunlib_addUserName(StunMessage *stunMsg, const char *userName, char padChar)
 {
     if ( strlen(userName) > STUN_MSG_MAX_USERNAME_LENGTH )
     {
-        printError("<STUNMSG> Username string to long!\n");
         return false;
     }
 
@@ -2325,7 +2324,6 @@ stunlib_addRealm(StunMessage *stunMsg, const char *realm, char padChar)
 {
     if ( strlen(realm) > STUN_MSG_MAX_REALM_LENGTH )
     {
-        printError("<STUNMSG> Realm string to long!\n");
         return false;
     }
 
@@ -2449,7 +2447,7 @@ void stunlib_setIP6Address(StunIPAddress *pIpAddr, uint8_t addr[16], uint16_t po
     }
 }
 
-
+/*
 char* stunlib_transactionIdtoStr( char* s, StunMsgId tId)
 {
     unsigned int i;
@@ -2459,20 +2457,21 @@ char* stunlib_transactionIdtoStr( char* s, StunMsgId tId)
     {
         sprintf( &s[strlen(s)],"%02x", tId.octet[ i]);
     }
+    s[STUN_MSG_ID_SIZE] = '\0';
     return s;
 }
 
-void stunlib_transactionIdDump( StunMsgId tId)
+void stunlib_transactionIdDump(FILE *stream,  StunMsgId tId)
 {
     unsigned int i;
 
-    printError( "0x");
+    printError(stream, "0x");
     for ( i=0;i < STUN_MSG_ID_SIZE; i++)
     {
-        printError( "%02x", tId.octet[ i]);
+        printError( stream, "%02x", tId.octet[ i]);
     }
 }
-
+*/
 
 uint32_t stunlib_calculateFingerprint(const uint8_t *buf, size_t len)
 {
