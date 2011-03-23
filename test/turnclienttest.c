@@ -669,6 +669,33 @@ START_TEST (Allocated_ChanBindErr)
 END_TEST
 
 
+START_TEST( SendIndication )
+{
+    struct sockaddr_storage addr;
+    unsigned char stunBuf[200];
+    char message[] = "Some useful data\0";
+    int msg_len;
+    
+    
+    sockaddr_initFromString((struct sockaddr *)&addr,
+                            "1.2.3.4:2345");
+    
+    msg_len = TurnClient_createSendIndication(stunBuf,
+                                              message,
+                                              sizeof(stunBuf),
+                                              strlen(message),
+                                              (struct sockaddr *)&addr,
+                                              false,
+                                              0,
+                                              0);
+    fail_unless(msg_len == 52);
+    
+    printf("Msg len: %i\n", msg_len);
+
+    
+}
+END_TEST
+
 
 Suite * stunclient_suite (void)
 {
@@ -745,8 +772,16 @@ Suite * stunclient_suite (void)
 
   }
 
+  {/* Misc */
 
+      TCase *tc_misc = tcase_create ("TURN Misc");
+      
+      tcase_add_test ( tc_misc, SendIndication );
 
+      suite_add_tcase (s, tc_misc);
+
+  }
+  
 
   return s;
 }

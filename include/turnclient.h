@@ -319,7 +319,6 @@ bool     TurnClient_GetStunKeepAlive(void);
 
 
 
-
 #ifdef __cplusplus
 }
 #endif

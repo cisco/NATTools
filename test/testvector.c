@@ -897,6 +897,7 @@ START_TEST( channel_encode_decode )
 }
 END_TEST
 
+
 Suite * stunlib_suite (void)
 {
   Suite *s = suite_create ("STUN Test Vector");
