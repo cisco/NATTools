@@ -18,8 +18,11 @@ AC_CHECK_LIB([ssl], [SSL_library_init], [], [AC_MSG_FAILURE([could not find ssl]
 AC_CHECK_LIB([sockaddrutil], [sockaddr_initFromString],[], [AC_MSG_FAILURE([could not find sockaddrutil])])
 
 AC_CHECK_LIB([stun], [TurnClient_Init], [], [AC_MSG_FAILURE([could not find stunlib])])
+AC_CHECK_LIB([ice], [ICELIB_Constructor], [], [AC_MSG_FAILURE([could not find icelib])])
 
 AC_CHECK_LIB([pthread], [pthread_create], [], [AC_MSG_FAILURE([could not find pthread])])
+
+
 
 AC_CHECK_LIB([curses], [getch], [], [AC_MSG_FAILURE([could not find curses])])
 AC_CHECK_LIB([form], [new_form], [], [AC_MSG_FAILURE([could not find form])])

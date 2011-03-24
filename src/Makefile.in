@@ -45,7 +45,8 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_testice_OBJECTS = ice.$(OBJEXT)
+am_testice_OBJECTS = ice.$(OBJEXT) gather.$(OBJEXT) turninfo.$(OBJEXT) \
+	permissions.$(OBJEXT) iphelper.$(OBJEXT)
 testice_OBJECTS = $(am_testice_OBJECTS)
 testice_LDADD = $(LDADD)
 am_testturn_OBJECTS = testturn.$(OBJEXT) gather.$(OBJEXT) \
@@ -154,7 +155,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I../include
 testturn_SOURCES = testturn.c gather.c turninfo.c permissions.c iphelper.c view.c
-testice_SOURCES = ice.c
+testice_SOURCES = ice.c gather.c turninfo.c permissions.c iphelper.c
 all: all-am
 
 .SUFFIXES:
