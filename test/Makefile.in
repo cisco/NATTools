@@ -48,11 +48,11 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am__check_icelib_SOURCES_DIST = icelib_test.c testmain.c \
-	../src/icelib.c ../src/icelibtypes.c
+am__check_icelib_SOURCES_DIST = icelib_test.c icelibtypes_test.c \
+	testmain.c ../src/icelib.c ../src/icelibtypes.c
 @CHECK_TRUE@am_check_icelib_OBJECTS = icelib_test.$(OBJEXT) \
-@CHECK_TRUE@	testmain.$(OBJEXT) icelib.$(OBJEXT) \
-@CHECK_TRUE@	icelibtypes.$(OBJEXT)
+@CHECK_TRUE@	icelibtypes_test.$(OBJEXT) testmain.$(OBJEXT) \
+@CHECK_TRUE@	icelib.$(OBJEXT) icelibtypes.$(OBJEXT)
 check_icelib_OBJECTS = $(am_check_icelib_OBJECTS)
 check_icelib_LDADD = $(LDADD)
 check_icelib_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -192,10 +192,8 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-@CHECK_TRUE@check_icelib_SOURCES = icelib_test.c  testmain.c ../src/icelib.c ../src/icelibtypes.c
+@CHECK_TRUE@check_icelib_SOURCES = icelib_test.c icelibtypes_test.c testmain.c ../src/icelib.c ../src/icelibtypes.c
 @CHECK_TRUE@@GCOV_FALSE@AM_CPPFLAGS = -I../include
-#check_icelib_CFLAGS = @CHECK_CFLAGS@  
-#check_icelib_LDADD = $(top_builddir)/src/libice.la @CHECK_LIBS@
 @CHECK_TRUE@@GCOV_TRUE@AM_CPPFLAGS = -I../include -fprofile-arcs -ftest-coverage
 @CHECK_TRUE@@GCOV_FALSE@check_icelib_LDFLAGS = -lcheck
 @CHECK_TRUE@@GCOV_TRUE@check_icelib_LDFLAGS = -lcheck -lgcov
@@ -255,6 +253,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/icelib.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/icelib_test.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/icelibtypes.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/icelibtypes_test.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testmain.Po@am__quote@
 
 .c.o:
