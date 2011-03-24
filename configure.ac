@@ -17,12 +17,47 @@ AC_PROG_CC
 AM_PROG_CC_C_O
 
 # Checks for libraries.
-AC_CHECK_LIB([check], [srunner_create])
-AM_PATH_CHECK()
+#AC_CHECK_LIB([check], [srunner_create])
+#AM_PATH_CHECK()
 
 AC_CHECK_LIB([sockaddrutil], [sockaddr_initFromString],[], [AC_MSG_FAILURE([could not find sockaddrutil])])
 
 AC_CHECK_LIB([stun], [TurnClient_Init], [], [AC_MSG_FAILURE([could not find stunlib])])
+
+
+AC_ARG_ENABLE(gcov,
+	      AS_HELP_STRING([--enable-gcov],
+                             [enable test coverage with gcov @<:@default=no@:>@]),
+              [case "${enableval}" in
+                 yes) gcov=true ;;
+                 no)  gcov=false ;;
+                 *)   AC_MSG_ERROR([bad value ${enableval} for --enable-gcov]) ;;
+               esac],
+              [gcov=false])
+
+AM_CONDITIONAL(GCOV, test x"$gcov" = "xtrue")
+
+
+
+
+AM_CONDITIONAL(CHECK, "false")
+AC_ARG_WITH([check],
+  [AS_HELP_STRING([--with-check],
+  [use Check for unit testing @<:@default=no@:>@])],
+  [],
+  [with_check=no])
+          
+  LIBCHECK=
+  AS_IF([test "x$with_check" != xno],
+    [AC_CHECK_LIB([check], [srunner_create],
+    [AC_SUBST([LIBCHECK], ["-lcheck"])
+     AM_CONDITIONAL(CHECK, "true")
+     AC_DEFINE([HAVE_CHECK], [1],
+               [Define if you have check])],
+    [AC_MSG_FAILURE(
+      [--with-check was given, but test for check failed])],
+      [])])
+
 
 
 

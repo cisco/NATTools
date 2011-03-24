@@ -33,8 +33,8 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-TESTS = check_icelib$(EXEEXT)
-check_PROGRAMS = check_icelib$(EXEEXT)
+@CHECK_TRUE@TESTS = check_icelib$(EXEEXT)
+@CHECK_TRUE@check_PROGRAMS = check_icelib$(EXEEXT)
 subdir = test
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -48,13 +48,16 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am_check_icelib_OBJECTS = check_icelib-icelib_test.$(OBJEXT) \
-	check_icelib-testmain.$(OBJEXT)
+am__check_icelib_SOURCES_DIST = icelib_test.c testmain.c \
+	../src/icelib.c ../src/icelibtypes.c
+@CHECK_TRUE@am_check_icelib_OBJECTS = icelib_test.$(OBJEXT) \
+@CHECK_TRUE@	testmain.$(OBJEXT) icelib.$(OBJEXT) \
+@CHECK_TRUE@	icelibtypes.$(OBJEXT)
 check_icelib_OBJECTS = $(am_check_icelib_OBJECTS)
-check_icelib_DEPENDENCIES = $(top_builddir)/src/libice.la
+check_icelib_LDADD = $(LDADD)
 check_icelib_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(check_icelib_CFLAGS) \
-	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(check_icelib_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
@@ -69,7 +72,7 @@ LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
 SOURCES = $(check_icelib_SOURCES)
-DIST_SOURCES = $(check_icelib_SOURCES)
+DIST_SOURCES = $(am__check_icelib_SOURCES_DIST)
 ETAGS = etags
 CTAGS = ctags
 am__tty_colors = \
@@ -85,8 +88,6 @@ AWK = @AWK@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
-CHECK_CFLAGS = @CHECK_CFLAGS@
-CHECK_LIBS = @CHECK_LIBS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CYGPATH_W = @CYGPATH_W@
@@ -109,6 +110,7 @@ INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
+LIBCHECK = @LIBCHECK@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
 LIBTOOL = @LIBTOOL@
@@ -190,10 +192,13 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-AM_CPPFLAGS = -I../include
-check_icelib_SOURCES = icelib_test.c  testmain.c
-check_icelib_CFLAGS = @CHECK_CFLAGS@  
-check_icelib_LDADD = $(top_builddir)/src/libice.la @CHECK_LIBS@
+@CHECK_TRUE@check_icelib_SOURCES = icelib_test.c  testmain.c ../src/icelib.c ../src/icelibtypes.c
+@CHECK_TRUE@@GCOV_FALSE@AM_CPPFLAGS = -I../include
+#check_icelib_CFLAGS = @CHECK_CFLAGS@  
+#check_icelib_LDADD = $(top_builddir)/src/libice.la @CHECK_LIBS@
+@CHECK_TRUE@@GCOV_TRUE@AM_CPPFLAGS = -I../include -fprofile-arcs -ftest-coverage
+@CHECK_TRUE@@GCOV_FALSE@check_icelib_LDFLAGS = -lcheck
+@CHECK_TRUE@@GCOV_TRUE@check_icelib_LDFLAGS = -lcheck -lgcov
 all: all-am
 
 .SUFFIXES:
@@ -247,8 +252,10 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_icelib-icelib_test.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_icelib-testmain.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/icelib.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/icelib_test.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/icelibtypes.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testmain.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -271,33 +278,33 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
 
-check_icelib-icelib_test.o: icelib_test.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_icelib_CFLAGS) $(CFLAGS) -MT check_icelib-icelib_test.o -MD -MP -MF $(DEPDIR)/check_icelib-icelib_test.Tpo -c -o check_icelib-icelib_test.o `test -f 'icelib_test.c' || echo '$(srcdir)/'`icelib_test.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_icelib-icelib_test.Tpo $(DEPDIR)/check_icelib-icelib_test.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='icelib_test.c' object='check_icelib-icelib_test.o' libtool=no @AMDEPBACKSLASH@
+icelib.o: ../src/icelib.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT icelib.o -MD -MP -MF $(DEPDIR)/icelib.Tpo -c -o icelib.o `test -f '../src/icelib.c' || echo '$(srcdir)/'`../src/icelib.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/icelib.Tpo $(DEPDIR)/icelib.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../src/icelib.c' object='icelib.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_icelib_CFLAGS) $(CFLAGS) -c -o check_icelib-icelib_test.o `test -f 'icelib_test.c' || echo '$(srcdir)/'`icelib_test.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o icelib.o `test -f '../src/icelib.c' || echo '$(srcdir)/'`../src/icelib.c
 
-check_icelib-icelib_test.obj: icelib_test.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_icelib_CFLAGS) $(CFLAGS) -MT check_icelib-icelib_test.obj -MD -MP -MF $(DEPDIR)/check_icelib-icelib_test.Tpo -c -o check_icelib-icelib_test.obj `if test -f 'icelib_test.c'; then $(CYGPATH_W) 'icelib_test.c'; else $(CYGPATH_W) '$(srcdir)/icelib_test.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_icelib-icelib_test.Tpo $(DEPDIR)/check_icelib-icelib_test.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='icelib_test.c' object='check_icelib-icelib_test.obj' libtool=no @AMDEPBACKSLASH@
+icelib.obj: ../src/icelib.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT icelib.obj -MD -MP -MF $(DEPDIR)/icelib.Tpo -c -o icelib.obj `if test -f '../src/icelib.c'; then $(CYGPATH_W) '../src/icelib.c'; else $(CYGPATH_W) '$(srcdir)/../src/icelib.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/icelib.Tpo $(DEPDIR)/icelib.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../src/icelib.c' object='icelib.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_icelib_CFLAGS) $(CFLAGS) -c -o check_icelib-icelib_test.obj `if test -f 'icelib_test.c'; then $(CYGPATH_W) 'icelib_test.c'; else $(CYGPATH_W) '$(srcdir)/icelib_test.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o icelib.obj `if test -f '../src/icelib.c'; then $(CYGPATH_W) '../src/icelib.c'; else $(CYGPATH_W) '$(srcdir)/../src/icelib.c'; fi`
 
-check_icelib-testmain.o: testmain.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_icelib_CFLAGS) $(CFLAGS) -MT check_icelib-testmain.o -MD -MP -MF $(DEPDIR)/check_icelib-testmain.Tpo -c -o check_icelib-testmain.o `test -f 'testmain.c' || echo '$(srcdir)/'`testmain.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_icelib-testmain.Tpo $(DEPDIR)/check_icelib-testmain.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='testmain.c' object='check_icelib-testmain.o' libtool=no @AMDEPBACKSLASH@
+icelibtypes.o: ../src/icelibtypes.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT icelibtypes.o -MD -MP -MF $(DEPDIR)/icelibtypes.Tpo -c -o icelibtypes.o `test -f '../src/icelibtypes.c' || echo '$(srcdir)/'`../src/icelibtypes.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/icelibtypes.Tpo $(DEPDIR)/icelibtypes.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../src/icelibtypes.c' object='icelibtypes.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_icelib_CFLAGS) $(CFLAGS) -c -o check_icelib-testmain.o `test -f 'testmain.c' || echo '$(srcdir)/'`testmain.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o icelibtypes.o `test -f '../src/icelibtypes.c' || echo '$(srcdir)/'`../src/icelibtypes.c
 
-check_icelib-testmain.obj: testmain.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_icelib_CFLAGS) $(CFLAGS) -MT check_icelib-testmain.obj -MD -MP -MF $(DEPDIR)/check_icelib-testmain.Tpo -c -o check_icelib-testmain.obj `if test -f 'testmain.c'; then $(CYGPATH_W) 'testmain.c'; else $(CYGPATH_W) '$(srcdir)/testmain.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_icelib-testmain.Tpo $(DEPDIR)/check_icelib-testmain.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='testmain.c' object='check_icelib-testmain.obj' libtool=no @AMDEPBACKSLASH@
+icelibtypes.obj: ../src/icelibtypes.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT icelibtypes.obj -MD -MP -MF $(DEPDIR)/icelibtypes.Tpo -c -o icelibtypes.obj `if test -f '../src/icelibtypes.c'; then $(CYGPATH_W) '../src/icelibtypes.c'; else $(CYGPATH_W) '$(srcdir)/../src/icelibtypes.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/icelibtypes.Tpo $(DEPDIR)/icelibtypes.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../src/icelibtypes.c' object='icelibtypes.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_icelib_CFLAGS) $(CFLAGS) -c -o check_icelib-testmain.obj `if test -f 'testmain.c'; then $(CYGPATH_W) 'testmain.c'; else $(CYGPATH_W) '$(srcdir)/testmain.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o icelibtypes.obj `if test -f '../src/icelibtypes.c'; then $(CYGPATH_W) '../src/icelibtypes.c'; else $(CYGPATH_W) '$(srcdir)/../src/icelibtypes.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -529,9 +536,10 @@ distclean-generic:
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
+@CHECK_FALSE@clean-local:
 clean: clean-am
 
-clean-am: clean-checkPROGRAMS clean-generic clean-libtool \
+clean-am: clean-checkPROGRAMS clean-generic clean-libtool clean-local \
 	mostlyclean-am
 
 distclean: distclean-am
@@ -603,8 +611,8 @@ uninstall-am:
 .MAKE: check-am install-am install-strip
 
 .PHONY: CTAGS GTAGS all all-am check check-TESTS check-am clean \
-	clean-checkPROGRAMS clean-generic clean-libtool cscopelist \
-	ctags distclean distclean-compile distclean-generic \
+	clean-checkPROGRAMS clean-generic clean-libtool clean-local \
+	cscopelist ctags distclean distclean-compile distclean-generic \
 	distclean-libtool distclean-tags distdir dvi dvi-am html \
 	html-am info info-am install install-am install-data \
 	install-data-am install-dvi install-dvi-am install-exec \
@@ -616,6 +624,9 @@ uninstall-am:
 	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
 	tags uninstall uninstall-am
 
+
+@CHECK_TRUE@clean-local:
+@CHECK_TRUE@	rm -f *.g*
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
