@@ -163,8 +163,8 @@ icelib_setup (void)
     iceConfig.maxCheckListPairs = ICELIB_MAX_PAIRS;
     iceConfig.aggressiveNomination = false;
     iceConfig.iceLite = false;
-    //iceConfig.logLevel = ICELIB_logDebug;
-    iceConfig.logLevel = ICELIB_logDisable;
+    iceConfig.logLevel = ICELIB_logDebug;
+    //iceConfig.logLevel = ICELIB_logDisable;
 
 
     ICELIB_Constructor (icelib,
@@ -504,7 +504,7 @@ START_TEST (create_localMediaStream)
     int32_t result,i;
 
 
-    localIceConfig.logLevel = ICELIB_logDisable;
+    localIceConfig.logLevel = ICELIB_logDebug;
 
     ICELIB_Constructor (&localIcelib,
                         &localIceConfig);
@@ -548,7 +548,7 @@ START_TEST (create_remoteMediaStream)
 
 
     //remoteIceConfig.logLevel = ICELIB_logDisable;
-    remoteIceConfig.logLevel = 2;
+    remoteIceConfig.logLevel = ICELIB_logDebug;
 
     ICELIB_Constructor (&remoteIcelib,
                         &remoteIceConfig);
@@ -1231,6 +1231,122 @@ START_TEST (conncheck)
 }
 END_TEST
 
+
+START_TEST( compareTransactionId )
+{
+    StunMsgId id1;
+    StunMsgId id2;
+    StunMsgId id3;
+    
+    stunlib_createId(&id1, 34, 3);
+
+
+    memcpy(&id3, &id1, STUN_MSG_ID_SIZE);
+
+    fail_unless( 0 == ICELIB_compareTransactionId(&id1,
+                                                  &id3) );
+
+    stunlib_createId(&id2, 43, 2);
+    fail_if( 0 == ICELIB_compareTransactionId(&id1,
+                                              &id2) );
+
+}
+END_TEST
+
+START_TEST( makeTieBreaker )
+{
+    uint64_t tie1 = ICELIB_makeTieBreaker();
+    uint64_t tie2 = ICELIB_makeTieBreaker();
+    
+    fail_if( tie1 == tie2 );
+    
+
+}
+END_TEST
+
+START_TEST( makeUserNamePair )
+{
+    char ufrag1[] = "ufr1";
+    char ufrag2[] = "ufr2";
+    
+    char pair[ICE_MAX_UFRAG_PAIR_LENGTH];
+
+    ICELIB_makeUsernamePair(pair,
+                            ICE_MAX_UFRAG_PAIR_LENGTH,
+                            ufrag1,
+                            ufrag2);
+
+    fail_unless( 0 == strncmp(pair, "ufr1:ufr2", ICE_MAX_UFRAG_PAIR_LENGTH ) );
+    fail_if( 0 == strncmp(pair, "ufr2:ufr1", ICE_MAX_UFRAG_PAIR_LENGTH ) );
+
+    ICELIB_makeUsernamePair(pair,
+                            ICE_MAX_UFRAG_PAIR_LENGTH,
+                            NULL,
+                            ufrag2);
+    fail_if( 0 == strncmp(pair, "ufr1:ufr2", ICE_MAX_UFRAG_PAIR_LENGTH ) );
+    fail_unless( 0 == strncmp(pair, "--no_ufrags--", ICE_MAX_UFRAG_PAIR_LENGTH ) );
+
+
+    ICELIB_makeUsernamePair(pair,
+                            ICE_MAX_UFRAG_PAIR_LENGTH,
+                            ufrag1,
+                            NULL);
+    fail_if( 0 == strncmp(pair, "ufr1:ufr2", ICE_MAX_UFRAG_PAIR_LENGTH ) );
+    fail_unless( 0 == strncmp(pair, "--no_ufrags--", ICE_MAX_UFRAG_PAIR_LENGTH ) );
+
+    ICELIB_makeUsernamePair(pair,
+                            ICE_MAX_UFRAG_PAIR_LENGTH,
+                            NULL,
+                            NULL);
+    fail_if( 0 == strncmp(pair, "ufr1:ufr2", ICE_MAX_UFRAG_PAIR_LENGTH ) );
+    fail_unless( 0 == strncmp(pair, "--no_ufrags--", ICE_MAX_UFRAG_PAIR_LENGTH ) );
+
+
+
+
+}
+END_TEST
+
+
+START_TEST( findCandidates )
+{
+    
+    ICE_MEDIA_STREAM mediaStream;
+
+    struct sockaddr_storage addr1;
+    
+    sockaddr_initFromString((struct sockaddr *)&addr1,
+                            "10.47.1.34");
+
+    ICELIBTYPES_ICE_MEDIA_STREAM_reset(&mediaStream);
+
+    fail_unless( NULL ==pICELIB_findCandidate(&mediaStream,
+                                              (struct sockaddr *)&addr1 ) );
+
+    mediaStream.numberOfCandidates = 1;
+
+    sockaddr_copy((struct sockaddr *)&mediaStream.candidate[0].connectionAddr,
+                  (struct sockaddr *)&addr1 );
+
+
+    fail_if( NULL ==pICELIB_findCandidate(&mediaStream,
+                                          (struct sockaddr *)&addr1 ) );
+    
+
+}
+END_TEST
+
+START_TEST( splitUfragPair )
+{
+    char ufragPair[] = "ufr1:ufr2";
+    size_t idx;
+
+    fail_unless( 0 == strcmp(pICELIB_splitUfragPair(ufragPair, &idx), "ufr2"));
+
+}
+END_TEST
+
+
 Suite * icelib_suite (void)
 {
   Suite *s = suite_create ("ICElib");
@@ -1243,7 +1359,11 @@ Suite * icelib_suite (void)
       tcase_add_test (tc_core, create_foundation);
       tcase_add_test (tc_core, pairPriority);
       tcase_add_test (tc_core, ice_timer);
-  
+      tcase_add_test (tc_core, compareTransactionId );
+      tcase_add_test (tc_core, makeTieBreaker );
+      tcase_add_test (tc_core, makeUserNamePair );
+      tcase_add_test (tc_core, findCandidates );
+      tcase_add_test (tc_core, splitUfragPair );
       suite_add_tcase (s, tc_core);
   }
 

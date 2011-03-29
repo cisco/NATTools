@@ -64,9 +64,6 @@ void ICELIBTYPES_ICE_MEDIA_dump(FILE *stream, const ICE_MEDIA *iceMedia)
                 fprintf(stream, "---  ICEMediaLine[%i] ---\n", i);
                 ICELIBTYPES_ICE_MEDIA_STREAM_dump(stream, &iceMedia->mediaStream[i]);
                 printed++;
-            } else {
-                fprintf(stream, "--- Number of ICEMedialines exceeded (Got %i, excpected %i)\n",
-                       printed, iceMedia->numberOfICEMediaLines);
             }
         }
         else {
