@@ -20,6 +20,7 @@ START_TEST( candidate_dump )
     ICE_CANDIDATE candidate;
 
     ICELIBTYPES_ICE_CANDIDATE_dump(stderr, &candidate);
+    
 
 }
 END_TEST
@@ -34,6 +35,10 @@ START_TEST( mediastream_dump )
     ICELIBTYPES_ICE_MEDIA_STREAM_dump(stderr, &iceMediaStream);
 
 
+    iceMediaStream.numberOfCandidates = 2;
+
+    ICELIBTYPES_ICE_MEDIA_STREAM_dump(stderr, &iceMediaStream);
+
     
 
 }
@@ -42,13 +47,27 @@ END_TEST
 
 START_TEST( media_dump )
 {
+    int i;
     ICE_MEDIA iceMedia;
     ICELIBTYPES_ICE_MEDIA_reset(&iceMedia);
 
     ICELIBTYPES_ICE_MEDIA_dump(stderr, &iceMedia);
-
     
+    iceMedia.numberOfICEMediaLines = 1;
+    iceMedia.mediaStream[0].numberOfCandidates = 2;
 
+    ICELIBTYPES_ICE_MEDIA_dump(stderr, &iceMedia);
+
+    iceMedia.numberOfICEMediaLines = (ICE_MAX_MEDIALINES + 10);
+
+    for(i=0;i<=ICE_MAX_MEDIALINES; i++){
+        iceMedia.mediaStream[i].numberOfCandidates = 2;
+    }
+
+    iceMedia.mediaStream[ICE_MAX_MEDIALINES].numberOfCandidates = 2;
+    //iceMedia.mediaStream[ICE_MAX_MEDIALINES+1].numberOfCandidates = 2;
+
+    ICELIBTYPES_ICE_MEDIA_dump(stderr, &iceMedia);
 
 }
 END_TEST
