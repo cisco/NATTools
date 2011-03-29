@@ -32,6 +32,10 @@ START_TEST( mediastream_dump )
     ICELIBTYPES_ICE_MEDIA_STREAM_reset(&iceMediaStream);
 
     ICELIBTYPES_ICE_MEDIA_STREAM_dump(stderr, &iceMediaStream);
+
+
+    
+
 }
 END_TEST
 
@@ -43,9 +47,41 @@ START_TEST( media_dump )
 
     ICELIBTYPES_ICE_MEDIA_dump(stderr, &iceMedia);
 
+    
+
+
 }
 END_TEST
 
+
+START_TEST( iceMedia_empty )
+{
+    ICE_MEDIA iceMedia;
+    ICELIBTYPES_ICE_MEDIA_reset(&iceMedia);
+
+
+    fail_unless( ICELIBTYPES_ICE_MEDIA_isEmpty(&iceMedia) );
+
+    iceMedia.numberOfICEMediaLines = 2;
+
+    fail_if( ICELIBTYPES_ICE_MEDIA_isEmpty(&iceMedia) );
+
+}
+END_TEST
+
+START_TEST( mediastream_empty ){
+    ICE_MEDIA_STREAM iceMediaStream;
+
+    ICELIBTYPES_ICE_MEDIA_STREAM_reset(&iceMediaStream);
+    fail_unless( ICELIBTYPES_ICE_MEDIA_STREAM_isEmpty(&iceMediaStream) );
+    
+    iceMediaStream.numberOfCandidates = 3;
+
+    fail_if( ICELIBTYPES_ICE_MEDIA_STREAM_isEmpty(&iceMediaStream) );
+
+
+}
+END_TEST
 
 Suite * icelibtypes_suite (void)
 {
@@ -57,6 +93,8 @@ Suite * icelibtypes_suite (void)
       tcase_add_test (tc_core, candidate_dump);
       tcase_add_test (tc_core, mediastream_dump);
       tcase_add_test (tc_core, media_dump );
+      tcase_add_test (tc_core, iceMedia_empty );
+      tcase_add_test (tc_core, mediastream_empty );
       suite_add_tcase (s, tc_core);
   }
 
