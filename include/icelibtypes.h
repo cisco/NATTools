@@ -302,9 +302,9 @@ void ICELIBTYPES_ICE_MEDIA_reset(ICE_MEDIA *iceMedia);
 bool ICELIBTYPES_ICE_MEDIA_isEmpty(const ICE_MEDIA *iceMedia);
 
 char const * ICELIBTYPES_ICE_CANDIDATE_TYPE_toString( const ICE_CANDIDATE_TYPE candidateType);
-void ICELIBTYPES_ICE_CANDIDATE_dump( const ICE_CANDIDATE *candidate);
-void ICELIBTYPES_ICE_MEDIA_STREAM_dump( const ICE_MEDIA_STREAM *iceMediaStream);
-void ICELIBTYPES_ICE_MEDIA_dump( const ICE_MEDIA *iceMedia);
+void ICELIBTYPES_ICE_CANDIDATE_dump( FILE *stream, const ICE_CANDIDATE *candidate);
+void ICELIBTYPES_ICE_MEDIA_STREAM_dump( FILE *stream, const ICE_MEDIA_STREAM *iceMediaStream);
+void ICELIBTYPES_ICE_MEDIA_dump( FILE *stream, const ICE_MEDIA *iceMedia);
 
 
 #ifdef __cplusplus

@@ -22,56 +22,56 @@ char const * ICELIBTYPES_ICE_CANDIDATE_TYPE_toString(const ICE_CANDIDATE_TYPE ca
     return "UNKNOWN";
 }
 
-void ICELIBTYPES_ICE_CANDIDATE_dump(const ICE_CANDIDATE *candidate){
+void ICELIBTYPES_ICE_CANDIDATE_dump(FILE *stream, const ICE_CANDIDATE *candidate){
     char addr[SOCKADDR_MAX_STRLEN];
-    printf("   Fnd: '%s' ", candidate->foundation);
-    printf("Comp: %i ", candidate->componentid);
-    printf("Pri: %u ", candidate->priority);
-    printf("Addr: %s", sockaddr_toString((const struct sockaddr *)&candidate->connectionAddr, 
+    fprintf(stream, "   Fnd: '%s' ", candidate->foundation);
+    fprintf(stream, "Comp: %i ", candidate->componentid);
+    fprintf(stream, "Pri: %u ", candidate->priority);
+    fprintf(stream, "Addr: %s", sockaddr_toString((const struct sockaddr *)&candidate->connectionAddr, 
                                          addr, sizeof addr, true));
            //netaddr_dump(&candidate->connectionAddr, true);
-    printf(" Type: '%s' ", ICELIBTYPES_ICE_CANDIDATE_TYPE_toString(candidate->type));
-    printf(" UVal1: %u ", candidate->userValue1);
-    printf(" UVal2: %u\n", candidate->userValue2);
+    fprintf(stream, " Type: '%s' ", ICELIBTYPES_ICE_CANDIDATE_TYPE_toString(candidate->type));
+    fprintf(stream, " UVal1: %u ", candidate->userValue1);
+    fprintf(stream, " UVal2: %u\n", candidate->userValue2);
 }
 
-void ICELIBTYPES_ICE_MEDIA_STREAM_dump(const ICE_MEDIA_STREAM *iceMediaStream)
+void ICELIBTYPES_ICE_MEDIA_STREAM_dump(FILE *stream, const ICE_MEDIA_STREAM *iceMediaStream)
 {
     uint32_t i;
-    printf(" Number of Candidates: %i\n", iceMediaStream->numberOfCandidates);
+    fprintf(stream, " Number of Candidates: %i\n", iceMediaStream->numberOfCandidates);
     if(iceMediaStream->numberOfCandidates > 0){
-        printf(" Ufrag : '%s'\n", iceMediaStream->ufrag);
-        printf(" Passwd: '%s'\n", iceMediaStream->passwd);
+        fprintf(stream, " Ufrag : '%s'\n", iceMediaStream->ufrag);
+        fprintf(stream, " Passwd: '%s'\n", iceMediaStream->passwd);
     }
     for(i=0; i<iceMediaStream->numberOfCandidates; i++) {
-        printf(" Candidate[%i]\n", i);
-        ICELIBTYPES_ICE_CANDIDATE_dump(&iceMediaStream->candidate[i]);
+        fprintf(stream, " Candidate[%i]\n", i);
+        ICELIBTYPES_ICE_CANDIDATE_dump(stream, &iceMediaStream->candidate[i]);
     }
 
 }
 
 
-void ICELIBTYPES_ICE_MEDIA_dump(const ICE_MEDIA *iceMedia)
+void ICELIBTYPES_ICE_MEDIA_dump(FILE *stream, const ICE_MEDIA *iceMedia)
 {
     uint32_t i;
     uint32_t printed =0;
 
-    printf("Number of Media Lines: %i\n",iceMedia->numberOfICEMediaLines);
+    fprintf(stream, "Number of Media Lines: %i\n",iceMedia->numberOfICEMediaLines);
 
     for (i=0; i< ICE_MAX_MEDIALINES; i++) {
         if ( ICELIBTYPES_ICE_MEDIA_STREAM_isEmpty( &iceMedia->mediaStream[i] ) == false ){
             if ( printed <= iceMedia->numberOfICEMediaLines) {
-                printf("---  ICEMediaLine[%i] ---\n", i);
-                ICELIBTYPES_ICE_MEDIA_STREAM_dump(&iceMedia->mediaStream[i]);
+                fprintf(stream, "---  ICEMediaLine[%i] ---\n", i);
+                ICELIBTYPES_ICE_MEDIA_STREAM_dump(stream, &iceMedia->mediaStream[i]);
                 printed++;
             } else {
-                printf("--- Number of ICEMedialines exceeded (Got %i, excpected %i)\n",
+                fprintf(stream, "--- Number of ICEMedialines exceeded (Got %i, excpected %i)\n",
                        printed, iceMedia->numberOfICEMediaLines);
             }
         }
         else {
-            printf("---  ICEMediaLine[%i] ---\n", i);
-            printf("[empty]\n");
+            fprintf(stream, "---  ICEMediaLine[%i] ---\n", i);
+            fprintf(stream, "[empty]\n");
         }
     }
 }
