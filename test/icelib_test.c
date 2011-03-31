@@ -79,6 +79,7 @@ typedef struct{
     bool                    useCandidate;
     bool                    iceControlling;
     bool                    iceControlled;
+    StunMsgId               transactionId;
 }ConncheckCB;
 
 ConncheckCB connChkCB;
@@ -116,7 +117,7 @@ ICELIB_Result ICELIB_TEST_sendConnectivityCheck( void                    *pUserD
     connChkCB.useCandidate = useCandidate;
     connChkCB.iceControlling = iceControlling;
     connChkCB.iceControlled = iceControlled;
-
+    connChkCB.transactionId = transactionId;
     return 0;
 }
 
@@ -141,7 +142,6 @@ icelib_setup (void)
 {
 
     struct sockaddr_storage defaultAddr;
-    
     struct sockaddr_storage localHostRtp;
     struct sockaddr_storage localHostRtcp;
     struct sockaddr_storage localRflxRtp;
@@ -149,6 +149,8 @@ icelib_setup (void)
     struct sockaddr_storage localRelayRtp;
     struct sockaddr_storage localRelayRtcp;
 
+
+    
     ICELIB_CONFIGURATION iceConfig;     
 
     icelib = (ICELIB_INSTANCE *)malloc(sizeof(ICELIB_INSTANCE));
@@ -1257,9 +1259,12 @@ START_TEST (conncheck_withIncomming)
     char ufragPair[ICE_MAX_UFRAG_PAIR_LENGTH];
     StunMsgId stunId;
     char srcAddrStr[] = "10.47.1.23:52456";
+    char respRflxAddrStr[] = "158.38.48.10:52423";
     
     struct sockaddr_storage srcAddr;
     struct sockaddr_storage dstAddr;
+
+    struct sockaddr_storage respRflxAddr;
 
     memset(&connChkCB, 0, sizeof(ConncheckCB));
 
@@ -1344,6 +1349,8 @@ START_TEST (conncheck_withIncomming)
 
     fail_if( connChkCB.useRelay );
     
+    
+    
 
     /* 5. Tick */
     memset(&connChkCB, 0, sizeof(ConncheckCB));
@@ -1418,6 +1425,18 @@ START_TEST (conncheck_withIncomming)
                  "sockaddr toString failed (Got:'%s' Expected: '%s')", ipaddr, remoteRflxRtpAddr); 
 
     fail_if( connChkCB.useRelay );
+    sockaddr_initFromString( (struct sockaddr *)&respRflxAddr,  respRflxAddrStr);
+
+    ICELIB_incommingBindingResponse(icelib,
+                                    200,
+                                    connChkCB.transactionId,
+                                    connChkCB.destination,
+                                    connChkCB.source,
+                                    (struct sockaddr *)&respRflxAddr);
+
+    
+
+
 
 
     /* 10. Tick */
