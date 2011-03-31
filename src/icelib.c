@@ -212,6 +212,13 @@ bool ICELIB_compareUfragPair(const char *pUfragPair,
     const char *pSecondPart;
     size_t colonIndex;
 
+    if (pUfragPair == NULL ||
+        pUfragLeft == NULL ||
+        pUfragRight == NULL ){
+        return false;
+    }
+        
+
     pSecondPart = pICELIB_splitUfragPair(pUfragPair, &colonIndex);
     if (pSecondPart == NULL) return false;
 
