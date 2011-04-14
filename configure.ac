@@ -20,9 +20,29 @@ AM_PROG_CC_C_O
 #AC_CHECK_LIB([check], [srunner_create])
 #AM_PATH_CHECK()
 
-AC_CHECK_LIB([sockaddrutil], [sockaddr_initFromString],[], [AC_MSG_FAILURE([could not find sockaddrutil])])
 
-AC_CHECK_LIB([stun], [TurnClient_Init], [], [AC_MSG_FAILURE([could not find stunlib])])
+AC_ARG_ENABLE(submodule,
+AS_HELP_STRING([--enable-submodule],
+               [enable submodule build @<:@default=no@:>@]),
+              [case "${enableval}" in
+                 yes) submodule=true ;;
+                 no)  submodule=false ;;
+                 *)   AC_MSG_ERROR([bad value ${enableval} for --enable-submodule]) ;;
+               esac],
+              [submodule=false])
+
+
+AM_CONDITIONAL(SUBMODULE, test x"$submodule" = "xtrue")
+
+
+AM_COND_IF(SUBMODULE,
+           [],
+           [AC_CHECK_LIB([sockaddrutil], [sockaddr_initFromString],[], [AC_MSG_FAILURE([could not find sockaddrutil])])])
+
+
+AM_COND_IF(SUBMODULE,
+           [],
+           [AC_CHECK_LIB([stun], [TurnClient_Init], [], [AC_MSG_FAILURE([could not find stunlib])])])
 
 
 AC_ARG_ENABLE(gcov,

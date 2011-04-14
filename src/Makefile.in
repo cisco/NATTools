@@ -75,6 +75,9 @@ LTLIBRARIES = $(lib_LTLIBRARIES)
 libice_la_LIBADD =
 am_libice_la_OBJECTS = icelib.lo icelibtypes.lo
 libice_la_OBJECTS = $(am_libice_la_OBJECTS)
+libice_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(libice_la_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
@@ -208,10 +211,12 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-AM_CPPFLAGS = -I../include
+@SUBMODULE_FALSE@AM_CPPFLAGS = -I../include
+@SUBMODULE_TRUE@AM_CPPFLAGS = -I../include -I../../sockaddrutil/include -I../../icelib/include
 include_HEADERS = ../include/icelib.h ../include/icelibtypes.h ../include/icelib_defines.h
 lib_LTLIBRARIES = libice.la
 libice_la_SOURCES = icelib.c icelibtypes.c
+libice_la_LDFLAGS = -version-info 1:0:0
 all: all-am
 
 .SUFFIXES:
@@ -280,7 +285,7 @@ clean-libLTLIBRARIES:
 	  rm -f $${locs}; \
 	}
 libice.la: $(libice_la_OBJECTS) $(libice_la_DEPENDENCIES) $(EXTRA_libice_la_DEPENDENCIES) 
-	$(LINK) -rpath $(libdir) $(libice_la_OBJECTS) $(libice_la_LIBADD) $(LIBS)
+	$(libice_la_LINK) -rpath $(libdir) $(libice_la_OBJECTS) $(libice_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
