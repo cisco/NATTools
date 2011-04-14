@@ -4970,11 +4970,8 @@ void ICELIB_pairDumpLog(const ICELIB_CALLBACK_LOG  *pCallbackLog,
         ICELIB_logVaString(pCallbackLog, logLevel, "Id=%u ", pPair->pairId);
         ICELIB_logVaString(pCallbackLog, logLevel, "refersTo=%u\n", pPair->refersToPairId);
 
-#if defined(__x86_64__)
-        ICELIB_logVaString(pCallbackLog, logLevel, "Pair priority  : 0x%016lx\n", pPair->pairPriority);
-#else
-        ICELIB_logVaString(pCallbackLog, logLevel, "Pair priority  : 0x%016llx\n", pPair->pairPriority);
-#endif // __X86_64__
+        ICELIB_logVaString(pCallbackLog, logLevel, "Pair priority  : 0x%ju\n", (uintmax_t)pPair->pairPriority);
+
         ICELIB_logVaString(pCallbackLog, logLevel, "Pair foundation: '%s'\n",
                            ICELIB_getPairFoundation(foundation,
                                                     ICE_MAX_FOUNDATION_PAIR_LENGTH,
