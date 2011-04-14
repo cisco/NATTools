@@ -9,15 +9,41 @@ AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([foreign -Wall -Werror])
+LT_INIT
 
 # Checks for programs.
 AC_PROG_CC
 
+
+
 # Checks for libraries.
 AC_CHECK_LIB([ssl], [SSL_library_init], [], [AC_MSG_FAILURE([could not find ssl])])
-AC_CHECK_LIB([sockaddrutil], [sockaddr_initFromString],[], [AC_MSG_FAILURE([could not find sockaddrutil])])
 
-AC_CHECK_LIB([stun], [TurnClient_Init], [], [AC_MSG_FAILURE([could not find stunlib])])
+AC_ARG_ENABLE(submodule,
+AS_HELP_STRING([--enable-submodule],
+               [enable submodule build @<:@default=no@:>@]),
+              [case "${enableval}" in
+                 yes) submodule=true ;;
+                 no)  submodule=false ;;
+                 *)   AC_MSG_ERROR([bad value ${enableval} for --enable-submodule]) ;;
+               esac],
+              [submodule=false])
+
+
+AM_CONDITIONAL(SUBMODULE, test x"$submodule" = "xtrue")
+
+
+AM_COND_IF(SUBMODULE,
+           [],
+           [AC_CHECK_LIB([sockaddrutil], [sockaddr_initFromString],[], [AC_MSG_FAILURE([could not find sockaddrutil])])])
+
+
+AM_COND_IF(SUBMODULE,
+           [],
+           [AC_CHECK_LIB([stun], [TurnClient_Init], [], [AC_MSG_FAILURE([could not find stunlib])])])
+
+
+
 
 AC_CHECK_LIB([pthread], [pthread_create], [], [AC_MSG_FAILURE([could not find pthread])])
 
