@@ -19,7 +19,7 @@ AC_PROG_CC
 # Checks for libraries.
 AC_CHECK_LIB([ssl], [SSL_library_init], [], [AC_MSG_FAILURE([could not find ssl])])
 
-<<<<<<< HEAD
+
 AC_ARG_ENABLE(submodule,
 AS_HELP_STRING([--enable-submodule],
                [enable submodule build @<:@default=no@:>@]),
@@ -45,10 +45,10 @@ AM_COND_IF(SUBMODULE,
 
 
 
-=======
-AC_CHECK_LIB([stun], [TurnClient_Init], [], [AC_MSG_FAILURE([could not find stunlib])])
-AC_CHECK_LIB([ice], [ICELIB_Constructor], [], [AC_MSG_FAILURE([could not find icelib])])
->>>>>>> f5443bfdd6704db43c462740521004962bc2b8c5
+
+#AC_CHECK_LIB([stun], [TurnClient_Init], [], [AC_MSG_FAILURE([could not find stunlib])])
+#AC_CHECK_LIB([ice], [ICELIB_Constructor], [], [AC_MSG_FAILURE([could not find icelib])])
+
 
 AC_CHECK_LIB([pthread], [pthread_create], [], [AC_MSG_FAILURE([could not find pthread])])
 
