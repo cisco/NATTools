@@ -608,6 +608,8 @@ ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
+SUBMODULE_FALSE
+SUBMODULE_TRUE
 LIBCHECK
 CHECK_FALSE
 CHECK_TRUE
@@ -734,6 +736,7 @@ with_sysroot
 enable_libtool_lock
 enable_gcov
 with_check
+enable_submodule
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1373,6 +1376,7 @@ Optional Features:
                           speeds up one-time build
   --disable-libtool-lock  avoid locking (might break parallel builds)
   --enable-gcov           enable test coverage with gcov [default=no]
+  --enable-submodule      enable submodule build [default=no]
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -12332,7 +12336,31 @@ fi
 # Checks for libraries.
 #AC_CHECK_LIB([check], [srunner_create])
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for sockaddr_initFromString in -lsockaddrutil" >&5
+# Check whether --enable-submodule was given.
+if test "${enable_submodule+set}" = set; then :
+  enableval=$enable_submodule; case "${enableval}" in
+                 yes) submodule=true ;;
+                 no)  submodule=false ;;
+                 *)   as_fn_error "bad value ${enableval} for --enable-submodule" "$LINENO" 5 ;;
+               esac
+else
+  submodule=false
+fi
+
+
+
+ if test x"$submodule" = "xtrue"; then
+  SUBMODULE_TRUE=
+  SUBMODULE_FALSE='#'
+else
+  SUBMODULE_TRUE='#'
+  SUBMODULE_FALSE=
+fi
+
+
+if test -z "$SUBMODULE_TRUE"; then :
+  else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for sockaddr_initFromString in -lsockaddrutil" >&5
 $as_echo_n "checking for sockaddr_initFromString in -lsockaddrutil... " >&6; }
 if test "${ac_cv_lib_sockaddrutil_sockaddr_initFromString+set}" = set; then :
   $as_echo_n "(cached) " >&6
@@ -12382,6 +12410,7 @@ as_fn_error "could not find sockaddrutil
 See \`config.log' for more details." "$LINENO" 5; }
 fi
 
+fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSL_library_init in -lssl" >&5
 $as_echo_n "checking for SSL_library_init in -lssl... " >&6; }
@@ -12792,6 +12821,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${CHECK_TRUE}" && test -z "${CHECK_FALSE}"; then
   as_fn_error "conditional \"CHECK\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${SUBMODULE_TRUE}" && test -z "${SUBMODULE_FALSE}"; then
+  as_fn_error "conditional \"SUBMODULE\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 

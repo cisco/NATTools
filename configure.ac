@@ -17,8 +17,8 @@ AM_PROG_CC_C_O
 
 
 AC_ARG_ENABLE(gcov,
-	      AS_HELP_STRING([--enable-gcov],
-                             [enable test coverage with gcov @<:@default=no@:>@]),
+AS_HELP_STRING([--enable-gcov],
+               [enable test coverage with gcov @<:@default=no@:>@]),
               [case "${enableval}" in
                  yes) gcov=true ;;
                  no)  gcov=false ;;
@@ -52,7 +52,22 @@ AC_ARG_WITH([check],
 # Checks for libraries.
 #AC_CHECK_LIB([check], [srunner_create])
 
-AC_CHECK_LIB([sockaddrutil], [sockaddr_initFromString],[], [AC_MSG_FAILURE([could not find sockaddrutil])])
+AC_ARG_ENABLE(submodule,
+AS_HELP_STRING([--enable-submodule],
+               [enable submodule build @<:@default=no@:>@]),
+              [case "${enableval}" in
+                 yes) submodule=true ;;
+                 no)  submodule=false ;;
+                 *)   AC_MSG_ERROR([bad value ${enableval} for --enable-submodule]) ;;
+               esac],
+              [submodule=false])
+
+
+AM_CONDITIONAL(SUBMODULE, test x"$submodule" = "xtrue")
+
+AM_COND_IF(SUBMODULE,
+           [],
+[AC_CHECK_LIB([sockaddrutil], [sockaddr_initFromString],[], [AC_MSG_FAILURE([could not find sockaddrutil])])])
 
 AC_CHECK_LIB([ssl], [SSL_library_init], [], [AC_MSG_FAILURE([could not find ssl])])
 
