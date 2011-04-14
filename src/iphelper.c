@@ -78,6 +78,7 @@ int getLocalIPaddresses(struct turn_info *turnInfo, char *iface)
                                                              (struct sockaddr *)&turnInfo->localIp4,
                                                              (struct sockaddr *)&turnInfo->turnAlloc_46.hostAddr,
                                                              0);
+
     }
 
     if (!getLocalInterFaceAddrs((struct sockaddr *)&turnInfo->localIp6, iface, AF_INET6) ){
