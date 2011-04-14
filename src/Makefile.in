@@ -54,7 +54,8 @@ am_testice_OBJECTS = ice.$(OBJEXT) gather.$(OBJEXT) turninfo.$(OBJEXT) \
 	permissions.$(OBJEXT) iphelper.$(OBJEXT)
 testice_OBJECTS = $(am_testice_OBJECTS)
 @SUBMODULE_TRUE@testice_DEPENDENCIES = ../../stunlib/src/libstun.la \
-@SUBMODULE_TRUE@	../../sockaddrutil/src/libsockaddrutil.la
+@SUBMODULE_TRUE@	../../sockaddrutil/src/libsockaddrutil.la \
+@SUBMODULE_TRUE@	../../icelib/src/libice.la
 am_testturn_OBJECTS = testturn.$(OBJEXT) gather.$(OBJEXT) \
 	turninfo.$(OBJEXT) permissions.$(OBJEXT) iphelper.$(OBJEXT) \
 	view.$(OBJEXT)
@@ -195,7 +196,7 @@ top_srcdir = @top_srcdir@
 @SUBMODULE_FALSE@AM_CPPFLAGS = -I../include	
 @SUBMODULE_TRUE@AM_CPPFLAGS = -I../include -I../../sockaddrutil/include -I../../icelib/include
 @SUBMODULE_TRUE@testturn_LDADD = ../../stunlib/src/libstun.la ../../sockaddrutil/src/libsockaddrutil.la
-@SUBMODULE_TRUE@testice_LDADD = ../../stunlib/src/libstun.la ../../sockaddrutil/src/libsockaddrutil.la
+@SUBMODULE_TRUE@testice_LDADD = ../../stunlib/src/libstun.la ../../sockaddrutil/src/libsockaddrutil.la ../../icelib/src/libice.la
 testturn_SOURCES = testturn.c gather.c turninfo.c permissions.c iphelper.c view.c
 testice_SOURCES = ice.c gather.c turninfo.c permissions.c iphelper.c
 all: all-am
