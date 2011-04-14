@@ -197,8 +197,8 @@ top_srcdir = @top_srcdir@
 @SUBMODULE_TRUE@AM_CPPFLAGS = -I../include -I../../sockaddrutil/include -I../../icelib/include
 @SUBMODULE_TRUE@testturn_LDADD = ../../stunlib/src/libstun.la ../../sockaddrutil/src/libsockaddrutil.la
 @SUBMODULE_TRUE@testice_LDADD = ../../stunlib/src/libstun.la ../../sockaddrutil/src/libsockaddrutil.la ../../icelib/src/libice.la
-testturn_SOURCES = testturn.c gather.c turninfo.c permissions.c iphelper.c view.c
-testice_SOURCES = ice.c gather.c turninfo.c permissions.c iphelper.c
+testturn_SOURCES = testturn.c gather.c turninfo.c permissions.c iphelper.c view.c gather.h iphelper.h permissions.h turninfo.h view.h
+testice_SOURCES = ice.c gather.c turninfo.c permissions.c iphelper.c gather.h iphelper.h permissions.h turninfo.h view.h
 all: all-am
 
 .SUFFIXES:
