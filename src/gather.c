@@ -35,7 +35,6 @@ int gather(struct sockaddr *host_addr,
     int stunCtx;
     //TurnCallBackData_T TurnCbData;
 
-
     stunCtx = TurnClient_startAllocateTransaction(TEST_THREAD_CTX,
                                                   turnResult,
                                                   host_addr,
@@ -49,9 +48,8 @@ int gather(struct sockaddr *host_addr,
                                                   &turnResult->TurnCbData,
                                                   false);
     turnResult->stunCtx = stunCtx;
-
+    
     return stunCtx;
-
 }
 
 
@@ -119,6 +117,7 @@ void gatherAll(struct turn_info *turnInfo, struct listenConfig *listenConfig, vo
 
     }
 
+    printf("Gather started\n");
     listenConfig->numSockets = idx;
 }
 

@@ -43,6 +43,11 @@ AM_COND_IF(SUBMODULE,
            [],
            [AC_CHECK_LIB([stun], [TurnClient_Init], [], [AC_MSG_FAILURE([could not find stunlib])])])
 
+AM_COND_IF(SUBMODULE,
+           [],
+           [AC_CHECK_LIB([ice], [ICELIB_Constructor], [], [AC_MSG_FAILURE([could not find icelib])])])
+           
+
 
 
 

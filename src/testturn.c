@@ -63,10 +63,10 @@ int main(int argc, char *argv[])
 
     getRemoteTurnServerIp(&turnInfo, argv[2]);
 
-    getLocalIPaddresses(&turnInfo, argv[1]);
+    getLocalIPaddresses(&turnInfo, SOCK_DGRAM, argv[1]);
 
     //Turn setup
-    TurnClient_Init(TEST_THREAD_CTX, 50, 50, NULL, false, "TestIce");
+    TurnClient_Init(TEST_THREAD_CTX, 50, 50, NULL, false, "TestTurn");
     pthread_create( &turnTickThread, NULL, tickTurn, (void*) &TEST_THREAD_CTX);
 
     //Ncurses view

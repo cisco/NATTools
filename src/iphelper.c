@@ -64,7 +64,7 @@ int getRemoteTurnServerIp(struct turn_info *turnInfo, char *fqdn)
 
 }
 
-int getLocalIPaddresses(struct turn_info *turnInfo, char *iface)
+int getLocalIPaddresses(struct turn_info *turnInfo, int type, char *iface)
 {
 
     if (!getLocalInterFaceAddrs( (struct sockaddr *)&turnInfo->localIp4, iface, AF_INET) ){
@@ -74,11 +74,19 @@ int getLocalIPaddresses(struct turn_info *turnInfo, char *iface)
                                                              (struct sockaddr *)&turnInfo->localIp4,
                                                              (struct sockaddr *)&turnInfo->turnAlloc_44.hostAddr,
                                                              0);
+        if(type == SOCK_STREAM){
+
+            turnInfo->turnAlloc_44.sockfd = createLocalTCPSocket(AF_INET,
+                                                                 turnInfo,
+                                                                 3478);
+
+        }
+
         turnInfo->turnAlloc_46.sockfd = createLocalUDPSocket(AF_INET,
                                                              (struct sockaddr *)&turnInfo->localIp4,
                                                              (struct sockaddr *)&turnInfo->turnAlloc_46.hostAddr,
                                                              0);
-
+        
     }
 
     if (!getLocalInterFaceAddrs((struct sockaddr *)&turnInfo->localIp6, iface, AF_INET6) ){
@@ -148,6 +156,61 @@ bool getLocalInterFaceAddrs(struct sockaddr *addr, char *iface, int ai_family){
     return false;
 }
 
+
+int createLocalTCPSocket(int ai_family,
+                         struct turn_info *turnInfo,
+                         uint16_t port)
+{
+    struct addrinfo hints, *servinfo, *p;
+    int rv;
+    char service[8];
+    int sockfd;
+    
+    snprintf(service, 8, "%d", port);
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = ai_family;
+    hints.ai_socktype = SOCK_STREAM;
+    
+
+
+    if ((rv = getaddrinfo(turnInfo->fqdn, service, &hints, &servinfo)) != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+        return 1;
+    }
+    
+    // loop through all the results and connect to the first we can
+    for(p = servinfo; p != NULL; p = p->ai_next) {
+        if ((sockfd = socket(p->ai_family, p->ai_socktype,
+                             p->ai_protocol)) == -1) {
+            perror("client: socket");
+            continue;
+        }
+        
+        if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+            close(sockfd);
+            perror("client: connect");
+            continue;
+        }
+        
+        break;
+    }
+    
+    if (p == NULL) {
+        fprintf(stderr, "client: failed to connect\n");
+        return 2;
+    }
+    
+    //inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr),
+    //          s, sizeof s);
+    //printf("client: connecting to %s\n", s);
+    
+    freeaddrinfo(servinfo); // all done with this structure
+    
+    return sockfd;
+}
+
+
 int createLocalUDPSocket(int ai_family,
                          const struct sockaddr *localIp,
                          struct sockaddr *hostaddr,
@@ -165,40 +228,43 @@ int createLocalUDPSocket(int ai_family,
 
     //itoa(port, service, 10);
 
-    snprintf(service, 8, "%d", port);
+    //snprintf(service, 8, "%d", port);
+    snprintf(service, 8, "%d", 3478);
 
-
+        
     // get us a socket and bind it
     memset(&hints, 0, sizeof hints);
     hints.ai_family = ai_family;
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_flags = AI_NUMERICHOST | AI_ADDRCONFIG;
 
-
-    if ((rv = getaddrinfo(addr, NULL, &hints, &ai)) != 0) {
+    
+    if ((rv = getaddrinfo(addr, service, &hints, &ai)) != 0) {
         fprintf(stderr, "selectserver: %s ('%s')\n", gai_strerror(rv), addr);
         exit(1);
     }
 
     for (p = ai; p != NULL; p = p->ai_next) {
 
-        sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-        if (sockfd < 0) {
-            printf("Unable to open socket\n");
-            continue;
-        }
-
         if (sockaddr_isAddrAny(p->ai_addr) ){
             //printf("Ignoring any\n");
             continue;
 
         }
+        if ((sockfd = socket(p->ai_family, p->ai_socktype,
+                             p->ai_protocol)) == -1) {
+            perror("client: socket");
+            continue;
+        }
+
+                
+                    
         if (bind(sockfd, p->ai_addr, p->ai_addrlen) < 0) {
             printf("Bind failed\n");
             close(sockfd);
             continue;
         }
-
+    
         if (localIp != NULL){
             struct sockaddr_storage ss;
             socklen_t len = sizeof(ss);
@@ -213,19 +279,19 @@ int createLocalUDPSocket(int ai_family,
                     ((struct sockaddr_in6 *)p->ai_addr)->sin6_port = ((struct sockaddr_in6 *)&ss)->sin6_port;
                 }
             }
-
-
+            
+            
             sockaddr_copy(hostaddr, p->ai_addr);
-
-
+            
+            
             //printf("Bound to: '%s'\n",
             //       sockaddr_toString(localIp, addr, sizeof(addr), true));
-
+            
         }
-
+        
         break;
     }
-
+    
     return sockfd;
 }
 
@@ -276,7 +342,7 @@ int SendRawStun(int sockfd,
                 struct sockaddr *addr,
                 socklen_t t,
                 void *userdata){
-
+    printf("Sending...");
     return  sendRawUDP(sockfd, buf, len, addr, t);
 
 }

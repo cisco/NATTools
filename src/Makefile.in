@@ -34,7 +34,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-bin_PROGRAMS = testturn$(EXEEXT) testice$(EXEEXT)
+bin_PROGRAMS = testturn$(EXEEXT) pumpturn$(EXEEXT) testice$(EXEEXT)
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -50,6 +50,11 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
+am_pumpturn_OBJECTS = pumpturn.$(OBJEXT) gather.$(OBJEXT) \
+	turninfo.$(OBJEXT) permissions.$(OBJEXT) iphelper.$(OBJEXT)
+pumpturn_OBJECTS = $(am_pumpturn_OBJECTS)
+@SUBMODULE_TRUE@pumpturn_DEPENDENCIES = ../../stunlib/src/libstun.la \
+@SUBMODULE_TRUE@	../../sockaddrutil/src/libsockaddrutil.la
 am_testice_OBJECTS = ice.$(OBJEXT) gather.$(OBJEXT) turninfo.$(OBJEXT) \
 	permissions.$(OBJEXT) iphelper.$(OBJEXT)
 testice_OBJECTS = $(am_testice_OBJECTS)
@@ -75,8 +80,9 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(testice_SOURCES) $(testturn_SOURCES)
-DIST_SOURCES = $(testice_SOURCES) $(testturn_SOURCES)
+SOURCES = $(pumpturn_SOURCES) $(testice_SOURCES) $(testturn_SOURCES)
+DIST_SOURCES = $(pumpturn_SOURCES) $(testice_SOURCES) \
+	$(testturn_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -196,8 +202,10 @@ top_srcdir = @top_srcdir@
 @SUBMODULE_FALSE@AM_CPPFLAGS = -I../include	
 @SUBMODULE_TRUE@AM_CPPFLAGS = -I../include -I../../sockaddrutil/include -I../../icelib/include
 @SUBMODULE_TRUE@testturn_LDADD = ../../stunlib/src/libstun.la ../../sockaddrutil/src/libsockaddrutil.la
+@SUBMODULE_TRUE@pumpturn_LDADD = ../../stunlib/src/libstun.la ../../sockaddrutil/src/libsockaddrutil.la
 @SUBMODULE_TRUE@testice_LDADD = ../../stunlib/src/libstun.la ../../sockaddrutil/src/libsockaddrutil.la ../../icelib/src/libice.la
 testturn_SOURCES = testturn.c gather.c turninfo.c permissions.c iphelper.c view.c gather.h iphelper.h permissions.h turninfo.h view.h
+pumpturn_SOURCES = pumpturn.c gather.c turninfo.c permissions.c iphelper.c gather.h iphelper.h permissions.h turninfo.h
 testice_SOURCES = ice.c gather.c turninfo.c permissions.c iphelper.c gather.h iphelper.h permissions.h turninfo.h view.h
 all: all-am
 
@@ -276,6 +284,9 @@ clean-binPROGRAMS:
 	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
 	echo " rm -f" $$list; \
 	rm -f $$list
+pumpturn$(EXEEXT): $(pumpturn_OBJECTS) $(pumpturn_DEPENDENCIES) $(EXTRA_pumpturn_DEPENDENCIES) 
+	@rm -f pumpturn$(EXEEXT)
+	$(LINK) $(pumpturn_OBJECTS) $(pumpturn_LDADD) $(LIBS)
 testice$(EXEEXT): $(testice_OBJECTS) $(testice_DEPENDENCIES) $(EXTRA_testice_DEPENDENCIES) 
 	@rm -f testice$(EXEEXT)
 	$(LINK) $(testice_OBJECTS) $(testice_LDADD) $(LIBS)
@@ -293,6 +304,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ice.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/iphelper.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/permissions.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pumpturn.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testturn.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/turninfo.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/view.Po@am__quote@
