@@ -616,15 +616,15 @@ END_TEST
 
 START_TEST (sockaddr_IPv4_ipPort)
 {
-    fail_unless( sockaddr_ipPort( sockaddr_IPv4_1 ) == 4567 );
-    fail_if( sockaddr_ipPort( sockaddr_IPv4_1 ) == 1234 );
+    fail_unless( sockaddr_ipPort( (struct sockaddr *)sockaddr_IPv4_1 ) == 4567 );
+    fail_if( sockaddr_ipPort( (struct sockaddr *)sockaddr_IPv4_1 ) == 1234 );
 }
 END_TEST
 
 START_TEST (sockaddr_IPv6_ipPort)
 {
-    fail_unless( sockaddr_ipPort( sockaddr_IPv6_1 ) == 3456 );
-    fail_if( sockaddr_ipPort( sockaddr_IPv6_1 ) == 1234 );
+    fail_unless( sockaddr_ipPort( (struct sockaddr *)sockaddr_IPv6_1 ) == 3456 );
+    fail_if( sockaddr_ipPort( (struct sockaddr *)sockaddr_IPv6_1 ) == 1234 );
 }
 END_TEST
 
