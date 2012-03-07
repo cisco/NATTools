@@ -69,7 +69,9 @@ AM_COND_IF(SUBMODULE,
            [],
 [AC_CHECK_LIB([sockaddrutil], [sockaddr_initFromString],[], [AC_MSG_FAILURE([could not find sockaddrutil])])])
 
-AC_CHECK_LIB([ssl], [SSL_library_init], [], [AC_MSG_FAILURE([could not find ssl])])
+dnl AC_CHECK_LIB([ssl], [SSL_library_init], [], [AC_MSG_FAILURE([could not find ssl])])
+
+AC_CHECK_LIB([crypto], [MD5], [], [AC_MSG_FAILURE([could not find crypto])])
 
 dnl AC_CHECK_LIB([gsasl], [gsasl_check_version], [], [AC_MSG_FAILURE([could not find gsasl])])
 
