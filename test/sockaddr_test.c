@@ -614,6 +614,21 @@ START_TEST (sockaddr_IPv6_linklocal)
 }
 END_TEST
 
+START_TEST (sockaddr_IPv4_ipPort)
+{
+    fail_unless( sockaddr_ipPort( sockaddr_IPv4_1 ) == 4567 );
+    fail_if( sockaddr_ipPort( sockaddr_IPv4_1 ) == 1234 );
+}
+END_TEST
+
+START_TEST (sockaddr_IPv6_ipPort)
+{
+    fail_unless( sockaddr_ipPort( sockaddr_IPv6_1 ) == 3456 );
+    fail_if( sockaddr_ipPort( sockaddr_IPv6_1 ) == 1234 );
+}
+END_TEST
+
+
 Suite * sockaddr_suite (void)
 {
   Suite *s = suite_create ("sockaddr");
@@ -700,6 +715,13 @@ Suite * sockaddr_suite (void)
       suite_add_tcase (s, tc_sockaddr_linklocal);
   }
 
+  {/* ipPort test case */
+      TCase *tc_sockaddr_ipPort = tcase_create ("sockaddr_ipPort");
+      tcase_add_checked_fixture (tc_sockaddr_ipPort, sockaddr_setup, sockaddr_teardown);
+      tcase_add_test (tc_sockaddr_ipPort, sockaddr_IPv4_ipPort);
+      tcase_add_test (tc_sockaddr_ipPort, sockaddr_IPv6_ipPort);
+      suite_add_tcase (s, tc_sockaddr_ipPort);
+  }
 
 
   return s;

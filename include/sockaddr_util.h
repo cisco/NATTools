@@ -109,6 +109,13 @@ bool sockaddr_samePort(const struct sockaddr * a,
                        const struct sockaddr * b);
 
 /*
+ *  Get port from address
+ *
+ */
+unsigned int
+sockaddr_ipPort (const struct sockaddr * a);
+
+/*
  * Check if two sockaddr are alike
  * (IP proto, port and address)
  *

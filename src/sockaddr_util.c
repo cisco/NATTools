@@ -196,10 +196,25 @@ bool sockaddr_samePort(const struct sockaddr * a,
     return false;
 }
 
+unsigned int
+sockaddr_ipPort (const struct sockaddr * a)
+{
+    if ( a && a->sa_family) {
+        if (a->sa_family == AF_INET) {
+            const struct sockaddr_in *a4 = (const struct sockaddr_in *)a;
+            return ntohs (a4->sin_port);
+        }else if (a->sa_family == AF_INET6) {
+            const struct sockaddr_in6 *a6 = (const struct sockaddr_in6 *)a;
+            return ntohs (a6->sin6_port);
+        }
+    }
+    return 0;
+}
+
 bool sockaddr_alike(const struct sockaddr * a,
                     const struct sockaddr * b)
 {
-    if (sockaddr_sameAddr(a,b) && sockaddr_samePort(a,b)){
+    if (a && b && sockaddr_sameAddr(a,b) && sockaddr_samePort(a,b)){
         return true;
     }
 
@@ -208,7 +223,7 @@ bool sockaddr_alike(const struct sockaddr * a,
 
 bool sockaddr_isSet(const struct sockaddr * sa)
 {
-    if(sa->sa_family == AF_INET || sa->sa_family == AF_INET6){
+    if(sa && (sa->sa_family == AF_INET || sa->sa_family == AF_INET6)) {
         return true;
     }
 
@@ -218,10 +233,10 @@ bool sockaddr_isSet(const struct sockaddr * sa)
 
 bool sockaddr_isAddrAny(const struct sockaddr * sa)
 {
-    if (sa->sa_family == AF_INET) {
+    if (sa && (sa->sa_family == AF_INET)) {
         return ( ((struct sockaddr_in*)sa)->sin_addr.s_addr == htonl(INADDR_ANY) );
 
-    }else if (sa->sa_family == AF_INET6) {
+    }else if (sa && (sa->sa_family == AF_INET6)) {
         return IN6_IS_ADDR_UNSPECIFIED(&((struct sockaddr_in6*)sa)->sin6_addr);
     }
 
@@ -297,23 +312,26 @@ const char *sockaddr_toString( const struct sockaddr *sa,
 void sockaddr_copy(struct sockaddr * dst,
                    const struct sockaddr * src)
 {
-    if (src->sa_family == AF_INET) {
-        struct sockaddr_in *dst4 = (struct sockaddr_in *)dst;
-        const struct sockaddr_in *src4 = (const struct sockaddr_in *)src;
 
-        dst4->sin_family = AF_INET;
-        dst4->sin_port = src4->sin_port;
-        dst4->sin_addr.s_addr = src4->sin_addr.s_addr;
-
-    }else if (src->sa_family == AF_INET6) {
-        struct sockaddr_in6 *dst6 = (struct sockaddr_in6 *)dst;
-        const struct sockaddr_in6 *src6 = (const struct sockaddr_in6 *)src;
-
-        dst6->sin6_family = AF_INET6;
-        dst6->sin6_port = src6->sin6_port;
-
-        memcpy(&(dst6->sin6_addr.s6_addr), &(src6->sin6_addr.s6_addr),
-               sizeof(struct in6_addr));
+    if (src) {
+        if (src->sa_family == AF_INET) {
+            struct sockaddr_in *dst4 = (struct sockaddr_in *)dst;
+            const struct sockaddr_in *src4 = (const struct sockaddr_in *)src;
+            
+            dst4->sin_family = AF_INET;
+            dst4->sin_port = src4->sin_port;
+            dst4->sin_addr.s_addr = src4->sin_addr.s_addr;
+            
+        }else if (src->sa_family == AF_INET6) {
+            struct sockaddr_in6 *dst6 = (struct sockaddr_in6 *)dst;
+            const struct sockaddr_in6 *src6 = (const struct sockaddr_in6 *)src;
+            
+            dst6->sin6_family = AF_INET6;
+            dst6->sin6_port = src6->sin6_port;
+            
+            memcpy(&(dst6->sin6_addr.s6_addr), &(src6->sin6_addr.s6_addr),
+                   sizeof(struct in6_addr));
+        }
     }
 }
 
