@@ -39,8 +39,8 @@ extern "C" {
 #endif
 
 
-static const uint32_t SOCKADDR_MAX_STRLEN = INET6_ADDRSTRLEN + 8; //port, :, [];
-
+//static const uint32_t SOCKADDR_MAX_STRLEN = INET6_ADDRSTRLEN + 8; //port, :, [];
+#define SOCKADDR_MAX_STRLEN  INET6_ADDRSTRLEN + 8 //port, :, [];
 
 /*
  *  Initialize a sockaddr_in (IPv4) as any ("0.0.0.0:0").
