@@ -114,7 +114,7 @@ static uint32_t             AllocRefreshTimerSec;
 static uint32_t             ChanRefreshTimerSec;
 static STUN_MUTEX           *InstanceMutex[TURN_MAX_THREAD_CTX];    /* created/alloc'd at startup */
 static bool                 DoStunKeepAlive;
-
+static void                 CallBack(TURN_INSTANCE_DATA *pInst, TurnResult_T turnResult);
 /* use when no timeout list is provided */
 static uint32_t StunDefaultTimeoutList[STUNCLIENT_MAX_RETRANSMITS] = { STUNCLIENT_RETRANSMIT_TIMEOUT_LIST};
 static uint32_t StunDefaultTimeoutListMs2[STUNCLIENT_MAX_RETRANSMITS] = { STUNCLIENT_RETRANSMIT_TIMEOUT_LIST_MS2};
@@ -352,6 +352,27 @@ bool TurnClient_Init(uint32_t threadCtx,
     return true;
 }
 
+void TurnClient_FreeAllCtxs (uint32_t threadCtx)
+{
+    int i;
+    if (InstanceMutex[threadCtx])
+    {
+      free (InstanceMutex[threadCtx]);
+      InstanceMutex[threadCtx] = NULL;
+    }
+
+    for (i=0; i < CurrentInstances[threadCtx]; i++)
+    {
+      if (InstanceData[threadCtx][i])
+      {
+        free (InstanceData[threadCtx][i]);
+        InstanceData[threadCtx][i] = NULL;
+      }
+    }
+    CurrentInstances [threadCtx] = 0;
+    free (InstanceData[threadCtx]);
+    InstanceData[threadCtx] = NULL;
+}
 
 
 /* Create a new instance */
@@ -404,7 +425,9 @@ int TurnClient_startAllocateTransaction(uint32_t               threadCtx,
                                         uint32_t              *timeoutList,
                                         TURNCB                 turnCbFunc,
                                         TurnCallBackData_T    *turnCbData,
-                                        bool                   isMsStun)
+                                        bool                   isMsStun,
+                                        bool                   evenPortAndReserve,
+                                        uint64_t               reservationToken)
 {
     TurnAllocateReqStuct m;
     uint32_t i;
@@ -424,14 +447,17 @@ int TurnClient_startAllocateTransaction(uint32_t               threadCtx,
 
     
     sockaddr_copy((struct sockaddr *)&m.serverAddr, serverAddr);
-    strncpy(m.username, userName, sizeof(m.username));
-    strncpy(m.password, password, sizeof(m.password));
+    strncpy(m.username, userName, sizeof(m.username) -1 );
+    strncpy(m.password, password, sizeof(m.password) -1 );
     m.sockhandle     = sockhandle;
     m.addrFamily     = addrFamily;
     m.sendFunc       = sendFunc;
     m.userCtx        = userCtx;
     m.threadCtx      = threadCtx;
     m.isMsStun       = isMsStun;
+    m.evenPortAndReserve = evenPortAndReserve;
+    m.reservationToken   = reservationToken;
+
 
     
     /* use default timeout list if none provided */
@@ -518,7 +544,7 @@ static bool ChannelBindReqParamsOk(uint32_t               threadCtx,
 static bool CreatePermReqParamsOk(uint32_t         threadCtx,
                                   int              ctx,
                                   uint32_t         numberOfPeers,
-                                  struct sockaddr *peerTrnspAddr[])
+                                  struct sockaddr *peerTrnspAddr)
 
 {
     uint32_t i;
@@ -531,7 +557,7 @@ static bool CreatePermReqParamsOk(uint32_t         threadCtx,
     }
     for (i=0; i < numberOfPeers; i++)
     {
-        if ( !sockaddr_isSet(peerTrnspAddr[i]) )
+        if ( !sockaddr_isSet((const struct sockaddr *) &peerTrnspAddr[i]) )
         {
             TurnPrint(threadCtx, TurnInfoCategory_Error, "<TURNCLIENT:%02d> CreatePerm - illegal peerTRansport Address\n ", ctx);
             ret = false;
@@ -566,7 +592,7 @@ bool TurnClient_StartCreatePermissionReq(uint32_t         threadCtx,
                                          uint32_t         noOfPeers,
                                          struct sockaddr *peerTrnspAddr[])
 {
-    if (CreatePermReqParamsOk(threadCtx, ctx, noOfPeers, peerTrnspAddr))
+    if (CreatePermReqParamsOk(threadCtx, ctx, noOfPeers, *peerTrnspAddr))
     {
         uint32_t i;
         TurnCreatePermissionInfo_T msg;
@@ -715,14 +741,14 @@ void TurnClient_Deallocate(uint32_t threadCtx, int ctx)
 }
 
 
-int TurnClient_createSendIndication(unsigned char   *stunBuf,
-                                    uint8_t         *dataBuf, 
-                                    uint32_t         maxBufSize,
-                                    uint32_t         payloadLength, 
-                                    struct sockaddr *dstAddr,           /* peer Address (e.g. as received in SDP) */
-                                    bool             isMsStun,
-                                    uint32_t         threadCtx,
-                                    int              turnInst)        
+uint32_t TurnClient_createSendIndication(unsigned char   *stunBuf,
+                                        uint8_t         *dataBuf, 
+                                        uint32_t         maxBufSize,
+                                        uint32_t         payloadLength, 
+                                        struct sockaddr *dstAddr,           /* peer Address (e.g. as received in SDP) */
+                                        bool             isMsStun,
+                                        uint32_t         threadCtx,
+                                        int              turnInst)        
 {
     StunMessage stunMsg;
     StunIPAddress activeDstAddr; 
@@ -730,7 +756,7 @@ int TurnClient_createSendIndication(unsigned char   *stunBuf,
     int length = 0;
     
     if (!sockaddr_isSet(dstAddr)){
-        return -1;
+        return 0;
     }
 
 
@@ -752,7 +778,7 @@ int TurnClient_createSendIndication(unsigned char   *stunBuf,
         
     }else{
 
-        return -1;
+        return 0;
     }
 
     if (!isMsStun)
@@ -780,7 +806,7 @@ int TurnClient_createSendIndication(unsigned char   *stunBuf,
         if ((pInst == NULL) || (pInst->state == TURN_STATE_Idle))
         {
             TurnPrint(threadCtx, TurnInfoCategory_Error, "<TURN:Send_Ind> MSSTUN,No instance data Ctx %d inst  %d or state is idle\n", threadCtx, turnInst);
-            return -1;
+            return 0;
         }
 
         stunMsg.msgHdr.msgType = STUN_MSG_MS2_SendRequestMsg;
@@ -807,7 +833,7 @@ int TurnClient_createSendIndication(unsigned char   *stunBuf,
                                    false,                        /* verbose */
                                    isMsStun);
     }
-    
+
     return length;
 }
 
@@ -963,6 +989,7 @@ static int getTurnInst(uint32_t threadCtx, TURN_SIGNAL *sig, uint8_t *payload)
                   InstanceData[threadCtx][i]->threadCtx = pMsgIn->threadCtx;
                   MutexUnlock(threadCtx, i);
                   MutexUnlock(threadCtx,-1);
+                  InstanceData[threadCtx][i]->state = TURN_STATE_Idle;
                   return i;
               }
               MutexUnlock(threadCtx, i);
@@ -1286,7 +1313,17 @@ static bool StoreServerReflexiveAddress(TURN_INSTANCE_DATA *pInst, StunMessage *
        return false;
     }
 }
+static bool StoreToken (TURN_INSTANCE_DATA *pInst, StunMessage *stunRespMsg)
+{
+  if (stunRespMsg->hasReservationToken)
+  {
+    pInst->token = stunRespMsg->reservationToken.value;
+  }
+  else
+    pInst->token = 0;
 
+  return true;
+}
 
 static bool StoreRelayAddressStd(TURN_INSTANCE_DATA *pInst, StunMessage *stunRespMsg)
 {
@@ -1420,12 +1457,22 @@ static void  BuildInitialAllocateReq(TURN_INSTANCE_DATA *pInst, StunMessage  *pR
             
         }
     }
-
     else
     {
         stunlib_addMsCookie(pReq);
         stunlib_addMsVersion(pReq, STUN_MS2_VERSION);
         /* TBD - need bandwidth, ServiceQuality ?? */
+    }
+
+    if (pInst->turnAllocateReq.evenPortAndReserve)
+    {
+      pReq->hasEvenPort = true;
+      pReq->evenPort.evenPort = 0x80;// Set the R bit to reserve the next port;
+    }
+    else if (pInst->turnAllocateReq.reservationToken > 0)
+    {
+      pReq->hasReservationToken = true;
+      pReq->reservationToken.value = pInst->turnAllocateReq.reservationToken;
     }
 }
 
@@ -1470,6 +1517,16 @@ static void  BuildNewAllocateReq(TURN_INSTANCE_DATA *pInst, StunMessage  *pReq)
         }
     }
 
+    if (pInst->turnAllocateReq.evenPortAndReserve)
+    {
+      pReq->hasEvenPort = true;
+      pReq->evenPort.evenPort = 0x80;// Set the R bit to reserve the next port;
+    }
+    else if (pInst->turnAllocateReq.reservationToken > 0)
+    {
+      pReq->hasReservationToken = true;
+      pReq->reservationToken.value = pInst->turnAllocateReq.reservationToken;
+    }
 
     stunlib_createMD5Key(pInst->userCredentials.key, 
                          pInst->userCredentials.stunUserName,
@@ -1520,6 +1577,7 @@ static void BuildChannelBindReq(TURN_INSTANCE_DATA *pInst, StunMessage  *pReq)
 {
     StunIPAddress peerTrnspAddr;
     struct sockaddr * peerAddr = (struct sockaddr *)&pInst->channelBindInfo.peerTrnspAddr;
+    memset (&peerTrnspAddr, 0, sizeof (StunIPAddress));
 
     memset(pReq, 0, sizeof(StunMessage));
     pReq->msgHdr.msgType = STUN_MSG_ChannelBindRequestMsg;
@@ -1605,7 +1663,8 @@ static void BuildSetActiveDestReq(TURN_INSTANCE_DATA *pInst, StunMessage  *pReq)
 {
     StunIPAddress peerTrnspAddr;
     struct sockaddr *peerAddr;
-    
+    memset (&peerTrnspAddr, 0, sizeof (StunIPAddress));
+
     memset(pReq, 0, sizeof(StunMessage));
     pReq->msgHdr.msgType = STUN_MSG_MS2_SetActiveDestReqMsg;
     stunlib_createId(&pReq->msgHdr.id, TurnRand(), 0);
@@ -1761,7 +1820,8 @@ static bool HandleStunAllocateResponseMsg(TURN_INSTANCE_DATA *pInst,
     if (StoreRelayAddress(pInst, pResp) 
     && StoreServerReflexiveAddress(pInst, pResp) 
     && StoreLifetime(pInst, pResp)
-    && StoreSequenceNum(pInst, pResp)) 
+    && StoreSequenceNum(pInst, pResp)
+    && StoreToken(pInst, pResp))
         return true;
 
     return false;
@@ -1799,6 +1859,8 @@ static void  AllocateResponseCallback(TURN_INSTANCE_DATA *pInst)
                   pInst->lifetime, 
                   sockaddr_toString((struct sockaddr *)&pData->activeTurnServerAddr, 
                                     activeaddr, SOCKADDR_MAX_STRLEN, true));
+
+        pData->token = pInst->token;
     }
 
     if (pInst->turnAllocateReq.turnCbFunc)
@@ -1842,24 +1904,23 @@ static bool  SendTurnReq(TURN_INSTANCE_DATA *pInst, StunMessage  *stunReqMsg)
                   pInst->inst);
         return false;
     }
-
+    sockaddr_toString ((struct sockaddr *)&pInst->turnAllocateReq.serverAddr, 
+                        addrStr, 
+                        SOCKADDR_MAX_STRLEN, 
+                        true);
     TurnPrint(pInst->threadCtx, TurnInfoCategory_Trace, 
               "<TURNCLIENT:%02d> %02x..%02x OUT-->STUN: %s sockh=%d Len=%i to %s",
               pInst->inst,
               stunReqMsg->msgHdr.id.octet[0], stunReqMsg->msgHdr.id.octet[11],
               stunlib_getMessageName(stunReqMsg->msgHdr.msgType), 
               pInst->turnAllocateReq.sockhandle,
-              len, 
-              sockaddr_toString((struct sockaddr *)&pInst->turnAllocateReq.serverAddr, 
-                                addrStr, 
-                                SOCKADDR_MAX_STRLEN, 
-                                true)); 
-    
+              len, addrStr); 
+
     pInst->turnAllocateReq.sendFunc(pInst->turnAllocateReq.sockhandle,
                                     pInst->stunReqMsgBuf,
                                     pInst->stunReqMsgBufLen,
                                     (struct sockaddr *)&pInst->turnAllocateReq.serverAddr,
-                                    sizeof(pInst->turnAllocateReq.serverAddr),
+                                    sizeof(struct sockaddr),
                                     pInst->turnAllocateReq.userCtx);
 
     /* store transaction id, so we can match the response */
@@ -2021,8 +2082,17 @@ static void  TurnClientFsm(TURN_INSTANCE_DATA *pInst,
                   StateTable[pInst->state].StateStr);
 
         MutexLock(pInst->threadCtx, pInst->inst);
-        (StateTable[pInst->state].Statefunc)(pInst, sig, payload, origMsgBuf);
+        if (pInst->inUse)
+          (StateTable[pInst->state].Statefunc)(pInst, sig, payload, origMsgBuf);
+        else if (sig == TURN_SIGNAL_DeAllocate)
+        {
+          CallBack(pInst, TurnResult_RelayReleaseFailed); 
+        }
         MutexUnlock(pInst->threadCtx, pInst->inst);
+    }
+    else if (sig == TURN_SIGNAL_DeAllocate)
+    {
+        CallBack(pInst, TurnResult_RelayReleaseFailed); 
     }
     else
     {

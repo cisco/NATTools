@@ -111,7 +111,7 @@ typedef struct
     bool authenticated;
 
     /* returned in allocate resp */
-    char  rflxAddr[IPV4_ADDR_LEN];
+    char  rflxAddr[IPV6_ADDR_LEN];
     int   rflxPort;
 
     /* timers */

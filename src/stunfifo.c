@@ -48,6 +48,16 @@ void StunFifo_Init(uint32_t threadCtx, uint32_t passLen)
     StunPassFifo[threadCtx].init = true;
 }
 
+void StunFifo_destruct (uint32_t threadCtx)
+{
+    int i;
+    for (i=0; i < STUN_FIFO_SIZE; i++)
+    {
+        free (StunPassFifo[threadCtx].elem[i].passwd);
+    }
+    StunPassFifo[threadCtx].init = false;
+}
+
 /* insert last in ring buffer */
 void StunFifo_InsertLast(uint32_t threadCtx, int32_t sockPairId, char  *passwd)
 {

@@ -31,9 +31,12 @@ or implied, of Cisco.
 
 #include <stdbool.h>
 
-#ifndef  __WINDOWS__
+#ifndef  WIN32
 #include <pthread.h>
 #else
+#undef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+
 #include <windows.h>
 #endif
 
@@ -42,7 +45,7 @@ or implied, of Cisco.
 extern "C" {
 #endif
 
-#if defined(__WINDOWS__)
+#if defined(WIN32)
     typedef CRITICAL_SECTION STUN_MUTEX;
 #else
     /* linux, .. */

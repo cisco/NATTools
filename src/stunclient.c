@@ -210,6 +210,20 @@ bool StunClient_Init(uint32_t threadCtx, int instances, uint32_t tMsec, STUN_INF
     return true;
 }
 
+void StunClient_Destruct(uint32_t threadCtx)
+{
+  if ( InstanceData[threadCtx])
+  {
+    free (InstanceData[threadCtx]);
+    InstanceData[threadCtx]= NULL;
+  }
+  if (InstanceMutex[threadCtx])
+  {
+    free (InstanceMutex[threadCtx]);
+    InstanceMutex[threadCtx] = NULL;
+  }
+}
+
 /* Create a new instance */
 static int StunClientConstruct(uint32_t threadCtx)
 {
@@ -419,12 +433,14 @@ static bool CreateConnectivityBindingResp(uint32_t threadCtx,
     if (mappedSockAddr->sa_family == AF_INET){
 
         mappedAddr.familyType =  STUN_ADDR_IPv4Family;
-        mappedAddr.addr.v4.port = ((struct sockaddr_in *)mappedSockAddr)->sin_port;
-        mappedAddr.addr.v4.addr = ((struct sockaddr_in *)mappedSockAddr)->sin_addr.s_addr;
+        mappedAddr.addr.v4.port = ntohs (((struct sockaddr_in *)mappedSockAddr)->sin_port);
+        mappedAddr.addr.v4.addr = ntohl (((struct sockaddr_in *)mappedSockAddr)->sin_addr.s_addr);
 
     }else if (mappedSockAddr->sa_family == AF_INET6){
         mappedAddr.familyType =  STUN_ADDR_IPv6Family;
-        mappedAddr.addr.v6.port = ((struct sockaddr_in6 *)mappedSockAddr)->sin6_port;
+        mappedAddr.addr.v6.port = ntohs (((struct sockaddr_in6 *)mappedSockAddr)->sin6_port);
+
+        /*TODO: will this be correct ? */
         memcpy( mappedAddr.addr.v6.addr ,
                 ((struct sockaddr_in6 *)mappedSockAddr)->sin6_addr.s6_addr,
                 sizeof(mappedAddr.addr.v6.addr) );
@@ -502,7 +518,7 @@ static bool SendConnectivityBindResponse(uint32_t         threadCtx,
 
 
 
-    if (useRelay)
+    if (useRelay && (turnInst >= 0))
     {
         /* tunnel the BindResp in a Turn SendInd */
         uint8_t TxBuff[STUN_MAX_PACKET_SIZE];
@@ -871,7 +887,7 @@ static void  BuildStunBindReq(STUN_INSTANCE_DATA *pInst, StunMessage  *stunReqMs
 
     /* Username */
     stunReqMsg->hasUsername = true;
-    strncpy(stunReqMsg->username.value, pInst->stunBindReq.ufrag, STUN_MAX_STRING);
+    strncpy(stunReqMsg->username.value, pInst->stunBindReq.ufrag, STUN_MAX_STRING - 1);
     stunReqMsg->username.sizeValue = min(STUN_MAX_STRING, strlen(pInst->stunBindReq.ufrag));
     
     /* Priority */
@@ -910,11 +926,17 @@ static bool  SendStunReq(STUN_INSTANCE_DATA *pInst, StunMessage  *stunReqMsg)
 
     if (pInst->stunBindReq.useRelay)
     {
-        uint8_t                    TxBuff[STUN_MAX_PACKET_SIZE];
+        uint8_t                    TxBuff[STUN_MAX_PACKET_SIZE] = {0,};
         struct sockaddr_storage    TurnServerAddr;
-        char                       TurnServerAddrStr[SOCKADDR_MAX_STRLEN];
+        char                       TurnServerAddrStr[SOCKADDR_MAX_STRLEN] = {0,};
+        char                       peer[SOCKADDR_MAX_STRLEN] = {0,};
         int len;
-        
+
+        sockaddr_toString((struct sockaddr *)&pInst->stunBindReq.serverAddr,
+                                    peer,
+                                    SOCKADDR_MAX_STRLEN, 
+                                    true);
+
         /* encode a turn SendIndication, put the BindReq in the data attribute */
         len = TurnClient_createSendIndication(TxBuff,                         /* dest=encoded sendInd */
                                               (uint8_t*)pInst->stunReqMsgBuf, /* DataAttr=encoded BindReq */
@@ -982,12 +1004,12 @@ static void  StunClientFsm(STUN_INSTANCE_DATA *pInst, STUN_SIGNAL sig, uint8_t *
         StunPrint(pInst->threadCtx, StunInfoCategory_Error, "<STUNCLIENT:%02d> undefned state %d, sig %s",pInst->inst, pInst->state, StunsigToStr(sig));
 }
 
-static void RetransmitLastReq(STUN_INSTANCE_DATA *pInst)
+static void RetransmitLastReq(STUN_INSTANCE_DATA *pInst, struct sockaddr_storage * destAddr)
 {
     pInst->stunBindReq.sendFunc(pInst->stunBindReq.sockhandle,
                                 pInst->stunReqMsgBuf,
                                 pInst->stunReqMsgBufLen,
-                                (struct sockaddr *)&pInst->stunBindReq.serverAddr,
+                                (struct sockaddr *)destAddr,
                                 sizeof(pInst->stunBindReq.serverAddr),
                                 pInst->stunBindReq.userCtx);
 }
@@ -1023,8 +1045,34 @@ static void  CommonRetryTimeoutHandler(STUN_INSTANCE_DATA *pInst, StunResult_T s
     if ((pInst->retransmits < STUNCLIENT_MAX_RETRANSMITS)
     && (pInst->stunBindReq.stunTimeoutList[pInst->retransmits] != 0))  /* can be 0 terminated if using fewer retransmits */
     {
-        StunPrint(pInst->threadCtx, StunInfoCategory_Trace, "<STUNCLIENT:%02d> Retrans %s Retry: %d to %s",pInst->inst, errStr, pInst->retransmits+1, pInst->stunBindReq.serverAddr);
-        RetransmitLastReq(pInst);
+        char peer [SOCKADDR_MAX_STRLEN] ={0,};
+        sockaddr_toString ((struct sockaddr *) &pInst->stunBindReq.serverAddr, peer, sizeof (peer), true);
+
+        if (pInst->stunBindReq.useRelay)
+        {
+            struct sockaddr_storage    TurnServerAddr;
+            char                       TurnServerAddrStr[SOCKADDR_MAX_STRLEN] = {0,};
+
+            TurnClientGetActiveTurnServerAddr(RTP_STUN_THREAD_CTX,
+                                              pInst->stunBindReq.turnInst,
+                                              (struct sockaddr *)&TurnServerAddr);
+
+            sockaddr_toString((struct sockaddr *)&TurnServerAddr, 
+                                TurnServerAddrStr,
+                                SOCKADDR_MAX_STRLEN, 
+                                true);
+
+
+            StunPrint(pInst->threadCtx, StunInfoCategory_Trace, "<STUNCLIENT:%02d> Retrans %s Retry: %d to %s via %s",
+              pInst->inst, errStr, pInst->retransmits+1, peer, TurnServerAddrStr);
+            RetransmitLastReq(pInst, &TurnServerAddr);
+        }
+        else
+        {
+            StunPrint(pInst->threadCtx, StunInfoCategory_Trace, "<STUNCLIENT:%02d> Retrans %s Retry: %d to %s",
+                pInst->inst, errStr, pInst->retransmits+1, peer);
+            RetransmitLastReq(pInst, &pInst->stunBindReq.serverAddr);
+        }
         StartNextRetransmitTimer(pInst);
         pInst->retransmits++;
         StunClientStats.Retransmits++;

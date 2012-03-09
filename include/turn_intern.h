@@ -92,6 +92,8 @@ typedef struct {
     TurnCallBackData_T      *turnCbData;
     uint32_t                 threadCtx;
     bool                     isMsStun;
+    bool                     evenPortAndReserve;
+    uint64_t                 reservationToken;
 } TurnAllocateReqStuct;
 
 
@@ -167,6 +169,7 @@ typedef struct
     int32_t TimerRefreshPermission;
     int32_t TimerStunKeepAlive;
     int     retransmits;
+    uint64_t token;
 
     void *userData;
 } TURN_INSTANCE_DATA;

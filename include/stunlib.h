@@ -33,7 +33,20 @@ or implied, of Cisco.
 #include <stdint.h>
 #include <stddef.h>
 #include <stdarg.h>
+
+#ifndef WIN32
 #include <netinet/in.h>
+#else
+#undef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+
+#include <windows.h>
+#include <ws2tcpip.h>
+#endif
+
+#ifndef socklen_t
+#define socklen_t int
+#endif
 
 
 #ifdef __cplusplus
@@ -198,6 +211,7 @@ extern "C" {
 
 #define IPV4_ADDR_LEN                    16
 #define IPV4_ADDR_LEN_WITH_PORT          (IPV4_ADDR_LEN+6) /* Need extra space for :port */
+#define IPV6_ADDR_LEN                    100
 
 #define STUN_REQ_TRANSPORT_UDP         (uint32_t)17 /* IANA protocol number */
 
@@ -536,7 +550,7 @@ typedef void  (*STUN_ERR_FUNC)(const char *fmt, va_list ap);
  * \param isMsStun       sets to TRUE is if this is a Microsoft MS-ICE stun
  * \return               TRUE if message is a STUN message
  */
-bool stunlib_isStunMsg(uint8_t *payload, uint16_t length, bool *isMsStun);
+uint16_t stunlib_isStunMsg(uint8_t *payload, uint16_t length, bool *isMsStun);
 
 /*!
  * stunlib_isTurnChannelData - use this function to demux STUN messages from a media stream such as RTP or RTCP
@@ -616,6 +630,9 @@ bool stunlib_isResponse(StunMessage *msg);
  */
 bool stunlib_isIndication(StunMessage *msg);
 
+
+uint16_t
+stunlib_StunMsgLen (uint8_t *payload);
 
 unsigned int stunlib_decodeTurnChannelNumber(uint16_t      *channelNumber,
                                              uint16_t      *length,

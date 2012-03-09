@@ -629,11 +629,13 @@ stunEncodeDataAtr(StunData *pData, uint8_t **pBuf, int *nBufLen, bool isMsStun)
     if (pData->pData != NULL)
     {
         write_8n(pBuf, pData->pData, pData->dataLen);
-        if (residue) memset(*pBuf, '\xFF', padding);
+        if (residue > 0)
+          memset(*pBuf, '\xFF', padding);
     }
     else
     {
-        if (residue) memset(*pBuf+pData->dataLen, '\xFF', padding);
+        if (residue > 0)
+          memset(*pBuf+pData->dataLen, '\xFF', padding);
     }
     *pBuf += padding;
     *nBufLen -= (pData->dataLen+4)+padding;
@@ -680,9 +682,10 @@ static bool
 stunEncodeEvenPort(StunAtrEvenPort *pEvenPort, uint8_t **pBuf, int *nBufLen)
 {
     if (*nBufLen < 8) return false;
-    write_16(pBuf, STUN_ATTR_EvenPort); /* Attr type */
+    write_16(pBuf, STUN_ATTR_EvenPort); /* Attr type with R bit set */ 
     write_16(pBuf, 1);                  /* Length */
     write_8(pBuf, pEvenPort->evenPort);
+
     write_8n(pBuf, pEvenPort->pad, sizeof(pEvenPort->pad));
     *nBufLen -= 8;
     return true;
@@ -1076,6 +1079,7 @@ stun_printIP4Address(FILE *stream, char const * szHead, StunAddress4 * pAdr)
 static void
 stun_printIP6Address(FILE *stream, char const * szHead, StunAddress6 *pAdr)
 {
+  if (stream)
     printError(stream, "  %s \t= { %02x%02x : %02x%02x : %02x%02x : %02x%02x : %02x%02x : %02x%02x : %02x%02x : %02x%02x - %d}\n", szHead,
                pAdr->addr[0],
                pAdr->addr[1],
@@ -1362,7 +1366,8 @@ stunlib_getErrorReason(uint16_t errorClass, uint16_t errorNumber)
  *      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *
  */
-bool stunlib_isStunMsg(uint8_t *payload, uint16_t length, bool *isMsStun)
+uint16_t 
+stunlib_isStunMsg(uint8_t *payload, uint16_t length, bool *isMsStun)
 {
     *isMsStun = false;
 
@@ -1381,6 +1386,16 @@ bool stunlib_isStunMsg(uint8_t *payload, uint16_t length, bool *isMsStun)
         }
     }
     return false;
+}
+
+uint16_t
+stunlib_StunMsgLen (uint8_t *payload)
+{
+    uint16_t length = *(payload+2);
+    length = length << 8;
+    length = length | *(payload+3);
+
+    return length;
 }
 
 /* Channel data has first 2 bits = 01 */
@@ -1764,7 +1779,8 @@ stunlib_DecodeMessage(unsigned char* buf,
     }
     if(restlen != 0)
     {
-        fprintf(stream, "<stunmsg> Message length or attribute length error.\n");
+        if (stream != NULL)
+          fprintf(stream, "<stunmsg> Message length or attribute length error.\n");
         return false;
     }
 
@@ -2400,7 +2416,7 @@ stunlib_addError(StunMessage *stunMsg, const char *reasonStr, uint16_t classAndN
     stunMsg->errorCode.reserved = 0;
     stunMsg->errorCode.errorClass = classAndNumber/100;
     stunMsg->errorCode.number = classAndNumber%100;
-    sprintf(stunMsg->errorCode.reason, "%s", reasonStr);
+    snprintf(stunMsg->errorCode.reason,sizeof (stunMsg->errorCode.reason), "%s", reasonStr);
     stunMsg->errorCode.sizeReason = strlen(reasonStr);
     stunMsg->hasErrorCode = true;
     return true;

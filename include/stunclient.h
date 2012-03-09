@@ -33,6 +33,7 @@ or implied, of Cisco.
 #include "stunlib.h"   /* stun enc/dec and msg formats*/
 #include <stdint.h>
 #include <stdbool.h>
+#include <sockaddr_util.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -61,7 +62,7 @@ typedef enum
  */
 typedef struct
 {
-    char rflxAddr[IPV4_ADDR_LEN];
+    char rflxAddr[SOCKADDR_MAX_STRLEN];
     int  rflxPort;
 } StunBindResp;
 
@@ -103,7 +104,6 @@ typedef struct{
     char     *srcAddr;
     uint8_t  transactionId[12];
     bool     fromRelay;
-    //char     peerAddr[IPV4_ADDR_LEN];
     uint32_t peerPort;
 } STUN_INCOMING_REQ_DATA;
 
@@ -168,6 +168,8 @@ bool StunClient_Init(uint32_t threadCtx,
                          bool MultipleThreadAccess,
                          char *SwVerStr);
 
+/*Release all memory allocated in init */
+void StunClient_Destruct(uint32_t threadCtx);
 
 /*
  *  Initiate a Stun Bind Transaction

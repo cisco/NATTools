@@ -38,7 +38,7 @@ or implied, of Cisco.
 
 bool Stun_MutexCreate(STUN_MUTEX *m, char *name)
 {
-#ifdef __WINDOWS__
+#ifdef WIN32
     InitializeCriticalSection(m);
     return true;
 #else
@@ -48,7 +48,7 @@ bool Stun_MutexCreate(STUN_MUTEX *m, char *name)
 
 bool Stun_MutexLock(STUN_MUTEX *m)
 {
-#ifdef __WINDOWS__
+#ifdef WIN32
     EnterCriticalSection(m);
     return true;
 #else
@@ -58,7 +58,7 @@ bool Stun_MutexLock(STUN_MUTEX *m)
 
 bool Stun_MutexUnlock(STUN_MUTEX *m)
 {
-#ifdef __WINDOWS__
+#ifdef WIN32
     LeaveCriticalSection(m);
     return true;
 #else
@@ -68,7 +68,7 @@ bool Stun_MutexUnlock(STUN_MUTEX *m)
 
 bool Stun_MutexDestroy(STUN_MUTEX *m)
 {
-#ifdef __WINDOWS__
+#ifdef WIN32
     DeleteCriticalSection(m);
     return true;
 #else

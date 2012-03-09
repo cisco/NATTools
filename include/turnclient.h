@@ -32,7 +32,11 @@ or implied, of Cisco.
 
 #include <string.h>
 
+#ifndef WIN32
 #include <netinet/in.h>
+#else
+
+#endif
 
 #include "stunlib.h"   /* stun enc/dec and msg formats*/
 
@@ -94,6 +98,7 @@ typedef struct
     struct sockaddr_storage activeTurnServerAddr;
     struct sockaddr_storage rflxAddr;
     struct sockaddr_storage relAddr;
+    uint64_t token;
 } TurnAllocResp;
 
 
@@ -186,6 +191,9 @@ bool TurnClient_Init(uint32_t  threadCtx,
                      bool MultipleThreadAccess,
                      const char *SwVerStr);
 
+/* Free all memory allocated for a turn client */
+void TurnClient_FreeAllCtxs (uint32_t threadCtx);
+
 
 /*
  *  Initiate a Turn Allocate Transaction
@@ -217,7 +225,9 @@ int  TurnClient_startAllocateTransaction(uint32_t               threadCtx,
                                          uint32_t              *timeoutList,
                                          TURNCB                 TurnCbFunc,
                                          TurnCallBackData_T    *TurnCbData,
-                                         bool                   isMsStun);
+                                         bool                   isMsStun,
+                                         bool                   evenPortAndReserve,
+                                         uint64_t               reservationToken);
 
 /*
  * Bind Channel Number to peer transport adreess.
@@ -281,14 +291,14 @@ int TurnClient_HandleIncResp(uint32_t     threadCtx,
  * \param  turnInst         Only reelvant when isMsStun=true. Used to find SeqNr and Username attributes. 
  * Returns encoded length of packet 
  */
-int TurnClient_createSendIndication(unsigned char   *stunBuf,
+uint32_t TurnClient_createSendIndication(unsigned char   *stunBuf,
                                     uint8_t         *dataBuf,
                                     uint32_t         maxBufSize,
                                     uint32_t         payloadLength, 
                                     struct sockaddr *dstAddr,
                                     bool             isMsStun,
                                     uint32_t         threadCtx,
-                                    int              turnInst);  
+                                    int              turnInst);
 
 
 /* TURN will be active for the duration of the Call Session. 

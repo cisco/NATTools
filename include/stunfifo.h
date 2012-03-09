@@ -55,6 +55,7 @@ StunPassFifo_T;
 
 /* */
 void StunFifo_Init(uint32_t threadCtx, uint32_t passLen);
+void StunFifo_destruct (uint32_t threadCtx);
 
 /* */
 void StunFifo_InsertLast(uint32_t threadCtx, int32_t sockPairId, char  *passwd);
