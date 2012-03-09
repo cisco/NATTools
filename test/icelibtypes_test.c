@@ -60,11 +60,11 @@ START_TEST( media_dump )
 
     iceMedia.numberOfICEMediaLines = (ICE_MAX_MEDIALINES + 10);
 
-    for(i=0;i<=ICE_MAX_MEDIALINES; i++){
+    for(i=0;i<ICE_MAX_MEDIALINES; i++){
         iceMedia.mediaStream[i].numberOfCandidates = 2;
     }
 
-    iceMedia.mediaStream[ICE_MAX_MEDIALINES].numberOfCandidates = 2;
+    iceMedia.mediaStream[ICE_MAX_MEDIALINES -1].numberOfCandidates = 2;
     //iceMedia.mediaStream[ICE_MAX_MEDIALINES+1].numberOfCandidates = 2;
 
     ICELIBTYPES_ICE_MEDIA_dump(stderr, &iceMedia);

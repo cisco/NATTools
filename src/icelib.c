@@ -37,6 +37,10 @@ or implied, of Cisco.
 #include "sockaddr_util.h"
 #include "icelib_intern.h"
 
+#ifdef WIN32
+#include "msvc_defines.h"
+#endif
+
 
 #if !defined(max)
 #define max(a, b)       ((a) > (b) ? (a) : (b))
