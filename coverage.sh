@@ -9,4 +9,4 @@ lcov --directory test/ --capture --output-file sockaddrutil.info
 
 genhtml --output-directory lcov --no-branch-coverage sockaddrutil.info
 
-firefox -new-tab file:///home/palerikm/development/sockaddrutil/lcov/index.html
+firefox -new-tab lcov/index.html
