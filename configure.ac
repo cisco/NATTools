@@ -59,7 +59,7 @@ AC_CHECK_LIB([pthread], [pthread_create], [], [AC_MSG_FAILURE([could not find pt
 
 
 
-AC_CHECK_LIB([curses], [getch], [], [AC_MSG_FAILURE([could not find curses])])
+AC_CHECK_LIB([curses], [getch], [], [AC_MSG_FAILURE([could not find curses ( sudo apt-get install libncurses5-dev?)])])
 AC_CHECK_LIB([form], [new_form], [], [AC_MSG_FAILURE([could not find form])])
 AC_CHECK_LIB([panel], [new_panel], [], [AC_MSG_FAILURE([could not find panel])])
 AC_CHECK_LIB([menu], [new_menu], [], [AC_MSG_FAILURE([could not find menu])])
