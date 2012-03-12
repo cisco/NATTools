@@ -46,7 +46,9 @@ int gather(struct sockaddr *host_addr,
                                                   NULL,  /* timeout list */
                                                   TurnStatusCallBack,
                                                   &turnResult->TurnCbData,
-                                                  false);
+                                                  false,
+                                                  false,
+                                                  0);
     turnResult->stunCtx = stunCtx;
     
     return stunCtx;
