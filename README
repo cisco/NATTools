@@ -1,0 +1,9 @@
+
+Building on OSX
+To be able to build with check and gcov use macports and intall gcc and other libs.
+(Need check to do unittesting).
+
+for gcov to work properlyou should call ./configure like this:
+./configure --with-check --enable-gcov CC=gcc-mp-4.6 CFLAGS=-fno-strict-aliasing
+
+
