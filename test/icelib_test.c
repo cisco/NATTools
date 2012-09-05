@@ -1923,6 +1923,144 @@ START_TEST( formPairs_IPv4 )
 END_TEST
 
 
+START_TEST( formPairs_IPv6 )
+{
+    
+    ICELIB_CHECKLIST CheckList;
+    ICELIB_CALLBACK_LOG CallbackLog;
+    ICE_MEDIA_STREAM LocalMediaStream;
+    ICE_MEDIA_STREAM RemoteMediaStream;
+    unsigned int     maxPairs;
+    
+    ICE_CANDIDATE *cand;
+
+    /* set up addresses */
+    struct sockaddr_storage localHost_6;
+    struct sockaddr_storage localRelay_6;
+    struct sockaddr_storage remoteHost_6;
+    struct sockaddr_storage remoteRelay_6;
+
+    
+    sockaddr_initFromString( (struct sockaddr *)&localHost_6,  "[2001:420:4:eb66:119a:ddff:fe3a:27d1]:2345");
+    sockaddr_initFromString( (struct sockaddr *)&localRelay_6, "[2001:420:2:ea63:119a:ddff:fe3a:27d1]:6789");
+    sockaddr_initFromString( (struct sockaddr *)&remoteHost_6, "[2001:421:4:eb46:119a:ddff:fe1a:27d4]:4381");
+    sockaddr_initFromString( (struct sockaddr *)&remoteRelay_6, "[2001:420:2:eb66:119a:ddff:fe3a:27d0]:2176");
+
+    
+    ICELIBTYPES_ICE_MEDIA_STREAM_reset(&LocalMediaStream);
+    ICELIBTYPES_ICE_MEDIA_STREAM_reset(&RemoteMediaStream);
+
+    cand = &LocalMediaStream.candidate[0];
+
+ 
+    //Local 
+    ICELIB_fillLocalCandidate(cand,
+                              1,
+                              (struct sockaddr *)&localHost_6,
+                              NULL,
+                              ICE_CAND_TYPE_HOST);
+    LocalMediaStream.numberOfCandidates++;
+    
+    cand = &LocalMediaStream.candidate[1];
+
+    ICELIB_fillLocalCandidate(cand,
+                              1,
+                              (struct sockaddr *)&localRelay_6,
+                              NULL,
+                              ICE_CAND_TYPE_RELAY);
+    LocalMediaStream.numberOfCandidates++;
+    
+
+
+    qsort(LocalMediaStream.candidate,
+          LocalMediaStream.numberOfCandidates,
+          sizeof(ICE_CANDIDATE),
+          ICELIB_candidateSort);
+    //Remote
+    cand = &RemoteMediaStream.candidate[0];
+    
+    ICELIB_fillRemoteCandidate(cand,
+                               1,
+                               "TJA",
+                               3,
+                               2130706431,
+                               (struct sockaddr *)&remoteHost_6,
+                               ICE_CAND_TYPE_HOST);
+    RemoteMediaStream.numberOfCandidates++;
+    
+    cand = &RemoteMediaStream.candidate[1];
+
+    ICELIB_fillRemoteCandidate(cand,
+                               1,
+                               "TJA",
+                               3,
+                               30706431,
+                               (struct sockaddr *)&remoteRelay_6,
+                               ICE_CAND_TYPE_RELAY);
+    RemoteMediaStream.numberOfCandidates++;
+    
+
+    ICELIB_resetCheckList(&CheckList, 0);
+
+    ICELIB_formPairs(&CheckList,
+                     &CallbackLog,
+                     &LocalMediaStream,
+                     &RemoteMediaStream,
+                     10);
+
+    ICELIB_computeListPairPriority(&CheckList, true);
+    ICELIB_sortPairsCL(&CheckList);
+
+    fail_unless( CheckList.numberOfPairs  == 4 );
+
+    //Check pair 0 
+    fail_unless( CheckList.checkListPairs[0].pairState == ICELIB_PAIR_PAIRED );
+    fail_unless( sockaddr_sameAddr((struct sockaddr *)&CheckList.checkListPairs[0].pLocalCandidate->connectionAddr,
+                                   (struct sockaddr *)&localHost_6),
+                 "wrong pair");
+
+    fail_unless( sockaddr_sameAddr((struct sockaddr *)&CheckList.checkListPairs[0].pRemoteCandidate->connectionAddr,
+                                   (struct sockaddr *)&remoteHost_6),
+                 "wrong pair");
+
+
+    //Check pair 1 
+    fail_unless( CheckList.checkListPairs[1].pairState == ICELIB_PAIR_PAIRED );
+    fail_unless( sockaddr_sameAddr((struct sockaddr *)&CheckList.checkListPairs[1].pLocalCandidate->connectionAddr,
+                                   (struct sockaddr *)&localHost_6),
+                 "wrong pair");
+
+    fail_unless( sockaddr_sameAddr((struct sockaddr *)&CheckList.checkListPairs[1].pRemoteCandidate->connectionAddr,
+                                   (struct sockaddr *)&remoteRelay_6),
+                 "wrong pair");
+
+    //Check pair 2 
+    fail_unless( CheckList.checkListPairs[2].pairState == ICELIB_PAIR_PAIRED );
+    fail_unless( sockaddr_sameAddr((struct sockaddr *)&CheckList.checkListPairs[2].pLocalCandidate->connectionAddr,
+                                   (struct sockaddr *)&localRelay_6),
+                 "wrong pair");
+
+    fail_unless( sockaddr_sameAddr((struct sockaddr *)&CheckList.checkListPairs[2].pRemoteCandidate->connectionAddr,
+                                   (struct sockaddr *)&remoteHost_6),
+                 "wrong pair");
+
+    //Check pair 3 
+    fail_unless( CheckList.checkListPairs[3].pairState == ICELIB_PAIR_PAIRED );
+    fail_unless( sockaddr_sameAddr((struct sockaddr *)&CheckList.checkListPairs[3].pLocalCandidate->connectionAddr,
+                                   (struct sockaddr *)&localRelay_6),
+                 "wrong pair");
+
+    fail_unless( sockaddr_sameAddr((struct sockaddr *)&CheckList.checkListPairs[3].pRemoteCandidate->connectionAddr,
+                                   (struct sockaddr *)&remoteRelay_6),
+                 "wrong pair");
+
+    //ICELIB_checkListDump(&CheckList);
+    //fflush(stdout);
+     
+}
+END_TEST
+
+
 
 
 Suite * icelib_suite (void)
@@ -1952,6 +2090,7 @@ Suite * icelib_suite (void)
       tcase_add_test (tc_core, removeChecksFromCheckList );
       tcase_add_test (tc_core, resetCandidate );
       tcase_add_test (tc_core, formPairs_IPv4 );
+      tcase_add_test (tc_core, formPairs_IPv6 );
       suite_add_tcase (s, tc_core);
   }
 
