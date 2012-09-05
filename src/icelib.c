@@ -454,6 +454,9 @@ bool ICELIB_veryfyICESupportOnStream(ICELIB_INSTANCE *pInstance,
     ICELIB_log(&pInstance->callbacks.callbackLog,
                ICELIB_logDebug, "Verify ICE support returned false\n");
 
+    ICELIBTYPES_ICE_MEDIA_STREAM_dump( stdout, stream );
+
+    fflush(stdout);
     return false;
 
 }
@@ -5268,11 +5271,64 @@ ICE_CANDIDATE_TYPE ICELIB_getRemoteCandidateType(const ICELIB_INSTANCE *pInstanc
 }
 
 
-static int ICELIB_candidateSort(const void *x, const void *y) {
+int ICELIB_candidateSort(const void *x, const void *y) {
     ICE_CANDIDATE *a = (ICE_CANDIDATE*)x;
     ICE_CANDIDATE *b = (ICE_CANDIDATE*)y;
 
     return (b->priority - a->priority);
+}
+
+
+
+void ICELIB_fillRemoteCandidate(ICE_CANDIDATE *cand,
+                                uint32_t componentId,
+                                const char* foundation,
+                                uint32_t foundationLen,
+                                uint32_t priority,
+                                struct sockaddr *connectionAddr,
+                                ICE_CANDIDATE_TYPE candType)
+{
+    memset(cand->foundation, 0, sizeof(cand->foundation));
+    strncpy(cand->foundation,
+            foundation,
+            min(sizeof(cand->foundation) , foundationLen));
+    cand->foundation[sizeof(cand->foundation) - 1] = '\0';
+    
+
+    sockaddr_copy((struct sockaddr *)&cand->connectionAddr, 
+                  (struct sockaddr *)connectionAddr);
+    
+    cand->type = candType;
+    cand->componentid = componentId;
+
+    cand->priority = priority;
+
+                
+}
+
+void ICELIB_fillLocalCandidate(ICE_CANDIDATE *cand,
+                               uint32_t componentId,
+                               struct sockaddr *connectionAddr,
+                               struct sockaddr *relAddr,
+                               ICE_CANDIDATE_TYPE candType)
+{
+    uint32_t priority = ICELIB_calculatePriority(candType, componentId);
+
+    sockaddr_copy((struct sockaddr *)&cand->connectionAddr, 
+                  (struct sockaddr *)connectionAddr);
+    cand->type = candType;
+    cand->componentid = componentId;
+
+    ICELIB_createFoundation(cand->foundation,
+                             candType,
+                             ICELIB_FOUNDATION_LENGTH);
+
+    cand->priority = priority;
+    if (relAddr != NULL) {
+        sockaddr_copy((struct sockaddr *)&cand->relAddr, 
+                      (struct sockaddr *)relAddr);
+    }
+    
 }
 
 
@@ -5285,8 +5341,6 @@ int32_t ICELIB_addLocalCandidate(ICELIB_INSTANCE *pInstance,
 {
     ICE_MEDIA_STREAM *mediaStream;
     ICE_CANDIDATE *cand;
-    uint32_t priority = ICELIB_calculatePriority(candType, componentId);
-
 
     if (connectionAddr == NULL) {
         ICELIB_log(&pInstance->callbacks.callbackLog,
@@ -5304,25 +5358,16 @@ int32_t ICELIB_addLocalCandidate(ICELIB_INSTANCE *pInstance,
     }
 
 
-
     cand = &mediaStream->candidate[mediaStream->numberOfCandidates];
+    
+    ICELIB_fillLocalCandidate(cand,
+                              componentId, 
+                              connectionAddr,
+                              relAddr,
+                              candType);
 
 
-    sockaddr_copy((struct sockaddr *)&cand->connectionAddr, 
-                  (struct sockaddr *)connectionAddr);
-    cand->type = candType;
-    cand->componentid = componentId;
-
-    ICELIB_createFoundation(cand->foundation,
-                             candType,
-                             ICELIB_FOUNDATION_LENGTH);
-
-    cand->priority = priority;
-    if (relAddr != NULL) {
-        sockaddr_copy((struct sockaddr *)&cand->relAddr, 
-                      (struct sockaddr *)relAddr);
-    }
-
+    
     //Once the candidates are paired and the checlist is created
     //the only way to send back this information in the callback
     //is to store it in the candidates
@@ -5353,6 +5398,7 @@ int32_t ICELIB_addRemoteCandidate(ICELIB_INSTANCE *pInstance,
 
     ICE_MEDIA_STREAM *mediaStream;
     ICE_CANDIDATE *iceCand;
+    struct sockaddr_storage addr;
 
     if (mediaIdx >= pInstance->remoteIceMedia.numberOfICEMediaLines) {
         ICELIB_log(&pInstance->callbacks.callbackLog,
@@ -5370,35 +5416,24 @@ int32_t ICELIB_addRemoteCandidate(ICELIB_INSTANCE *pInstance,
     iceCand = &mediaStream->candidate[mediaStream->numberOfCandidates];
 
 
-    //connection address
-    if (! sockaddr_initFromString((struct sockaddr *)&iceCand->connectionAddr,
+    
+    if (! sockaddr_initFromString((struct sockaddr *)&addr,
                                  connectionAddr)) {
         ICELIB_log(&pInstance->callbacks.callbackLog,
                     ICELIB_logDebug, "Failed to add candidate. Something wrong with IP address\n");
         return -1;
 
     }
-    sockaddr_setPort((struct sockaddr *)&iceCand->connectionAddr, port);
-
-
-
-    //foundation
-    memset(iceCand->foundation, 0, sizeof(iceCand->foundation));
-    strncpy(iceCand->foundation,
-            foundation,
-            min(sizeof(iceCand->foundation) , foundationLen));
-    iceCand->foundation[sizeof(iceCand->foundation) - 1] = '\0';
-
-    //componentid
-    iceCand->componentid = componentId;
-
-    //priority
-    iceCand->priority = priority;
-
-    //Candidate Type
-    iceCand->type = candType;
-
-
+    sockaddr_setPort((struct sockaddr *)&addr, port);
+    
+    ICELIB_fillRemoteCandidate(iceCand,
+                               componentId,
+                               foundation,
+                               foundationLen,
+                               priority,
+                               (struct sockaddr *)&addr,
+                               candType);
+    
     mediaStream->numberOfCandidates++;
 
     return mediaStream->numberOfCandidates;
@@ -5417,7 +5452,7 @@ int32_t ICELIB_addLocalMediaStream(ICELIB_INSTANCE *pInstance,
     if (mediaIdx >= ICE_MAX_MEDIALINES) {
 
         ICELIB_log(&pInstance->callbacks.callbackLog,
-                   ICELIB_logDebug, "Failed to add local media stream. Index larger than MAX number of medialines\n");
+                   ICELIB_logDebug, "Failed to add loccal media stream. Index larger than MAX number of medialines\n");
         return -1;
     }
 

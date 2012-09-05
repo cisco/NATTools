@@ -48,7 +48,6 @@ static bool isLegalCharacter( char ch)
             return true;
         }
     }
-
     return false;
 }
 
@@ -168,8 +167,8 @@ icelib_setup (void)
     iceConfig.maxCheckListPairs = ICELIB_MAX_PAIRS;
     iceConfig.aggressiveNomination = false;
     iceConfig.iceLite = false;
-    iceConfig.logLevel = ICELIB_logDebug;
-    //iceConfig.logLevel = ICELIB_logDisable;
+    //iceConfig.logLevel = ICELIB_logDebug;
+    iceConfig.logLevel = ICELIB_logDisable;
 
 
     ICELIB_Constructor (icelib,
@@ -351,9 +350,11 @@ START_TEST (create_ufrag)
     ICELIB_createUfrag( tmp1, ICELIB_UFRAG_LENGTH);
     ICELIB_createUfrag( tmp2, ICELIB_UFRAG_LENGTH);
 
+    
     fail_unless( isLegalString( tmp1),
                  "ufrag failed" );
 
+   
     fail_unless( isLegalString( tmp2),
                  "ufrag failed" );
 
@@ -509,7 +510,9 @@ START_TEST (create_localMediaStream)
     int32_t result,i;
 
 
-    localIceConfig.logLevel = ICELIB_logDebug;
+    //localIceConfig.logLevel = ICELIB_logDebug;
+    localIceConfig.logLevel = ICELIB_logDisable;
+
 
     ICELIB_Constructor (&localIcelib,
                         &localIceConfig);
@@ -552,8 +555,8 @@ START_TEST (create_remoteMediaStream)
                               "10.47.2.246:47936");
 
 
-    //remoteIceConfig.logLevel = ICELIB_logDisable;
-    remoteIceConfig.logLevel = ICELIB_logDebug;
+    remoteIceConfig.logLevel = ICELIB_logDisable;
+    //remoteIceConfig.logLevel = ICELIB_logDebug;
 
     ICELIB_Constructor (&remoteIcelib,
                         &remoteIceConfig);
@@ -863,8 +866,9 @@ START_TEST (ice_timer)
     config.aggressiveNomination = false;
     config.iceLite              = false;
     config.stoppingTimeoutS     = 5;
-    config.logLevel             = 3;
-
+    //config.logLevel             = 3;
+    config.logLevel = ICELIB_logDebug;
+    
     ICELIB_Constructor( &Instance, &config);
     ICELIB_timerConstructor(pTimer0, config.tickIntervalMS);
 
@@ -1665,10 +1669,11 @@ START_TEST( createRandomString )
 {
     char randomStr[128];
 
-    ICELIB_createRandomString(randomStr, 128);
+    ICELIB_createRandomString(randomStr, 127);    
 
-    fail_unless( randomStr[128] == '\0' );
+    fail_unless( randomStr[127] == '\0' );
 
+    
 }
 END_TEST
 
@@ -1781,6 +1786,145 @@ START_TEST( resetCandidate )
 }
 END_TEST
 
+START_TEST( formPairs_IPv4 )
+{
+    
+    ICELIB_CHECKLIST CheckList;
+    ICELIB_CALLBACK_LOG CallbackLog;
+    ICE_MEDIA_STREAM LocalMediaStream;
+    ICE_MEDIA_STREAM RemoteMediaStream;
+    unsigned int     maxPairs;
+    
+    ICE_CANDIDATE *cand;
+
+    /* set up addresses */
+    struct sockaddr_storage localHost;
+    struct sockaddr_storage localRelay;
+    struct sockaddr_storage remoteHost;
+    struct sockaddr_storage remoteRelay;
+
+    
+    sockaddr_initFromString( (struct sockaddr *)&localHost,  "192.168.2.10:3456");
+    sockaddr_initFromString( (struct sockaddr *)&localRelay,  "158.38.48.10:4534");
+    sockaddr_initFromString( (struct sockaddr *)&remoteHost,  "192.168.2.10:3459");
+    sockaddr_initFromString( (struct sockaddr *)&remoteRelay,  "8.8.8.8:4444");
+    
+    ICELIBTYPES_ICE_MEDIA_STREAM_reset(&LocalMediaStream);
+    ICELIBTYPES_ICE_MEDIA_STREAM_reset(&RemoteMediaStream);
+
+    cand = &LocalMediaStream.candidate[0];
+
+ 
+    //Local 
+    ICELIB_fillLocalCandidate(cand,
+                              1,
+                              (struct sockaddr *)&localHost,
+                              NULL,
+                              ICE_CAND_TYPE_HOST);
+    LocalMediaStream.numberOfCandidates++;
+    
+    cand = &LocalMediaStream.candidate[1];
+
+    ICELIB_fillLocalCandidate(cand,
+                              1,
+                              (struct sockaddr *)&localRelay,
+                              NULL,
+                              ICE_CAND_TYPE_RELAY);
+    LocalMediaStream.numberOfCandidates++;
+    
+
+
+    qsort(LocalMediaStream.candidate,
+          LocalMediaStream.numberOfCandidates,
+          sizeof(ICE_CANDIDATE),
+          ICELIB_candidateSort);
+    //Remote
+    cand = &RemoteMediaStream.candidate[0];
+    
+    ICELIB_fillRemoteCandidate(cand,
+                               1,
+                               "TJA",
+                               3,
+                               2130706431,
+                               (struct sockaddr *)&remoteHost,
+                               ICE_CAND_TYPE_HOST);
+    RemoteMediaStream.numberOfCandidates++;
+    
+    cand = &RemoteMediaStream.candidate[1];
+
+    ICELIB_fillRemoteCandidate(cand,
+                               1,
+                               "TJA",
+                               3,
+                               30706431,
+                               (struct sockaddr *)&remoteRelay,
+                               ICE_CAND_TYPE_RELAY);
+    RemoteMediaStream.numberOfCandidates++;
+    
+
+    ICELIB_resetCheckList(&CheckList, 0);
+
+    ICELIB_formPairs(&CheckList,
+                     &CallbackLog,
+                     &LocalMediaStream,
+                     &RemoteMediaStream,
+                     10);
+
+    ICELIB_computeListPairPriority(&CheckList, true);
+    ICELIB_sortPairsCL(&CheckList);
+
+    fail_unless( CheckList.numberOfPairs  == 4 );
+
+    //Check pair 0 
+    fail_unless( CheckList.checkListPairs[0].pairState == ICELIB_PAIR_PAIRED );
+    fail_unless( sockaddr_sameAddr((struct sockaddr *)&CheckList.checkListPairs[0].pLocalCandidate->connectionAddr,
+                                   (struct sockaddr *)&localHost),
+                 "wrong pair");
+
+    fail_unless( sockaddr_sameAddr((struct sockaddr *)&CheckList.checkListPairs[0].pRemoteCandidate->connectionAddr,
+                                   (struct sockaddr *)&remoteHost),
+                 "wrong pair");
+
+
+    //Check pair 1 
+    fail_unless( CheckList.checkListPairs[1].pairState == ICELIB_PAIR_PAIRED );
+    fail_unless( sockaddr_sameAddr((struct sockaddr *)&CheckList.checkListPairs[1].pLocalCandidate->connectionAddr,
+                                   (struct sockaddr *)&localHost),
+                 "wrong pair");
+
+    fail_unless( sockaddr_sameAddr((struct sockaddr *)&CheckList.checkListPairs[1].pRemoteCandidate->connectionAddr,
+                                   (struct sockaddr *)&remoteRelay),
+                 "wrong pair");
+
+    //Check pair 2 
+    fail_unless( CheckList.checkListPairs[2].pairState == ICELIB_PAIR_PAIRED );
+    fail_unless( sockaddr_sameAddr((struct sockaddr *)&CheckList.checkListPairs[2].pLocalCandidate->connectionAddr,
+                                   (struct sockaddr *)&localRelay),
+                 "wrong pair");
+
+    fail_unless( sockaddr_sameAddr((struct sockaddr *)&CheckList.checkListPairs[2].pRemoteCandidate->connectionAddr,
+                                   (struct sockaddr *)&remoteHost),
+                 "wrong pair");
+
+    //Check pair 3 
+    fail_unless( CheckList.checkListPairs[3].pairState == ICELIB_PAIR_PAIRED );
+    fail_unless( sockaddr_sameAddr((struct sockaddr *)&CheckList.checkListPairs[3].pLocalCandidate->connectionAddr,
+                                   (struct sockaddr *)&localRelay),
+                 "wrong pair");
+
+    fail_unless( sockaddr_sameAddr((struct sockaddr *)&CheckList.checkListPairs[3].pRemoteCandidate->connectionAddr,
+                                   (struct sockaddr *)&remoteRelay),
+                 "wrong pair");
+
+    //ICELIB_checkListDump(&CheckList);
+    //fflush(stdout);
+     
+}
+END_TEST
+
+
+
+
 Suite * icelib_suite (void)
 {
   Suite *s = suite_create ("ICElib");
@@ -1807,6 +1951,7 @@ Suite * icelib_suite (void)
       tcase_add_test (tc_core, toStringCheckListPairState );
       tcase_add_test (tc_core, removeChecksFromCheckList );
       tcase_add_test (tc_core, resetCandidate );
+      tcase_add_test (tc_core, formPairs_IPv4 );
       suite_add_tcase (s, tc_core);
   }
 

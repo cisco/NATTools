@@ -92,11 +92,13 @@ extern "C" {
 
     void ICELIB_EliminateRedundantCandidates(ICELIB_INSTANCE *pInstance);
 
-    void ICELIB_fillCandidate(ICE_MEDIA_STREAM *iceMediaStream,
-                              int idx, const struct sockaddr *addr,
-                              ICE_CANDIDATE_TYPE type,
-                              int compId,
-                              const struct sockaddr *relAddr);
+    void ICELIB_fillLocalCandidate(ICE_CANDIDATE *cand,
+                                   uint32_t componentId,
+                                   struct sockaddr *connectionAddr,
+                                   struct sockaddr *relAddr,
+                                   ICE_CANDIDATE_TYPE candType);
+    
+    int ICELIB_candidateSort(const void *x, const void *y);
 
     const char *ICELIB_toString_CheckListState(ICELIB_CHECKLIST_STATE state);
     const char *ICELIB_toString_CheckListPairState(ICELIB_PAIR_STATE state);
