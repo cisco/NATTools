@@ -142,6 +142,14 @@ bool sockaddr_isAddrAny(const struct sockaddr * sa);
  */
 bool sockaddr_isAddrLoopBack(const struct sockaddr * sa);
 
+
+/*
+ * Checks if a sockaddr is private (RFC 1918)
+ *
+ */
+bool sockaddr_isAddrPrivate(const struct sockaddr * sa);
+
+
 /*
  * Checks if a sockaddr is a IPv6 link local address
  * Will return false if it is a IPv4 addr

@@ -254,6 +254,36 @@ bool sockaddr_isAddrLoopBack(const struct sockaddr * sa)
     return false;
 }
 
+bool sockaddr_isAddrPrivate(const struct sockaddr * sa)
+{
+    //192.168.0.0/16 network
+    uint32_t private_192 = 0xC0A80000;
+    uint32_t mask_16 = 0xFFFF0000;
+    //172.16.0.0/20 network
+    uint32_t private_172 = 0xAC100000;
+    uint32_t mask_12 = 0xFFF00000;
+    //10.0.0.0/24 network
+    uint32_t private_10 = 0x0A000000;
+    uint32_t mask_8 = 0xFF000000;
+
+    if (sa->sa_family == AF_INET) {   
+        if( (htonl(((struct sockaddr_in*)sa)->sin_addr.s_addr) & mask_16) == private_192 ) {
+            return true;
+        }
+        if( (htonl(((struct sockaddr_in*)sa)->sin_addr.s_addr) & mask_12) == private_172) {
+            return true;
+        }
+        if( (htonl(((struct sockaddr_in*)sa)->sin_addr.s_addr) & mask_8) == private_10) {
+            return true;
+        }
+        return false;
+
+    }else if (sa->sa_family == AF_INET6) {
+        return false;
+    }
+    return false;
+}
+
 bool sockaddr_isAddrLinkLocal(const struct sockaddr * sa)
 {
     if (sa->sa_family == AF_INET) {

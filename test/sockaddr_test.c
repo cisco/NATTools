@@ -628,6 +628,51 @@ START_TEST (sockaddr_IPv6_ipPort)
 }
 END_TEST
 
+START_TEST (sockaddr_IPv4_private)
+{
+    /* set up addresses */
+    struct sockaddr_storage addr_192, addr_192_l,addr_192_h;
+    struct sockaddr_storage addr_10, addr_10_l, addr_10_h;
+    struct sockaddr_storage addr_172, addr_172_l, addr_172_h;;
+    struct sockaddr_storage addr_public;
+
+    
+    sockaddr_initFromString( (struct sockaddr *)&addr_192,  "192.168.2.10:3456");
+    sockaddr_initFromString( (struct sockaddr *)&addr_192_l,  "192.168.0.0:3456");
+    sockaddr_initFromString( (struct sockaddr *)&addr_192_h,  "192.168.255.255:3456");
+    
+    sockaddr_initFromString( (struct sockaddr *)&addr_172,  "172.16.31.5:4534");
+    sockaddr_initFromString( (struct sockaddr *)&addr_172_l,  "172.16.0.0:4534");
+    sockaddr_initFromString( (struct sockaddr *)&addr_172_h,  "172.31.255.255:4534");
+
+    sockaddr_initFromString( (struct sockaddr *)&addr_10,  "10.47.4.5:3459");
+    sockaddr_initFromString( (struct sockaddr *)&addr_10_l,  "10.0.0.0:3459");
+    sockaddr_initFromString( (struct sockaddr *)&addr_10_h,  "10.255.255.255:3459");
+
+    sockaddr_initFromString( (struct sockaddr *)&addr_public,  "8.8.8.8:4444");
+    
+
+    fail_unless( sockaddr_isAddrPrivate( (struct sockaddr *)&addr_192 ) );
+    fail_unless( sockaddr_isAddrPrivate( (struct sockaddr *)&addr_192_l ) );
+    fail_unless( sockaddr_isAddrPrivate( (struct sockaddr *)&addr_192_h ) );
+
+    fail_unless( sockaddr_isAddrPrivate( (struct sockaddr *)&addr_172 ) );
+    fail_unless( sockaddr_isAddrPrivate( (struct sockaddr *)&addr_172_l ) );
+    fail_unless( sockaddr_isAddrPrivate( (struct sockaddr *)&addr_172_h ) );
+    
+    fail_unless( sockaddr_isAddrPrivate( (struct sockaddr *)&addr_10 ) );
+    fail_unless( sockaddr_isAddrPrivate( (struct sockaddr *)&addr_10_l ) );
+    fail_unless( sockaddr_isAddrPrivate( (struct sockaddr *)&addr_10_h ) );
+
+    fail_if( sockaddr_isAddrPrivate( (struct sockaddr *)&addr_public ) );
+    fail_if( sockaddr_isAddrPrivate( (struct sockaddr *)sockaddr_IPv6_1 ) );
+    
+
+    //fail_if( sockaddr_ipPort( (struct sockaddr *)sockaddr_IPv6_1 ) == 1234 );
+}
+END_TEST
+
+
 
 Suite * sockaddr_suite (void)
 {
@@ -723,6 +768,14 @@ Suite * sockaddr_suite (void)
       suite_add_tcase (s, tc_sockaddr_ipPort);
   }
 
+    {/* private addr test case */
+      TCase *tc_sockaddr_private = tcase_create ("sockaddr_private");
+      tcase_add_checked_fixture (tc_sockaddr_private, sockaddr_setup, sockaddr_teardown);
+      tcase_add_test (tc_sockaddr_private, sockaddr_IPv4_private);
+      //tcase_add_test (tc_sockaddr_private, sockaddr_IPv6_ipPort);
+      suite_add_tcase (s, tc_sockaddr_private);
+  }
+    
 
   return s;
 }
