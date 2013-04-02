@@ -1,1 +1,1 @@
-/usr/share/aclocal/lt~obsolete.m4
+/usr/local/share/aclocal/lt~obsolete.m4
