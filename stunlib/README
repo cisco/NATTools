@@ -1,0 +1,6 @@
+
+
+Building on OSX
+- need macports with gcc, check, openssl +++
+- call configure like this:
+  ./configure --with-check --enable-gcov CC=gcc-mp-4.6 CFLAGS="-fno-strict-aliasing -I/usr/local/include" LDFLAGS=-"L/opt/local/lib -lcrypto -lz"
