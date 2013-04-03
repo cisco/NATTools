@@ -30,8 +30,6 @@ AS_HELP_STRING([--enable-gcov],
 AM_CONDITIONAL(GCOV, test x"$gcov" = "xtrue")
 
 
-
-
 AM_CONDITIONAL(CHECK, "false")
 AC_ARG_WITH([check],
   [AS_HELP_STRING([--with-check],
@@ -53,20 +51,13 @@ AC_ARG_WITH([check],
 # Checks for libraries.
 #AC_CHECK_LIB([check], [srunner_create])
 
-AC_ARG_ENABLE(submodule,
-AS_HELP_STRING([--enable-submodule],
-               [enable submodule build @<:@default=no@:>@]),
-              [case "${enableval}" in
-                 yes) submodule=true ;;
-                 no)  submodule=false ;;
-                 *)   AC_MSG_ERROR([bad value ${enableval} for --enable-submodule]) ;;
-               esac],
-              [submodule=false])
+AC_CHECK_FILE(../sockaddrutil/include/sockaddr_util.h, local_sockaddr=true, local_sockaddr=false )
+
+AM_CONDITIONAL(LOCAL_SOCKADDR, test x"$local_sockaddr" = "xtrue")
 
 
-AM_CONDITIONAL(SUBMODULE, test x"$submodule" = "xtrue")
 
-AM_COND_IF(SUBMODULE,
+AM_COND_IF(LOCAL_SOCKADDR,
            [],
 [AC_CHECK_LIB([sockaddrutil], [sockaddr_initFromString],[], [AC_MSG_FAILURE([could not find sockaddrutil])])])
 

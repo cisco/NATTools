@@ -6,7 +6,7 @@ if CHECK
   check_PROGRAMS = check_stunlib
   check_stunlib_SOURCES = turnclienttest.c testvector.c  turn_message.c testmain.c ../src/stunclient.c  ../src/stunfifo.c  ../src/stunlib.c  ../src/stun_os.c  ../src/turnclient.c
 
-if SUBMODULE
+if LOCAL_SOCKADDR
   MY_LDFLAGS_2 = ../../sockaddrutil/src/libsockaddrutil.la
   MY_CFLAGS_2 = -I../include -I../../sockaddrutil/include
 endif

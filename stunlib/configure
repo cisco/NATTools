@@ -636,8 +636,8 @@ ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
-SUBMODULE_FALSE
-SUBMODULE_TRUE
+LOCAL_SOCKADDR_FALSE
+LOCAL_SOCKADDR_TRUE
 LIBCHECK
 CHECK_FALSE
 CHECK_TRUE
@@ -769,7 +769,6 @@ with_sysroot
 enable_libtool_lock
 enable_gcov
 with_check
-enable_submodule
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1410,7 +1409,6 @@ Optional Features:
                           optimize for fast installation [default=yes]
   --disable-libtool-lock  avoid locking (might break parallel builds)
   --enable-gcov           enable test coverage with gcov [default=no]
-  --enable-submodule      enable submodule build [default=no]
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -12469,8 +12467,6 @@ fi
 
 
 
-
-
  if "false"; then
   CHECK_TRUE=
   CHECK_FALSE='#'
@@ -12552,29 +12548,40 @@ fi
 # Checks for libraries.
 #AC_CHECK_LIB([check], [srunner_create])
 
-# Check whether --enable-submodule was given.
-if test "${enable_submodule+set}" = set; then :
-  enableval=$enable_submodule; case "${enableval}" in
-                 yes) submodule=true ;;
-                 no)  submodule=false ;;
-                 *)   as_fn_error $? "bad value ${enableval} for --enable-submodule" "$LINENO" 5 ;;
-               esac
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ../sockaddrutil/include/sockaddr_util.h" >&5
+$as_echo_n "checking for ../sockaddrutil/include/sockaddr_util.h... " >&6; }
+if ${ac_cv_file____sockaddrutil_include_sockaddr_util_h+:} false; then :
+  $as_echo_n "(cached) " >&6
 else
-  submodule=false
+  test "$cross_compiling" = yes &&
+  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
+if test -r "../sockaddrutil/include/sockaddr_util.h"; then
+  ac_cv_file____sockaddrutil_include_sockaddr_util_h=yes
+else
+  ac_cv_file____sockaddrutil_include_sockaddr_util_h=no
+fi
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_file____sockaddrutil_include_sockaddr_util_h" >&5
+$as_echo "$ac_cv_file____sockaddrutil_include_sockaddr_util_h" >&6; }
+if test "x$ac_cv_file____sockaddrutil_include_sockaddr_util_h" = xyes; then :
+  local_sockaddr=true
+else
+  local_sockaddr=false
+fi
+
+
+ if test x"$local_sockaddr" = "xtrue"; then
+  LOCAL_SOCKADDR_TRUE=
+  LOCAL_SOCKADDR_FALSE='#'
+else
+  LOCAL_SOCKADDR_TRUE='#'
+  LOCAL_SOCKADDR_FALSE=
 fi
 
 
 
- if test x"$submodule" = "xtrue"; then
-  SUBMODULE_TRUE=
-  SUBMODULE_FALSE='#'
-else
-  SUBMODULE_TRUE='#'
-  SUBMODULE_FALSE=
-fi
 
-
-if test -z "$SUBMODULE_TRUE"; then :
+if test -z "$LOCAL_SOCKADDR_TRUE"; then :
   else
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for sockaddr_initFromString in -lsockaddrutil" >&5
 $as_echo_n "checking for sockaddr_initFromString in -lsockaddrutil... " >&6; }
@@ -13034,8 +13041,8 @@ if test -z "${CHECK_TRUE}" && test -z "${CHECK_FALSE}"; then
   as_fn_error $? "conditional \"CHECK\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
-if test -z "${SUBMODULE_TRUE}" && test -z "${SUBMODULE_FALSE}"; then
-  as_fn_error $? "conditional \"SUBMODULE\" was never defined.
+if test -z "${LOCAL_SOCKADDR_TRUE}" && test -z "${LOCAL_SOCKADDR_FALSE}"; then
+  as_fn_error $? "conditional \"LOCAL_SOCKADDR\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 
