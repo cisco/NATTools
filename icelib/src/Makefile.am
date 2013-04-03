@@ -1,9 +1,15 @@
 ## Process this file with automake to produce Makefile.in
-if SUBMODULE
-  TMP_CPPFLAGS = -I../../sockaddrutil/include -I../../stunlib/include -O2 -g -Wall -Wextra -Wno-unknown-pragmas -Werror-implicit-function-declaration -Werror -Wno-unused-parameter -Wdeclaration-after-statement -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes 
+if LOCAL_SOCKADDR
+  SOCKADDR_CPPFLAGS = -I../../sockaddrutil/include 
 endif
 
-AM_CPPFLAGS = -I../include $(TMP_CPPFLAGS) 
+if LOCAL_STUNLIB
+  STUNLIB_CPPFLAGS =-I../../stunlib/include 
+endif
+
+
+
+AM_CPPFLAGS = -I../include $(SOCKADDR_CPPFLAGS) $(STUNLIB_CPPFLAGS) -O2 -g -Wall -Wextra -Wno-unknown-pragmas -Werror-implicit-function-declaration -Werror -Wno-unused-parameter -Wdeclaration-after-statement -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes 
 
 include_HEADERS = ../include/icelib.h ../include/icelibtypes.h ../include/icelib_defines.h
 
