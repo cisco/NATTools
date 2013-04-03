@@ -1,9 +1,10 @@
 ## Process this file with automake to produce Makefile.in
 if SUBMODULE
-  AM_CPPFLAGS = -I../include -I../../sockaddrutil/include -I../../icelib/include
-else
-  AM_CPPFLAGS = -I../include
+  TMP_CPPFLAGS = -I../../sockaddrutil/include -I../../stunlib/include -O2 -g -Wall -Wextra -Wno-unknown-pragmas -Werror-implicit-function-declaration -Werror -Wno-unused-parameter -Wdeclaration-after-statement -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes 
 endif
+
+AM_CPPFLAGS = -I../include $(TMP_CPPFLAGS) 
+
 include_HEADERS = ../include/icelib.h ../include/icelibtypes.h ../include/icelib_defines.h
 
 
