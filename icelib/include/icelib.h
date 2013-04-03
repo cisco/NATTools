@@ -384,7 +384,13 @@ int32_t ICELIB_addRemoteCandidate(ICELIB_INSTANCE *pInstance,
                                   uint16_t port,
                                   ICE_CANDIDATE_TYPE candType );
 
-
+void ICELIB_fillRemoteCandidate(ICE_CANDIDATE *cand,
+                                uint32_t componentId,
+                                const char* foundation,
+                                uint32_t foundationLen,
+                                uint32_t priority,
+                                struct sockaddr *connectionAddr,
+                                ICE_CANDIDATE_TYPE candType);
 
 int32_t ICELIB_addLocalMediaStream(ICELIB_INSTANCE *pInstance,
                                    uint32_t mediaIdx,
