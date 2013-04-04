@@ -1,16 +1,14 @@
 Nattool is a package that contains several stand alone submodules.
 
-To build without installing the submodules do
-
-./configure --enable-submodule
-make
+Run
+./configure and make
+To compile
 
 For OSX the following ./configure command can be used:
-./configure --with-check --enable-gcov CC=gcc-mp-4.6 CFLAGS="-fno-strict-aliasing -I/usr/local/include" LDFLAGS=-"L/opt/local/lib -lcrypto -lz" --enable-submodule
-
+./configure --with-check --enable-gcov CC=gcc-mp-4.6 CFLAGS="-fno-strict-aliasing -I/usr/local/include" LDFLAGS=-"L/opt/local/lib -lcrypto -lz"
 There should now be a turn test binary in:
 
-testice/src/testturn
+samplecode/src/testturn
 
 Run it like this:
 
