@@ -1,0 +1,20 @@
+#Compiled files and libraries
+*.so
+*.la
+*.o
+*.lo
+
+#Autoconf generated files
+Makefile
+config.h
+config.log
+config.status
+libtool
+stamp-h1
+.deps
+.libs
+
+#executables
+pumpturn
+testturn
+testice
