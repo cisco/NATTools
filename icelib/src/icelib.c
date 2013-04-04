@@ -3620,8 +3620,6 @@ void ICELIB_processIncommingFull(ICELIB_INSTANCE  *pInstance,
 
 {
     unsigned int             streamIndex;
-    bool                     iceLocalControlling;
-    ICELIB_TRIGGERED_FIFO    *pTriggeredChecksFifo;
     ICELIB_CHECKLIST         *pCheckList;
     ICELIB_VALIDLIST         *pValidList;
     ICELIB_TRIGGERED_FIFO    *pTriggeredFifo;
@@ -3661,14 +3659,12 @@ void ICELIB_processIncommingFull(ICELIB_INSTANCE  *pInstance,
         return;
     }
 
-    iceLocalControlling = pInstance->iceControlling;
     pCheckList          = &pInstance->streamControllers[streamIndex].checkList;
     pValidList          = &pInstance->streamControllers[streamIndex].validList;
     pTriggeredFifo      = &pInstance->streamControllers[streamIndex].triggeredChecksFifo;
     pLocalMediaStream   = &pInstance->localIceMedia.mediaStream[streamIndex];
     pRemoteMediaStream   = &pInstance->remoteIceMedia.mediaStream[streamIndex];
 
-    pTriggeredChecksFifo        = &pInstance->streamControllers[streamIndex].triggeredChecksFifo;
     pDiscoveredRemoteCandidates = &pInstance->streamControllers[streamIndex].discoveredRemoteCandidates;
     pDiscoveredLocalCandidates  = &pInstance->streamControllers[streamIndex].discoveredLocalCandidates;
 
