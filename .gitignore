@@ -4,6 +4,14 @@
 *.o
 *.lo
 
+#Gcov and Lcov files
+*.trs
+*.gcno
+*.gcda
+*.log
+lcov
+
+
 #Autoconf generated files
 Makefile
 config.h
@@ -18,3 +26,10 @@ stamp-h1
 pumpturn
 testturn
 testice
+
+check_icelib
+check_stunlib
+check_sockaddrutil
+
+#other
+natlib.info
