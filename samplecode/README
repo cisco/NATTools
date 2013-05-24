@@ -1,0 +1,9 @@
+
+
+- Simple stunserver and client implementation -
+Nothing fancy. Everything is done in main to show how the stun library can be used. 
+
+start the stunserver on one machine
+connect to it with stunclient [ip_addr]
+
+More to come..

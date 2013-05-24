@@ -6,16 +6,14 @@ To compile
 
 For OSX the following ./configure command can be used:
 ./configure --with-check --enable-gcov CC=gcc-mp-4.6 CFLAGS="-fno-strict-aliasing -I/usr/local/include" LDFLAGS=-"L/opt/local/lib -lcrypto -lz"
+
+
 There should now be a turn test binary in:
 
-samplecode/src/testturn
+samplecode/src/stunserver
+and
+samplecode/src/stunclient
 
-Run it like this:
-
-testice/src/testturn [iface] [turnserver] [user] [password]
-
-Make sure your terminal window is large enough, using ncurses to 
-show information
 
 
 ** samplecode **

@@ -50,7 +50,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-bin_PROGRAMS = testturn$(EXEEXT) pumpturn$(EXEEXT) testice$(EXEEXT)
+bin_PROGRAMS = stunclient$(EXEEXT) stunserver$(EXEEXT)
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/build-aux/depcomp
@@ -67,27 +67,16 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_pumpturn_OBJECTS = pumpturn.$(OBJEXT) gather.$(OBJEXT) \
-	turninfo.$(OBJEXT) permissions.$(OBJEXT) iphelper.$(OBJEXT)
-pumpturn_OBJECTS = $(am_pumpturn_OBJECTS)
-am__DEPENDENCIES_1 =
-pumpturn_DEPENDENCIES = $(pumpturn_LDADD_1) $(pumpturn_LDADD_2) \
-	$(am__DEPENDENCIES_1)
+am_stunclient_OBJECTS = stunclient.$(OBJEXT)
+stunclient_OBJECTS = $(am_stunclient_OBJECTS)
+stunclient_DEPENDENCIES = $(stunclient_LDADD_2) $(stunclient_LDADD_1)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
-am_testice_OBJECTS = ice.$(OBJEXT) gather.$(OBJEXT) turninfo.$(OBJEXT) \
-	permissions.$(OBJEXT) iphelper.$(OBJEXT)
-testice_OBJECTS = $(am_testice_OBJECTS)
-testice_DEPENDENCIES = $(testice_LDADD_1) $(testice_LDADD_2) \
-	$(testice_LDADD_3)
-am_testturn_OBJECTS = testturn.$(OBJEXT) gather.$(OBJEXT) \
-	turninfo.$(OBJEXT) permissions.$(OBJEXT) iphelper.$(OBJEXT) \
-	view.$(OBJEXT)
-testturn_OBJECTS = $(am_testturn_OBJECTS)
-testturn_DEPENDENCIES = $(testturn_LDADD_1) $(testturn_LDADD_2) \
-	$(am__DEPENDENCIES_1)
+am_stunserver_OBJECTS = stunserver.$(OBJEXT)
+stunserver_OBJECTS = $(am_stunserver_OBJECTS)
+stunserver_DEPENDENCIES = $(stunserver_LDADD_2) $(stunserver_LDADD_1)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -122,9 +111,8 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(pumpturn_SOURCES) $(testice_SOURCES) $(testturn_SOURCES)
-DIST_SOURCES = $(pumpturn_SOURCES) $(testice_SOURCES) \
-	$(testturn_SOURCES)
+SOURCES = $(stunclient_SOURCES) $(stunserver_SOURCES)
+DIST_SOURCES = $(stunclient_SOURCES) $(stunserver_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -263,24 +251,36 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 @LOCAL_SOCKADDR_TRUE@AM_CPPFLAGS_1 = -I../../sockaddrutil/include
-@LOCAL_SOCKADDR_TRUE@testturn_LDADD_1 = ../../sockaddrutil/src/libsockaddrutil.la
-@LOCAL_SOCKADDR_TRUE@pumpturn_LDADD_1 = ../../sockaddrutil/src/libsockaddrutil.la
-@LOCAL_SOCKADDR_TRUE@testice_LDADD_1 = ../../sockaddrutil/src/libsockaddrutil.la
+#  testturn_LDADD_1 = ../../sockaddrutil/src/libsockaddrutil.la
+#  pumpturn_LDADD_1 = ../../sockaddrutil/src/libsockaddrutil.la
+#  testice_LDADD_1 = ../../sockaddrutil/src/libsockaddrutil.la
+@LOCAL_SOCKADDR_TRUE@stunclient_LDADD_1 = ../../sockaddrutil/src/libsockaddrutil.la
+@LOCAL_SOCKADDR_TRUE@stunserver_LDADD_1 = ../../sockaddrutil/src/libsockaddrutil.la	
 @LOCAL_STUNLIB_TRUE@AM_CPPFLAGS_2 = -I../../stunlib/include
-@LOCAL_STUNLIB_TRUE@testturn_LDADD_2 = ../../stunlib/src/libstun.la
-@LOCAL_STUNLIB_TRUE@pumpturn_LDADD_2 = ../../stunlib/src/libstun.la
-@LOCAL_STUNLIB_TRUE@testice_LDADD_2 = ../../stunlib/src/libstun.la
+#  testturn_LDADD_2 = ../../stunlib/src/libstun.la
+#  pumpturn_LDADD_2 = ../../stunlib/src/libstun.la
+#  testice_LDADD_2 = ../../stunlib/src/libstun.la
+@LOCAL_STUNLIB_TRUE@stunclient_LDADD_2 = ../../stunlib/src/libstun.la
+@LOCAL_STUNLIB_TRUE@stunserver_LDADD_2 = ../../stunlib/src/libstun.la
 @LOCAL_ICELIB_TRUE@AM_CPPFLAGS_3 = -I../../icelib/include
-@LOCAL_ICELIB_TRUE@testturn_LDADD_3 = 
-@LOCAL_ICELIB_TRUE@pumpturn_LDADD_3 = 
-@LOCAL_ICELIB_TRUE@testice_LDADD_3 = ../../icelib/src/libice.la
+#  testturn_LDADD_3 = 
+#  pumpturn_LDADD_3 = 
+#  testice_LDADD_3 = ../../icelib/src/libice.la
 AM_CPPFLAGS = -I../include $(AM_CPPFLAGS_1) $(AM_CPPFLAGS_2) $(AM_CPPFLAGS_3)		
-testturn_LDADD = $(testturn_LDADD_1) $(testturn_LDADD_2) $(testturn_LDADD_3) 
-pumpturn_LDADD = $(pumpturn_LDADD_1) $(pumpturn_LDADD_2) $(pumpturn_LDADD_3) 
-testice_LDADD = $(testice_LDADD_1) $(testice_LDADD_2) $(testice_LDADD_3)
-testturn_SOURCES = testturn.c gather.c turninfo.c permissions.c iphelper.c view.c gather.h iphelper.h permissions.h turninfo.h view.h
-pumpturn_SOURCES = pumpturn.c gather.c turninfo.c permissions.c iphelper.c gather.h iphelper.h permissions.h turninfo.h
-testice_SOURCES = ice.c gather.c turninfo.c permissions.c iphelper.c gather.h iphelper.h permissions.h turninfo.h view.h
+
+#testturn_LDADD = $(testturn_LDADD_1) $(testturn_LDADD_2) $(testturn_LDADD_3) 
+#pumpturn_LDADD = $(pumpturn_LDADD_1) $(pumpturn_LDADD_2) $(pumpturn_LDADD_3) 
+#testice_LDADD =  $(testice_LDADD_1) $(testice_LDADD_2) $(testice_LDADD_3)
+stunclient_LDADD = $(stunclient_LDADD_3) $(stunclient_LDADD_2) $(stunclient_LDADD_1)
+stunserver_LDADD = $(stunserver_LDADD_3) $(stunserver_LDADD_2) $(stunserver_LDADD_1)
+
+#testturn_SOURCES = testturn.c gather.c turninfo.c permissions.c iphelper.c view.c gather.h iphelper.h permissions.h turninfo.h view.h
+
+#pumpturn_SOURCES = pumpturn.c gather.c turninfo.c permissions.c iphelper.c gather.h iphelper.h permissions.h turninfo.h
+
+#testice_SOURCES = ice.c gather.c turninfo.c permissions.c iphelper.c gather.h iphelper.h permissions.h turninfo.h view.h
+stunclient_SOURCES = stunclient.c
+stunserver_SOURCES = stunserver.c
 all: all-am
 
 .SUFFIXES:
@@ -364,15 +364,12 @@ clean-binPROGRAMS:
 	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
 	echo " rm -f" $$list; \
 	rm -f $$list
-pumpturn$(EXEEXT): $(pumpturn_OBJECTS) $(pumpturn_DEPENDENCIES) $(EXTRA_pumpturn_DEPENDENCIES) 
-	@rm -f pumpturn$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(pumpturn_OBJECTS) $(pumpturn_LDADD) $(LIBS)
-testice$(EXEEXT): $(testice_OBJECTS) $(testice_DEPENDENCIES) $(EXTRA_testice_DEPENDENCIES) 
-	@rm -f testice$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(testice_OBJECTS) $(testice_LDADD) $(LIBS)
-testturn$(EXEEXT): $(testturn_OBJECTS) $(testturn_DEPENDENCIES) $(EXTRA_testturn_DEPENDENCIES) 
-	@rm -f testturn$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(testturn_OBJECTS) $(testturn_LDADD) $(LIBS)
+stunclient$(EXEEXT): $(stunclient_OBJECTS) $(stunclient_DEPENDENCIES) $(EXTRA_stunclient_DEPENDENCIES) 
+	@rm -f stunclient$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(stunclient_OBJECTS) $(stunclient_LDADD) $(LIBS)
+stunserver$(EXEEXT): $(stunserver_OBJECTS) $(stunserver_DEPENDENCIES) $(EXTRA_stunserver_DEPENDENCIES) 
+	@rm -f stunserver$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(stunserver_OBJECTS) $(stunserver_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -380,14 +377,8 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gather.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ice.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/iphelper.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/permissions.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pumpturn.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testturn.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/turninfo.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/view.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stunclient.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stunserver.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

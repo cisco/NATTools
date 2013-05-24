@@ -9,23 +9,8 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
-/* Define to 1 if you have the `curses' library (-lcurses). */
-#undef HAVE_LIBCURSES
-
-/* Define to 1 if you have the `form' library (-lform). */
-#undef HAVE_LIBFORM
-
 /* Define to 1 if you have the `ice' library (-lice). */
 #undef HAVE_LIBICE
-
-/* Define to 1 if you have the `menu' library (-lmenu). */
-#undef HAVE_LIBMENU
-
-/* Define to 1 if you have the `panel' library (-lpanel). */
-#undef HAVE_LIBPANEL
-
-/* Define to 1 if you have the `pthread' library (-lpthread). */
-#undef HAVE_LIBPTHREAD
 
 /* Define to 1 if you have the `sockaddrutil' library (-lsockaddrutil). */
 #undef HAVE_LIBSOCKADDRUTIL

@@ -3,7 +3,7 @@
 
 AC_PREREQ([2.61])
 AC_INIT([samplecode], [0.1], [palmarti@cisco.com])
-AC_CONFIG_SRCDIR([src/testturn.c])
+AC_CONFIG_SRCDIR([src/stunclient.c])
 AC_CONFIG_HEADERS([config.h])
 
 AC_CONFIG_AUX_DIR([build-aux])
@@ -49,14 +49,14 @@ AM_COND_IF(LOCAL_ICELIB,
 #AC_CHECK_LIB([ice], [ICELIB_Constructor], [], [AC_MSG_FAILURE([could not find icelib])])
 
 
-AC_CHECK_LIB([pthread], [pthread_create], [], [AC_MSG_FAILURE([could not find pthread])])
+#AC_CHECK_LIB([pthread], [pthread_create], [], [AC_MSG_FAILURE([could not find pthread])])
 
 
 
-AC_CHECK_LIB([curses], [getch], [], [AC_MSG_FAILURE([could not find curses ( sudo apt-get install libncurses5-dev?)])])
-AC_CHECK_LIB([form], [new_form], [], [AC_MSG_FAILURE([could not find form])])
-AC_CHECK_LIB([panel], [new_panel], [], [AC_MSG_FAILURE([could not find panel])])
-AC_CHECK_LIB([menu], [new_menu], [], [AC_MSG_FAILURE([could not find menu])])
+#AC_CHECK_LIB([curses], [getch], [], [AC_MSG_FAILURE([could not find curses ( sudo apt-get install libncurses5-dev?)])])
+#AC_CHECK_LIB([form], [new_form], [], [AC_MSG_FAILURE([could not find form])])
+#AC_CHECK_LIB([panel], [new_panel], [], [AC_MSG_FAILURE([could not find panel])])
+#AC_CHECK_LIB([menu], [new_menu], [], [AC_MSG_FAILURE([could not find menu])])
 
 
 
