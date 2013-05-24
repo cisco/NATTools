@@ -312,7 +312,7 @@ START_TEST (response_encode)
 
     /*Server*/
     stunMsg.hasSoftware = true;
-    memcpy( stunMsg.software.value, software, strlen(software_resp));
+    memcpy( stunMsg.software.value, software_resp, strlen(software_resp));
 
     stunMsg.software.sizeValue = strlen(software_resp);
 
@@ -385,7 +385,7 @@ START_TEST (response_decode_IPv6)
     fail_unless( stunMsg.hasSoftware);
     fail_unless( strncmp( stunMsg.software.value,
                           software_resp,
-                          max(stunMsg.software.sizeValue,sizeof(software)) )==0 );
+                          max(stunMsg.software.sizeValue,sizeof(software_resp)) )==0 );
 }
 END_TEST
 
@@ -410,9 +410,9 @@ START_TEST (response_encode_IPv6)
 
     /*Server*/
     stunMsg.hasSoftware = true;
-    memcpy( stunMsg.software.value, software, strlen(software_resp));
+    memcpy( stunMsg.software.value, software, strlen(software));
 
-    stunMsg.software.sizeValue = strlen(software_resp);
+    stunMsg.software.sizeValue = strlen(software);
 
 
     /*Mapped Address*/
