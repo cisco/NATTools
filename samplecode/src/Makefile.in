@@ -50,7 +50,8 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-bin_PROGRAMS = stunclient$(EXEEXT) stunserver$(EXEEXT)
+bin_PROGRAMS = stunclient$(EXEEXT) stunserver$(EXEEXT) \
+	turnclient$(EXEEXT)
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/build-aux/depcomp
@@ -69,14 +70,17 @@ am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_stunclient_OBJECTS = stunclient.$(OBJEXT)
 stunclient_OBJECTS = $(am_stunclient_OBJECTS)
-stunclient_DEPENDENCIES = $(stunclient_LDADD_2) $(stunclient_LDADD_1)
+stunclient_DEPENDENCIES = $(LDADD_2) $(LDADD_1)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
 am_stunserver_OBJECTS = stunserver.$(OBJEXT)
 stunserver_OBJECTS = $(am_stunserver_OBJECTS)
-stunserver_DEPENDENCIES = $(stunserver_LDADD_2) $(stunserver_LDADD_1)
+stunserver_DEPENDENCIES = $(LDADD_2) $(LDADD_1)
+am_turnclient_OBJECTS = turnclient.$(OBJEXT)
+turnclient_OBJECTS = $(am_turnclient_OBJECTS)
+turnclient_DEPENDENCIES = $(LDADD_2) $(LDADD_1)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -111,8 +115,10 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(stunclient_SOURCES) $(stunserver_SOURCES)
-DIST_SOURCES = $(stunclient_SOURCES) $(stunserver_SOURCES)
+SOURCES = $(stunclient_SOURCES) $(stunserver_SOURCES) \
+	$(turnclient_SOURCES)
+DIST_SOURCES = $(stunclient_SOURCES) $(stunserver_SOURCES) \
+	$(turnclient_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -251,36 +257,17 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 @LOCAL_SOCKADDR_TRUE@AM_CPPFLAGS_1 = -I../../sockaddrutil/include
-#  testturn_LDADD_1 = ../../sockaddrutil/src/libsockaddrutil.la
-#  pumpturn_LDADD_1 = ../../sockaddrutil/src/libsockaddrutil.la
-#  testice_LDADD_1 = ../../sockaddrutil/src/libsockaddrutil.la
-@LOCAL_SOCKADDR_TRUE@stunclient_LDADD_1 = ../../sockaddrutil/src/libsockaddrutil.la
-@LOCAL_SOCKADDR_TRUE@stunserver_LDADD_1 = ../../sockaddrutil/src/libsockaddrutil.la	
+@LOCAL_SOCKADDR_TRUE@LDADD_1 = ../../sockaddrutil/src/libsockaddrutil.la
 @LOCAL_STUNLIB_TRUE@AM_CPPFLAGS_2 = -I../../stunlib/include
-#  testturn_LDADD_2 = ../../stunlib/src/libstun.la
-#  pumpturn_LDADD_2 = ../../stunlib/src/libstun.la
-#  testice_LDADD_2 = ../../stunlib/src/libstun.la
-@LOCAL_STUNLIB_TRUE@stunclient_LDADD_2 = ../../stunlib/src/libstun.la
-@LOCAL_STUNLIB_TRUE@stunserver_LDADD_2 = ../../stunlib/src/libstun.la
+@LOCAL_STUNLIB_TRUE@LDADD_2 = ../../stunlib/src/libstun.la
 @LOCAL_ICELIB_TRUE@AM_CPPFLAGS_3 = -I../../icelib/include
-#  testturn_LDADD_3 = 
-#  pumpturn_LDADD_3 = 
-#  testice_LDADD_3 = ../../icelib/src/libice.la
 AM_CPPFLAGS = -I../include $(AM_CPPFLAGS_1) $(AM_CPPFLAGS_2) $(AM_CPPFLAGS_3)		
-
-#testturn_LDADD = $(testturn_LDADD_1) $(testturn_LDADD_2) $(testturn_LDADD_3) 
-#pumpturn_LDADD = $(pumpturn_LDADD_1) $(pumpturn_LDADD_2) $(pumpturn_LDADD_3) 
-#testice_LDADD =  $(testice_LDADD_1) $(testice_LDADD_2) $(testice_LDADD_3)
-stunclient_LDADD = $(stunclient_LDADD_3) $(stunclient_LDADD_2) $(stunclient_LDADD_1)
-stunserver_LDADD = $(stunserver_LDADD_3) $(stunserver_LDADD_2) $(stunserver_LDADD_1)
-
-#testturn_SOURCES = testturn.c gather.c turninfo.c permissions.c iphelper.c view.c gather.h iphelper.h permissions.h turninfo.h view.h
-
-#pumpturn_SOURCES = pumpturn.c gather.c turninfo.c permissions.c iphelper.c gather.h iphelper.h permissions.h turninfo.h
-
-#testice_SOURCES = ice.c gather.c turninfo.c permissions.c iphelper.c gather.h iphelper.h permissions.h turninfo.h view.h
+stunclient_LDADD = $(LDADD_3) $(LDADD_2) $(LDADD_1)
+stunserver_LDADD = $(LDADD_3) $(LDADD_2) $(LDADD_1)
+turnclient_LDADD = $(LDADD_3) $(LDADD_2) $(LDADD_1)
 stunclient_SOURCES = stunclient.c
 stunserver_SOURCES = stunserver.c
+turnclient_SOURCES = turnclient.c
 all: all-am
 
 .SUFFIXES:
@@ -370,6 +357,9 @@ stunclient$(EXEEXT): $(stunclient_OBJECTS) $(stunclient_DEPENDENCIES) $(EXTRA_st
 stunserver$(EXEEXT): $(stunserver_OBJECTS) $(stunserver_DEPENDENCIES) $(EXTRA_stunserver_DEPENDENCIES) 
 	@rm -f stunserver$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(stunserver_OBJECTS) $(stunserver_LDADD) $(LIBS)
+turnclient$(EXEEXT): $(turnclient_OBJECTS) $(turnclient_DEPENDENCIES) $(EXTRA_turnclient_DEPENDENCIES) 
+	@rm -f turnclient$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(turnclient_OBJECTS) $(turnclient_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -379,6 +369,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stunclient.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stunserver.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/turnclient.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
