@@ -4,6 +4,9 @@
 Nothing fancy. Everything is done in main to show how the stun library can be used. 
 
 start the stunserver on one machine
-connect to it with stunclient [ip_addr]
+connect to it with:
+> stunclient [ip_addr]
 
-More to come..
+- Simple turnclient implementation -
+Connect to a turnserve with:
+> turnclient [ip_addr] user pass
