@@ -1803,7 +1803,6 @@ START_TEST( formPairs_IPv4 )
     struct sockaddr_storage remoteHost;
     struct sockaddr_storage remoteRelay;
 
-    
     sockaddr_initFromString( (struct sockaddr *)&localHost,  "192.168.2.10:3456");
     sockaddr_initFromString( (struct sockaddr *)&localRelay,  "158.38.48.10:4534");
     sockaddr_initFromString( (struct sockaddr *)&remoteHost,  "192.168.2.10:3459");
@@ -1825,6 +1824,8 @@ START_TEST( formPairs_IPv4 )
     
     cand = &LocalMediaStream.candidate[1];
 
+    fflush(stdout);
+
     ICELIB_fillLocalCandidate(cand,
                               1,
                               (struct sockaddr *)&localRelay,
@@ -1832,13 +1833,16 @@ START_TEST( formPairs_IPv4 )
                               ICE_CAND_TYPE_RELAY);
     LocalMediaStream.numberOfCandidates++;
     
-
+    
 
     qsort(LocalMediaStream.candidate,
           LocalMediaStream.numberOfCandidates,
           sizeof(ICE_CANDIDATE),
           ICELIB_candidateSort);
     //Remote
+
+    fflush(stdout);
+
     cand = &RemoteMediaStream.candidate[0];
     
     ICELIB_fillRemoteCandidate(cand,
@@ -1852,6 +1856,10 @@ START_TEST( formPairs_IPv4 )
     
     cand = &RemoteMediaStream.candidate[1];
 
+
+    fflush(stdout);
+
+
     ICELIB_fillRemoteCandidate(cand,
                                1,
                                "TJA",
@@ -1860,18 +1868,25 @@ START_TEST( formPairs_IPv4 )
                                (struct sockaddr *)&remoteRelay,
                                ICE_CAND_TYPE_RELAY);
     RemoteMediaStream.numberOfCandidates++;
-    
+
 
     ICELIB_resetCheckList(&CheckList, 0);
 
     ICELIB_formPairs(&CheckList,
-                     &CallbackLog,
+                     NULL,
                      &LocalMediaStream,
                      &RemoteMediaStream,
                      10);
 
+    fflush(stdout);
+
+
     ICELIB_computeListPairPriority(&CheckList, true);
     ICELIB_sortPairsCL(&CheckList);
+
+    
+    fflush(stdout);
+
 
     fail_unless( CheckList.numberOfPairs  == 4 );
 
@@ -2003,7 +2018,7 @@ START_TEST( formPairs_IPv6 )
     ICELIB_resetCheckList(&CheckList, 0);
 
     ICELIB_formPairs(&CheckList,
-                     &CallbackLog,
+                     NULL,
                      &LocalMediaStream,
                      &RemoteMediaStream,
                      10);
