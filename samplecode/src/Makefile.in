@@ -71,7 +71,7 @@ PROGRAMS = $(bin_PROGRAMS)
 am_stunclient_OBJECTS = stunclient.$(OBJEXT) utils.$(OBJEXT)
 stunclient_OBJECTS = $(am_stunclient_OBJECTS)
 stunclient_DEPENDENCIES = $(LDADD_2) $(LDADD_1)
-am_stunserver_OBJECTS = stunserver.$(OBJEXT)
+am_stunserver_OBJECTS = stunserver.$(OBJEXT) utils.$(OBJEXT)
 stunserver_OBJECTS = $(am_stunserver_OBJECTS)
 stunserver_DEPENDENCIES = $(LDADD_2) $(LDADD_1)
 am_turnclient_OBJECTS = turnclient.$(OBJEXT) utils.$(OBJEXT)
@@ -225,7 +225,7 @@ stunclient_LDADD = $(LDADD_3) $(LDADD_2) $(LDADD_1)
 stunserver_LDADD = $(LDADD_3) $(LDADD_2) $(LDADD_1)
 turnclient_LDADD = $(LDADD_3) $(LDADD_2) $(LDADD_1)
 stunclient_SOURCES = stunclient.c utils.c
-stunserver_SOURCES = stunserver.c
+stunserver_SOURCES = stunserver.c utils.c
 turnclient_SOURCES = turnclient.c utils.c
 all: all-am
 

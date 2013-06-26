@@ -17,6 +17,8 @@
 
 #include <stunlib.h>
 
+#include "utils.h"
+
 #define MYPORT "4950"    // the port users will be connecting to
 
 #define MAXBUFLEN 200
@@ -43,10 +45,7 @@ int main(void)
     int numbytes;
     struct sockaddr_storage their_addr;
     unsigned char buf[MAXBUFLEN];
-    socklen_t addr_len;
     char s[INET6_ADDRSTRLEN];
-
-    bool isMsStun;
 
     StunMessage stunRequest, stunResponse;
     char response_buffer[256];
@@ -91,28 +90,7 @@ int main(void)
 
     printf("stunserver: waiting to recvfrom...\n");
 
-    addr_len = sizeof their_addr;
-    if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN-1 , 0,
-        (struct sockaddr *)&their_addr, &addr_len)) == -1) {
-        perror("recvfrom");
-        exit(1);
-    }
-
-    printf("stunserver: got packet from %s\n",
-        inet_ntop(their_addr.ss_family,
-            get_in_addr((struct sockaddr *)&their_addr),
-            s, sizeof s));
-    printf("stunserver: packet is %d bytes long\n", numbytes);
-    
-    if(stunlib_isStunMsg(buf, numbytes, &isMsStun)){
-        printf("Packet is STUN\n");
-        
-        stunlib_DecodeMessage( buf, 
-                               numbytes, 
-                               &stunRequest, 
-                               NULL, 
-                               false, 
-                               false);
+    if((numbytes = recvStunMsg(sockfd, &their_addr, &stunRequest, buf)) != -1) {
 
         if( stunlib_checkIntegrity(buf,
                                    numbytes,
@@ -165,7 +143,7 @@ int main(void)
             
 
             if ((numbytes = sendto(sockfd, response_buffer, msg_len, 0,
-                                   (struct sockaddr *)&their_addr, addr_len)) == -1) {
+                                   (struct sockaddr *)&their_addr, sizeof their_addr)) == -1) {
                 perror("stunclient: sendto");
                 exit(1);
             }
