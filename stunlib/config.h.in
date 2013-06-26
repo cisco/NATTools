@@ -15,6 +15,9 @@
 /* Define to 1 if you have the `sockaddrutil' library (-lsockaddrutil). */
 #undef HAVE_LIBSOCKADDRUTIL
 
+/* Define to 1 if you have the `z' library (-lz). */
+#undef HAVE_LIBZ
+
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
