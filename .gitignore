@@ -33,3 +33,4 @@ check_sockaddrutil
 
 #other
 natlib.info
+*.swp
