@@ -119,7 +119,7 @@ void listenAndHandleResponse()
     unsigned char buf[MAXBUFLEN];
     StunMessage stunResponse;
 
-      if (recvStunMsg(sockfd, &their_addr, &stunResponse, buf)) {
+      if(recvStunMsg(sockfd, &their_addr, &stunResponse, buf) != -1) {
            if (stunResponse.msgHdr.msgType == STUN_MSG_DataIndicationMsg) {
              if (stunResponse.hasData) {
                  //Decode and do something with the data?

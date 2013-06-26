@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
 
     printf("stunclient: sent %d bytes to %s\n", numbytes, argv[1]);
 
-    if (recvStunMsg(sockfd, &their_addr, &stunResponse, buf)) {
+    if((numbytes = recvStunMsg(sockfd, &their_addr, &stunResponse, buf)) != -1) {
         if( stunlib_checkIntegrity(buf,
                                    numbytes,
                                    &stunResponse,
