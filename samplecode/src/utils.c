@@ -4,7 +4,7 @@
 
 #define MAXBUFLEN 200
 
-bool recvStunMsg(int sockfd, struct sockaddr_storage *their_addr, StunMessage *stunResponse, unsigned char *buf)
+int recvStunMsg(int sockfd, struct sockaddr_storage *their_addr, StunMessage *stunResponse, unsigned char *buf)
 {
     socklen_t addr_len = sizeof their_addr;
     int numbytes;
@@ -21,8 +21,8 @@ bool recvStunMsg(int sockfd, struct sockaddr_storage *their_addr, StunMessage *s
 
         stunlib_DecodeMessage(buf, numbytes, stunResponse, NULL, false, false);
 
-        return true;
+        return numbytes;
     }
 
-    return false;
+    return -1;
 }
