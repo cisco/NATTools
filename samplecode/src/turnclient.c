@@ -25,8 +25,6 @@
 
 #include "utils.h"
 
-#define MAXBUFLEN 200
-
 #define SERVERPORT "3478"    // the port users will be connecting to
 
 static const uint32_t TEST_THREAD_CTX = 1;

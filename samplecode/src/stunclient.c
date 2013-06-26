@@ -17,8 +17,6 @@
 
 #include "utils.h"
 
-#define MAXBUFLEN 200
-
 #define SERVERPORT "4950"    // the port users will be connecting to
 
 int main(int argc, char *argv[])
