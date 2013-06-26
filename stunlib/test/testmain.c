@@ -7,6 +7,7 @@
 Suite * stunlib_suite (void);
 Suite * stunclient_suite (void);
 Suite * turnmessage_suite (void);
+Suite * realworldmsg_suite (void);
 
 
 int main(void){
@@ -17,6 +18,7 @@ int main(void){
     SRunner *sr = srunner_create (s);
     srunner_add_suite (sr, stunclient_suite ());
     srunner_add_suite (sr, turnmessage_suite ());
+    srunner_add_suite (sr, realworldmsg_suite ());
     srunner_run_all (sr, CK_NORMAL);
     number_failed = srunner_ntests_failed (sr);
     srunner_free (sr);

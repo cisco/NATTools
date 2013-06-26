@@ -66,14 +66,15 @@ CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__check_stunlib_SOURCES_DIST = turnclienttest.c testvector.c \
-	turn_message.c testmain.c ../src/stunclient.c \
-	../src/stunfifo.c ../src/stunlib.c ../src/stun_os.c \
-	../src/turnclient.c
+	turn_message.c testmain.c testrealworldpackets.c \
+	../src/stunclient.c ../src/stunfifo.c ../src/stunlib.c \
+	../src/stun_os.c ../src/turnclient.c
 @CHECK_TRUE@am_check_stunlib_OBJECTS = turnclienttest.$(OBJEXT) \
 @CHECK_TRUE@	testvector.$(OBJEXT) turn_message.$(OBJEXT) \
-@CHECK_TRUE@	testmain.$(OBJEXT) stunclient.$(OBJEXT) \
-@CHECK_TRUE@	stunfifo.$(OBJEXT) stunlib.$(OBJEXT) \
-@CHECK_TRUE@	stun_os.$(OBJEXT) turnclient.$(OBJEXT)
+@CHECK_TRUE@	testmain.$(OBJEXT) testrealworldpackets.$(OBJEXT) \
+@CHECK_TRUE@	stunclient.$(OBJEXT) stunfifo.$(OBJEXT) \
+@CHECK_TRUE@	stunlib.$(OBJEXT) stun_os.$(OBJEXT) \
+@CHECK_TRUE@	turnclient.$(OBJEXT)
 check_stunlib_OBJECTS = $(am_check_stunlib_OBJECTS)
 check_stunlib_LDADD = $(LDADD)
 check_stunlib_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -220,7 +221,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 @CHECK_TRUE@MY_CFLAGS_1 = -I../include	
 @CHECK_TRUE@MY_LDFLAGS_1 = -lcheck
-@CHECK_TRUE@check_stunlib_SOURCES = turnclienttest.c testvector.c  turn_message.c testmain.c ../src/stunclient.c  ../src/stunfifo.c  ../src/stunlib.c  ../src/stun_os.c  ../src/turnclient.c
+@CHECK_TRUE@check_stunlib_SOURCES = turnclienttest.c testvector.c  turn_message.c testmain.c testrealworldpackets.c ../src/stunclient.c  ../src/stunfifo.c  ../src/stunlib.c  ../src/stun_os.c  ../src/turnclient.c
 @CHECK_TRUE@@LOCAL_SOCKADDR_TRUE@MY_LDFLAGS_2 = ../../sockaddrutil/src/libsockaddrutil.la
 @CHECK_TRUE@@LOCAL_SOCKADDR_TRUE@MY_CFLAGS_2 = -I../include -I../../sockaddrutil/include
 @CHECK_TRUE@@GCOV_TRUE@MY_CFLAGS_3 = -fprofile-arcs -ftest-coverage
@@ -285,6 +286,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stunfifo.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stunlib.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testmain.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testrealworldpackets.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testvector.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/turn_message.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/turnclient.Po@am__quote@
