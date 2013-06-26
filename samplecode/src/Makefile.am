@@ -23,6 +23,6 @@ stunserver_LDADD =  $(LDADD_3) $(LDADD_2) $(LDADD_1)
 turnclient_LDADD =  $(LDADD_3) $(LDADD_2) $(LDADD_1)
 
 
-stunclient_SOURCES = stunclient.c
+stunclient_SOURCES = stunclient.c utils.c
 stunserver_SOURCES = stunserver.c
-turnclient_SOURCES = turnclient.c
+turnclient_SOURCES = turnclient.c utils.c
