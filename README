@@ -5,14 +5,12 @@ Run
 To compile
 
 For OSX the following ./configure command can be used:
-./configure --with-check --enable-gcov CC=gcc-mp-4.6 CFLAGS="-fno-strict-aliasing -I/usr/local/include" LDFLAGS=-"L/opt/local/lib -lcrypto -lz"
+./configure --with-check --enable-gcov CC=gcc-mp-4.6 CFLAGS="-fno-strict-aliasing -I/usr/local/include" LDFLAGS=-"L/opt/local/lib -lcrypto"
 
 
-There should now be a turn test binary in:
+There should now be stunserver, stunclient and turnclient test binary in:
 
-samplecode/src/stunserver
-and
-samplecode/src/stunclient
+samplecode/src/
 
 
 
