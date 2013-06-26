@@ -64,6 +64,7 @@ AM_COND_IF(LOCAL_SOCKADDR,
 dnl AC_CHECK_LIB([ssl], [SSL_library_init], [], [AC_MSG_FAILURE([could not find ssl])])
 
 AC_CHECK_LIB([crypto], [MD5], [], [AC_MSG_FAILURE([could not find crypto])])
+AC_CHECK_LIB([z], [MD5], [], [AC_MSG_FAILURE([could not find libz])])
 
 dnl AC_CHECK_LIB([gsasl], [gsasl_check_version], [], [AC_MSG_FAILURE([could not find gsasl])])
 

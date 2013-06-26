@@ -49,7 +49,7 @@ AM_COND_IF(LOCAL_ICELIB,
 #AC_CHECK_LIB([ice], [ICELIB_Constructor], [], [AC_MSG_FAILURE([could not find icelib])])
 
 
-#AC_CHECK_LIB([pthread], [pthread_create], [], [AC_MSG_FAILURE([could not find pthread])])
+AC_CHECK_LIB([pthread], [pthread_create], [], [AC_MSG_FAILURE([could not find pthread])])
 
 
 
