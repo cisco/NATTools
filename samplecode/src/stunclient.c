@@ -15,6 +15,8 @@
 
 #include <stunlib.h>
 
+#include "utils.h"
+
 #define MAXBUFLEN 200
 
 #define SERVERPORT "4950"    // the port users will be connecting to
@@ -35,7 +37,7 @@ int main(int argc, char *argv[])
     socklen_t addr_len;
     char s[INET6_ADDRSTRLEN];
     bool isMsStun;
-    
+
     const char username[] = "evtj:h6vY";
     const char password[] = "VOkJxbRl1RmTxUk/WvJxBt";
     const uint32_t priority = 1845494271;
@@ -44,8 +46,8 @@ int main(int argc, char *argv[])
     const unsigned char idOctet[] = "\xb7\xe7\xa7\x01"
         "\xbc\x34\xd6\x86"
         "\xfa\x87\xdf\xae";
-    
-    
+
+
 
 
     if (argc != 2) {
@@ -70,7 +72,7 @@ int main(int argc, char *argv[])
             perror("stunlient: socket");
             continue;
         }
-        
+
         //if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
         //    close(sockfd);
         //    perror("stunclient: connect");
@@ -80,27 +82,26 @@ int main(int argc, char *argv[])
 
         break;
     }
-    
+
     if (p == NULL) {
         fprintf(stderr, "talker: failed to bind socket\n");
         return 2;
     }
 
-    
+
     //Create STUN message and send it..
-    
+
     memset(&stunRequest, 0, sizeof(StunMessage));
     stunRequest.msgHdr.msgType = STUN_MSG_BindRequestMsg;
     memcpy(&stunRequest.msgHdr.id.octet,&idOctet,12);
-    
+
     stunlib_addUserName(&stunRequest, username, '\x20');
     stunlib_addSoftware(&stunRequest, software, '\x20');
     stunRequest.hasPriority = true;
     stunRequest.priority.value = priority;
     stunRequest.hasControlled = true;
     stunRequest.controlled.value = tieBreaker;
-    
-    
+
     msg_len = stunlib_encodeMessage(&stunRequest,
                                     buffer,
                                     256,
@@ -108,7 +109,7 @@ int main(int argc, char *argv[])
                                     strlen(password),
                                     false, /*verbose */
                                     false)  /* msice2 */;
- 
+
 
 
     if ((numbytes = sendto(sockfd, buffer, msg_len, 0,
@@ -120,28 +121,8 @@ int main(int argc, char *argv[])
     freeaddrinfo(servinfo);
 
     printf("stunclient: sent %d bytes to %s\n", numbytes, argv[1]);
-    
-    //Now we wait for an answer..
-    addr_len = sizeof their_addr;
-    if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN-1 , 0,
-         (struct sockaddr *)&their_addr, &addr_len)) == -1) {
-        perror("recvfrom");
-        exit(1);
-    }
-    
-    
-    printf("stunclient: Got a packet that is %d bytes long\n", numbytes);
 
-    if(stunlib_isStunMsg(buf, numbytes, &isMsStun)){
-        printf("Packet is STUN\n");
-        
-        stunlib_DecodeMessage( buf, 
-                               numbytes, 
-                               &stunResponse, 
-                               NULL, 
-                               false, 
-                               false);
-
+    if (recvStunMsg(sockfd, &their_addr, &stunResponse, buf)) {
         if( stunlib_checkIntegrity(buf,
                                    numbytes,
                                    &stunResponse,
@@ -149,10 +130,10 @@ int main(int argc, char *argv[])
                                    sizeof(password)) ) {
             printf("Integrity Check OK\n");
 
-            printf("Could print some attributes her, but check wireshark instead..\n");
+            printf("Could print some attributes here, but check wireshark instead..\n");
+
         }
     }
-
 
     close(sockfd);
 
