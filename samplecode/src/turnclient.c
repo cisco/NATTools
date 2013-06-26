@@ -6,6 +6,7 @@
  * and allocate a RELAY address on a turn server.
  */
 
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -22,6 +23,8 @@
 #include <turnclient.h>
 #include <sockaddr_util.h>
 
+#include "utils.h"
+
 #define MAXBUFLEN 200
 
 #define SERVERPORT "3478"    // the port users will be connecting to
@@ -37,20 +40,19 @@ int SendRawStun(int sockfd,
                 void *userdata);
 
 void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData);
+void handleInt();
+void listenAndHandleResponse();
 
+int ctx;
+int sockfd;
 
 int main(int argc, char *argv[])
 {
-    int sockfd;
     struct addrinfo hints, *servinfo, *p;
     int rv;
-    int numbytes;
-    socklen_t addr_len;
-    struct sockaddr_storage their_addr;
-    unsigned char buf[MAXBUFLEN];
-    bool isMsStun;
 
-    StunMessage stunResponse;
+    signal(SIGINT, handleInt);
+
 
     pthread_t turnTickThread;
     TurnCallBackData_T    TurnCbData;
@@ -72,10 +74,10 @@ int main(int argc, char *argv[])
             perror("stunlient: socket");
             continue;
         }
-        
+
         break;
     }
-    
+
     if (p == NULL) {
         fprintf(stderr, "turnclient: failed to bind socket\n");
         return 2;
@@ -85,8 +87,8 @@ int main(int argc, char *argv[])
     TurnClient_Init(TEST_THREAD_CTX, 50, 50, NULL, false, "TestTurn");
     pthread_create( &turnTickThread, NULL, tickTurn, (void*) &TEST_THREAD_CTX);
 
-    
-    TurnClient_startAllocateTransaction(TEST_THREAD_CTX,
+
+    ctx = TurnClient_startAllocateTransaction(TEST_THREAD_CTX,
                                         NULL,
                                         p->ai_addr,
                                         argv[2],
@@ -100,47 +102,36 @@ int main(int argc, char *argv[])
                                         false,
                                         false,
                                         0);
-    
-    while(1){
-        //We listen on the socket for any response and feed it back to the library. 
+
+    while (1) {
+        //We listen on the socket for any response and feed it back to the library.
         //In a real world example this would happen in a listen thread..
 
-        addr_len = sizeof their_addr;
-        if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN-1 , 0,
-                                 (struct sockaddr *)&their_addr, &addr_len)) == -1) {
-            perror("recvfrom");
-            exit(1);
-        }
-        
-        
-        printf("stunclient: Got a packet that is %d bytes long\n", numbytes);        
-        if(stunlib_isStunMsg(buf, numbytes, &isMsStun)){
-            printf("   Packet is STUN\n");
-            
-            stunlib_DecodeMessage( buf, 
-                                   numbytes, 
-                                   &stunResponse, 
-                                   NULL, 
-                                   false, 
-                                   false);
-            
-           if (stunResponse.msgHdr.msgType == STUN_MSG_DataIndicationMsg){
+        listenAndHandleResponse();
+    }
+    //We never get here... but...
+    close(sockfd);
+}
 
-               if (stunResponse.hasData){
-                   //Decode and do something with the data?
-                   
-               }
+void listenAndHandleResponse()
+{
+    struct sockaddr_storage their_addr;
+    unsigned char buf[MAXBUFLEN];
+    StunMessage stunResponse;
+
+      if (recvStunMsg(sockfd, &their_addr, &stunResponse, buf)) {
+           if (stunResponse.msgHdr.msgType == STUN_MSG_DataIndicationMsg) {
+             if (stunResponse.hasData) {
+                 //Decode and do something with the data?
+             }
            }
-         
+           printf("   Integrity attribute in place: %d\n", stunResponse.hasMessageIntegrity);
            printf("   Sending Response to TURN library\n");
            TurnClient_HandleIncResp(TEST_THREAD_CTX,
                                     TURNCLIENT_CTX_UNKNOWN,
                                     &stunResponse,
                                     buf);
-        }
     }
-    //We never get her... but...
-    close(sockfd);
 }
 
 static void *tickTurn(void *ptr){
@@ -162,31 +153,31 @@ static void *tickTurn(void *ptr){
 void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData){
 
     //ctx points to whatever you initialized the library with. (Not used in this simple example.)
-    
+
     if ( retData->turnResult == TurnResult_AllocOk ){
         char addr[SOCKADDR_MAX_STRLEN];
 
-        printf("Sucsessfull Allocation: \n");
+        printf("Successfull Allocation: \n");
         printf("   Active TURN server: '%s'\n",
                sockaddr_toString((struct sockaddr *)&retData->TurnResultData.AllocResp.activeTurnServerAddr,
                                  addr,
                                  sizeof(addr),
                                  true));
-        
+
         printf("   RFLX addr: '%s'\n",
                sockaddr_toString((struct sockaddr *)&retData->TurnResultData.AllocResp.rflxAddr,
-                             addr,
+                                 addr,
                                  sizeof(addr),
                                  true));
-        
+
         printf("   RELAY addr: '%s'\n",
                sockaddr_toString((struct sockaddr *)&retData->TurnResultData.AllocResp.relAddr,
                                  addr,
                                  sizeof(addr),
                                  true));
-        
-        
-    }else if (retData->turnResult == TurnResult_AllocUnauthorised) {
+
+
+    } else if (retData->turnResult == TurnResult_AllocUnauthorised) {
         printf("Unable to authorize. Wrong user/pass?\n");
     }
 }
@@ -207,7 +198,7 @@ int sendRawUDP(int sockfd,
 
     sockaddr_toString(p, addr, 256, true);
     printf("Sending Raw (To: '%s'(%i), Bytes:%i/%i  )\n", addr, sockfd, numbytes, (int)len);
-    
+
     return numbytes;
 }
 
@@ -218,7 +209,17 @@ int SendRawStun(int sockfd,
                 struct sockaddr *addr,
                 socklen_t t,
                 void *userdata){
-    return  sendRawUDP(sockfd, buf, len, addr, t);
+    return sendRawUDP(sockfd, buf, len, addr, t);
 }
 
-
+void handleInt()
+{
+  printf("\nDeallocating...\n");
+  TurnClient_Deallocate(TEST_THREAD_CTX, ctx);
+  // If one wants to avoid the server getting a destination unreachable ICMP message,
+  // handle the response before quitting.
+  //listenAndHandleResponse();
+  close(sockfd);
+  printf("Quitting...\n");
+  exit(0);
+}
