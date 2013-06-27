@@ -48,39 +48,18 @@ int sockfd;
 
 int main(int argc, char *argv[])
 {
-    struct addrinfo hints, *servinfo, *p;
-    int rv;
+    struct addrinfo *p;
 
     signal(SIGINT, handleInt);
 
-
     pthread_t turnTickThread;
-    TurnCallBackData_T    TurnCbData;
+    TurnCallBackData_T TurnCbData;
 
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_DGRAM;
-
-    if ((rv = getaddrinfo(argv[1], SERVERPORT, &hints, &servinfo)) != 0) {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        return 1;
-    }
-
-    // loop through all the results and make a socket
-    for(p = servinfo; p != NULL; p = p->ai_next) {
-        if ((sockfd = socket(p->ai_family, p->ai_socktype,
-                p->ai_protocol)) == -1) {
-            perror("stunlient: socket");
-            continue;
-        }
-
-        break;
-    }
-
-    if (p == NULL) {
-        fprintf(stderr, "turnclient: failed to bind socket\n");
-        return 2;
+    sockfd = createSocket(argv[1], SERVERPORT, "turnclient", 0, &p);
+    if(sockfd == -1) {
+      return 1;
+    } else if(sockfd == -2) {
+      return 2;
     }
 
     //Turn setup
@@ -218,7 +197,7 @@ void handleInt()
   TurnClient_Deallocate(TEST_THREAD_CTX, ctx);
   // If one wants to avoid the server getting a destination unreachable ICMP message,
   // handle the response before quitting.
-  //listenAndHandleResponse();
+  // listenAndHandleResponse();
   close(sockfd);
   printf("Quitting...\n");
   exit(0);
