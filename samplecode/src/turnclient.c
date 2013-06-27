@@ -46,14 +46,14 @@ int sockfd;
 
 int main(int argc, char *argv[])
 {
-    struct addrinfo *p;
+    struct addrinfo *servinfo, *p;
 
     signal(SIGINT, handleInt);
 
     pthread_t turnTickThread;
     TurnCallBackData_T TurnCbData;
 
-    sockfd = createSocket(argv[1], SERVERPORT, "turnclient", 0, &p);
+    sockfd = createSocket(argv[1], SERVERPORT, "turnclient", 0, servinfo, &p);
     if(sockfd == -1) {
       return 1;
     } else if(sockfd == -2) {
@@ -79,6 +79,8 @@ int main(int argc, char *argv[])
                                         false,
                                         false,
                                         0);
+    
+    freeaddrinfo(servinfo);
 
     while (1) {
         //We listen on the socket for any response and feed it back to the library.

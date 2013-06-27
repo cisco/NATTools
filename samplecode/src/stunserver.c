@@ -40,7 +40,7 @@ void *get_in_addr(struct sockaddr *sa)
 int main(void)
 {
     int sockfd;
-    struct addrinfo *p;
+    struct addrinfo *servinfo, *p;
     int numbytes;
     struct sockaddr_storage their_addr;
     unsigned char buf[MAXBUFLEN];
@@ -50,8 +50,9 @@ int main(void)
     char response_buffer[256];
     int msg_len;
 
-    sockfd = createSocket(NULL, MYPORT, "stunserver", AI_PASSIVE, &p);
-
+    sockfd = createSocket(NULL, MYPORT, "stunserver", AI_PASSIVE, servinfo, &p);
+    freeaddrinfo(servinfo);
+    
     printf("stunserver: waiting to recvfrom...\n");
 
     if((numbytes = recvStunMsg(sockfd, &their_addr, &stunRequest, buf)) != -1) {
