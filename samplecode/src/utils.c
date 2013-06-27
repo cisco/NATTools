@@ -47,13 +47,13 @@ int createSocket(char host[], char port[], char outprintName[], int ai_flags, st
     for((*p) = servinfo; (*p) != NULL; (*p) = (*p)->ai_next) {
         if ((sockfd = socket((*p)->ai_family, (*p)->ai_socktype,
                 (*p)->ai_protocol)) == -1) {
-            perror("stunserver: socket");
+            perror("createSocket: socket");
             continue;
         }
 
         if (ai_flags != 0 && bind(sockfd, (*p)->ai_addr, (*p)->ai_addrlen) == -1) {
             close(sockfd);
-            perror("stunserver: bind");
+            perror("createSocket: bind");
             continue;
         }
 
