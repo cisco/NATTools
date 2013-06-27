@@ -40,8 +40,7 @@ void *get_in_addr(struct sockaddr *sa)
 int main(void)
 {
     int sockfd;
-    struct addrinfo hints, *servinfo, *p;
-    int rv;
+    struct addrinfo *p;
     int numbytes;
     struct sockaddr_storage their_addr;
     unsigned char buf[MAXBUFLEN];
@@ -50,53 +49,14 @@ int main(void)
     StunMessage stunRequest, stunResponse;
     char response_buffer[256];
     int msg_len;
-    
 
-
-
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC; // set to AF_INET to force IPv4
-    hints.ai_socktype = SOCK_DGRAM;
-    hints.ai_flags = AI_PASSIVE; // use my IP
-
-    if ((rv = getaddrinfo(NULL, MYPORT, &hints, &servinfo)) != 0) {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        return 1;
-    }
-
-    // loop through all the results and bind to the first we can
-    for(p = servinfo; p != NULL; p = p->ai_next) {
-        if ((sockfd = socket(p->ai_family, p->ai_socktype,
-                p->ai_protocol)) == -1) {
-            perror("stunserver: socket");
-            continue;
-        }
-
-        if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-            close(sockfd);
-            perror("stunserver: bind");
-            continue;
-        }
-
-        break;
-    }
-
-    if (p == NULL) {
-        fprintf(stderr, "stunserver: failed to bind socket\n");
-        return 2;
-    }
-
-    freeaddrinfo(servinfo);
+    sockfd = createSocket(NULL, MYPORT, "stunserver", AI_PASSIVE, &p);
 
     printf("stunserver: waiting to recvfrom...\n");
 
     if((numbytes = recvStunMsg(sockfd, &their_addr, &stunRequest, buf)) != -1) {
 
-        if( stunlib_checkIntegrity(buf,
-                                   numbytes,
-                                   &stunRequest,
-                                   password,
-                                   sizeof(password)) ) {
+        if( stunlib_checkIntegrity(buf, numbytes, &stunRequest, password, sizeof(password)) ) {
             
             //Integrity OK, create response
 

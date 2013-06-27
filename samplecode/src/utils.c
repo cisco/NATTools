@@ -1,6 +1,8 @@
 #include <turnclient.h>
 #include <sockaddr_util.h>
+#include <sys/types.h>
 #include <sys/socket.h>
+#include <netdb.h>
 
 #define MAXBUFLEN 200
 
@@ -25,4 +27,49 @@ int recvStunMsg(int sockfd, struct sockaddr_storage *their_addr, StunMessage *st
     }
 
     return -1;
+}
+
+int createSocket(char host[], char port[], char outprintName[], int ai_flags, struct addrinfo **p)
+{
+    struct addrinfo hints, *servinfo;
+    int rv, sockfd;
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_UNSPEC; // set to AF_INET to force IPv4
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_flags = ai_flags; // use my IP if not 0
+
+    if ((rv = getaddrinfo(host, port, &hints, &servinfo)) != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+        return -1;
+    }
+
+    // loop through all the results and bind to the first we can
+    for((*p) = servinfo; (*p) != NULL; (*p) = (*p)->ai_next) {
+        if ((sockfd = socket((*p)->ai_family, (*p)->ai_socktype,
+                (*p)->ai_protocol)) == -1) {
+            perror("createSocket: socket");
+            continue;
+        }
+
+        if (ai_flags != 0 && bind(sockfd, (*p)->ai_addr, (*p)->ai_addrlen) == -1) {
+            close(sockfd);
+            perror("createSocket: bind");
+            continue;
+        }
+
+        break;
+    }
+
+    if ((*p) == NULL) {
+        fprintf(stderr, "%s: failed to bind socket\n", outprintName);
+        return -2;
+    }
+    else
+    {
+        fprintf(stderr, "%s: created socket\n", outprintName);
+    }
+
+    freeaddrinfo(servinfo);
+    
+    return sockfd;
 }
