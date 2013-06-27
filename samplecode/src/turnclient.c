@@ -43,6 +43,7 @@ void listenAndHandleResponse();
 
 int ctx;
 int sockfd;
+char realm[STUN_MAX_STRING];
 
 int main(int argc, char *argv[])
 {
@@ -105,34 +106,52 @@ int main(int argc, char *argv[])
         //We listen on the socket for any response and feed it back to the library.
         //In a real world example this would happen in a listen thread..
 
-        listenAndHandleResponse();
+        listenAndHandleResponse(argv[2], argv[3]);
     }
     //We never get here... but...
     close(sockfd);
 }
 
-void listenAndHandleResponse()
+void listenAndHandleResponse(char *user, char *password)
 {
+    int numbytes;
     struct sockaddr_storage their_addr;
     unsigned char buf[MAXBUFLEN];
     StunMessage stunResponse;
+    int keyLen = 16;
+    char md5[keyLen];
 
-      if(recvStunMsg(sockfd, &their_addr, &stunResponse, buf) != -1) {
-           if (stunResponse.msgHdr.msgType == STUN_MSG_DataIndicationMsg) {
+    if((numbytes = recvStunMsg(sockfd, &their_addr, &stunResponse, buf)) != -1) {
+         if (stunResponse.msgHdr.msgType == STUN_MSG_DataIndicationMsg) {
              if (stunResponse.hasData) {
-                 //Decode and do something with the data?
+               //Decode and do something with the data?
              }
-           }
-           printf("   Integrity attribute in place: %d\n", stunResponse.hasMessageIntegrity);
-           printf("   Sending Response to TURN library\n");
-           TurnClient_HandleIncResp(TEST_THREAD_CTX,
-                                    TURNCLIENT_CTX_UNKNOWN,
-                                    &stunResponse,
-                                    buf);
+         }
+
+         if (stunResponse.hasRealm) {
+            memcpy(realm, stunResponse.realm.value, STUN_MAX_STRING);
+         }
+
+         if (stunResponse.hasMessageIntegrity) {
+            printf("   Integrity attribute present.\n");
+            stunlib_createMD5Key((unsigned char *)md5, user, realm, password);
+
+            if (stunlib_checkIntegrity(buf, numbytes, &stunResponse, md5, keyLen)) {
+                printf("     - Integrity check OK\n");
+            } else {
+                printf("     - Integrity check NOT OK\n");
+            }
+         }
+         printf("   Sending Response to TURN library\n");
+         TurnClient_HandleIncResp(TEST_THREAD_CTX,
+                                  TURNCLIENT_CTX_UNKNOWN,
+                                  &stunResponse,
+                                  buf);
     }
 }
 
-static void *tickTurn(void *ptr){
+static void *tickTurn(void *ptr)
+{
     struct timespec timer;
     struct timespec remaining;
     uint32_t  *ctx = (uint32_t *)ptr;
@@ -140,7 +159,7 @@ static void *tickTurn(void *ptr){
     timer.tv_sec = 0;
     timer.tv_nsec = 50000000;
 
-    for(;;){
+    for(;;) {
         nanosleep(&timer, &remaining);
         TurnClient_HandleTick(*ctx);
     }
@@ -148,8 +167,8 @@ static void *tickTurn(void *ptr){
 }
 
 
-void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData){
-
+void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData)
+{
     //ctx points to whatever you initialized the library with. (Not used in this simple example.)
 
     if ( retData->turnResult == TurnResult_AllocOk ){
@@ -185,8 +204,8 @@ int sendRawUDP(int sockfd,
                const void *buf,
                size_t len,
                struct sockaddr * p,
-               socklen_t t){
-
+               socklen_t t)
+{
     int numbytes;
     char addr[256];
     int rv;
@@ -206,7 +225,8 @@ int SendRawStun(int sockfd,
                 int len,
                 struct sockaddr *addr,
                 socklen_t t,
-                void *userdata){
+                void *userdata)
+{
     return sendRawUDP(sockfd, buf, len, addr, t);
 }
 
