@@ -22,7 +22,7 @@
 int main(int argc, char *argv[])
 {
     int sockfd;
-    struct addrinfo *p;
+    struct addrinfo *servinfo, *p;
     int numbytes;
 
     StunMessage stunRequest, stunResponse;
@@ -50,8 +50,9 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    sockfd = createSocket(argv[1], SERVERPORT, "stunclient", 0, &p);
-
+    sockfd = createSocket(argv[1], SERVERPORT, "stunclient", 0, servinfo, &p);
+    freeaddrinfo(servinfo);
+    
     //Create STUN message and send it..
 
     memset(&stunRequest, 0, sizeof(StunMessage));

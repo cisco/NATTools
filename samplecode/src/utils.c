@@ -29,12 +29,13 @@ int recvStunMsg(int sockfd, struct sockaddr_storage *their_addr, StunMessage *st
     return -1;
 }
 
-int createSocket(char host[], char port[], char outprintName[], int ai_flags, struct addrinfo **p)
+int createSocket(char host[], char port[], char outprintName[], int ai_flags, struct addrinfo *servinfo, struct addrinfo **p)
 {
-    struct addrinfo hints, *servinfo;
+    struct addrinfo hints;
     int rv, sockfd;
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC; // set to AF_INET to force IPv4
+    hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_flags = ai_flags; // use my IP if not 0
 
@@ -68,8 +69,6 @@ int createSocket(char host[], char port[], char outprintName[], int ai_flags, st
     {
         fprintf(stderr, "%s: created socket\n", outprintName);
     }
-
-    freeaddrinfo(servinfo);
     
     return sockfd;
 }
