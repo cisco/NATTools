@@ -304,6 +304,7 @@ int  StunClient_startBindTransaction(uint32_t            threadCtx,
                                      int                 turnInst)
 {
 
+
     StunBindReqStuct m;
     uint32_t i;
     uint32_t *pTimeoutList;
@@ -973,18 +974,20 @@ static bool  SendStunReq(STUN_INSTANCE_DATA *pInst, StunMessage  *stunReqMsg)
         memcpy(pInst->stunReqMsgBuf, TxBuff, len); 
         pInst->stunReqMsgBufLen = len;
         StunClientStats.BindReqSent_ViaRelay++;
+    } else {
+        char serv_addr_str[SOCKADDR_MAX_STRLEN] = {0,};
+        sockaddr_toString((struct sockaddr *)&pInst->stunBindReq.serverAddr, serv_addr_str, SOCKADDR_MAX_STRLEN, true);
+        StunPrint(pInst->threadCtx, StunInfoCategory_Trace, "<STUNCLIENT:%02d> OUT --> STUN: %s Len=%i to peer %s",
+                  pInst->inst, stunlib_getMessageName(stunReqMsg->msgHdr.msgType), pInst->stunReqMsgBufLen, serv_addr_str);
     }
-    else
-        StunPrint(pInst->threadCtx, StunInfoCategory_Trace, "<STUNCLIENT:%02d> OUT --> STUN: %s Len=%i to peer %s", 
-                  pInst->inst, stunlib_getMessageName(stunReqMsg->msgHdr.msgType), pInst->stunReqMsgBufLen, pInst->stunBindReq.serverAddr); 
-    
+
     pInst->stunBindReq.sendFunc(pInst->stunBindReq.sockhandle,
                                 pInst->stunReqMsgBuf,
                                 pInst->stunReqMsgBufLen,
                                 (struct sockaddr *)&pInst->stunBindReq.serverAddr,
                                 sizeof(pInst->stunBindReq.serverAddr),
                                 pInst->stunBindReq.userCtx);
-    
+
     StunClientStats.BindReqSent++;
 
     return true;
