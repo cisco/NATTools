@@ -73,14 +73,14 @@ int main(int argc, char *argv[])
                                         argv[3],
                                         sockfd,                       /* socket */
                                         AF_INET,
-                                        SendRawStun,             /* send func */
+                                        sendRawStun,             /* send func */
                                         NULL,  /* timeout list */
                                         TurnStatusCallBack,
                                         &TurnCbData,
                                         false,
                                         false,
                                         0);
-    
+
     freeaddrinfo(servinfo);
 
     while (1) {
@@ -89,8 +89,6 @@ int main(int argc, char *argv[])
 
         listenAndHandleResponse(argv[2], argv[3]);
     }
-    //We never get here... but...
-    close(sockfd);
 }
 
 void listenAndHandleResponse(char *user, char *password)
@@ -147,7 +145,6 @@ static void *tickTurn(void *ptr)
 
 }
 
-
 void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData)
 {
     //ctx points to whatever you initialized the library with. (Not used in this simple example.)
@@ -178,37 +175,6 @@ void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData)
     } else if (retData->turnResult == TurnResult_AllocUnauthorised) {
         printf("Unable to authorize. Wrong user/pass?\n");
     }
-}
-
-
-int sendRawUDP(int sockfd,
-               const void *buf,
-               size_t len,
-               struct sockaddr * p,
-               socklen_t t)
-{
-    int numbytes;
-    char addr[256];
-    int rv;
-
-    numbytes = sendto(sockfd, buf, len, 0,
-                      p , t);
-
-    sockaddr_toString(p, addr, 256, true);
-    printf("Sending Raw (To: '%s'(%i), Bytes:%i/%i  )\n", addr, sockfd, numbytes, (int)len);
-
-    return numbytes;
-}
-
-
-int SendRawStun(int sockfd,
-                uint8_t *buf,
-                int len,
-                struct sockaddr *addr,
-                socklen_t t,
-                void *userdata)
-{
-    return sendRawUDP(sockfd, buf, len, addr, t);
 }
 
 void handleInt()

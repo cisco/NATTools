@@ -4,8 +4,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
-#define MAXBUFLEN 200
-
+#define MAXBUFLEN 200 
 int recvStunMsg(int sockfd, struct sockaddr_storage *their_addr, StunMessage *stunResponse, unsigned char *buf)
 {
     socklen_t addr_len = sizeof their_addr;
@@ -64,11 +63,37 @@ int createSocket(char host[], char port[], char outprintName[], int ai_flags, st
     if ((*p) == NULL) {
         fprintf(stderr, "%s: failed to bind socket\n", outprintName);
         return -2;
-    }
-    else
-    {
+    } else {
         fprintf(stderr, "%s: created socket\n", outprintName);
     }
-    
+
     return sockfd;
+}
+
+int sendRawUDP(int sockfd,
+               const void *buf,
+               size_t len,
+               struct sockaddr * p,
+               socklen_t t)
+{
+    int numbytes;
+    char addr[256];
+    int rv;
+
+    numbytes = sendto(sockfd, buf, len, 0, p, t);
+
+    sockaddr_toString(p, addr, 256, true);
+    printf("Sending Raw (To: '%s'(%i), Bytes:%i/%i  )\n", addr, sockfd, numbytes, (int)len);
+
+    return numbytes;
+}
+
+int sendRawStun(int sockfd,
+                uint8_t *buf,
+                int len,
+                struct sockaddr *addr,
+                socklen_t t,
+                void *userdata)
+{
+    return sendRawUDP(sockfd, buf, len, addr, t);
 }
