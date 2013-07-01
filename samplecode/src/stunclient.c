@@ -12,38 +12,50 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <time.h>
+#include <pthread.h>
 
 #include <stunlib.h>
+#include <stunclient.h>
 
 #include "utils.h"
 
 #define SERVERPORT "4950"    // the port users will be connecting to
+static const uint32_t TEST_THREAD_CTX = 1;
+
+static void *tickTurn(void *ptr);
+void StunStatusCallBack(void *ctx, StunCallBackData_T *retData);
 
 int main(int argc, char *argv[])
 {
     int sockfd;
     struct addrinfo *servinfo, *p;
     int numbytes;
+    pthread_t stunTickThread;
+    StunCallBackData_T stunCbData;
 
     StunMessage stunRequest, stunResponse;
     char buffer[256];
     int msg_len;
 
     struct sockaddr_storage their_addr;
+    struct sockaddr my_addr;
+    socklen_t addrLen = sizeof(my_addr);
+
     unsigned char buf[MAXBUFLEN];
     char s[INET6_ADDRSTRLEN];
 
-    const char username[] = "evtj:h6vY";
-    const char password[] = "VOkJxbRl1RmTxUk/WvJxBt";
+    char username[] = "evtj:h6vY";
+    char password[] = "VOkJxbRl1RmTxUk/WvJxBt";
     const uint32_t priority = 1845494271;
     const uint64_t tieBreaker = 0x932FF9B151263B36LL;
-    const char *software= "STUN test client\0";
-    const unsigned char idOctet[] = "\xb7\xe7\xa7\x01"
+    char *software= "STUN test client\0";
+    StunMsgId stunMsgId;
+    char msgId[] = "\xb7\xe7\xa7\x01"
         "\xbc\x34\xd6\x86"
         "\xfa\x87\xdf\xae";
 
-
-
+    memcpy(stunMsgId.octet, msgId, sizeof(stunMsgId.octet));
 
     if (argc != 2) {
         fprintf(stderr,"usage: stunclient hostname\n");
@@ -52,36 +64,32 @@ int main(int argc, char *argv[])
 
     sockfd = createSocket(argv[1], SERVERPORT, "stunclient", 0, servinfo, &p);
     freeaddrinfo(servinfo);
-    
-    //Create STUN message and send it..
 
-    memset(&stunRequest, 0, sizeof(StunMessage));
-    stunRequest.msgHdr.msgType = STUN_MSG_BindRequestMsg;
-    memcpy(&stunRequest.msgHdr.id.octet,&idOctet,12);
+    StunClient_Init(TEST_THREAD_CTX, 50, 50, NULL, false, software);
+    pthread_create(&stunTickThread, NULL, tickTurn, (void*) &TEST_THREAD_CTX);
 
-    stunlib_addUserName(&stunRequest, username, '\x20');
-    stunlib_addSoftware(&stunRequest, software, '\x20');
-    stunRequest.hasPriority = true;
-    stunRequest.priority.value = priority;
-    stunRequest.hasControlled = true;
-    stunRequest.controlled.value = tieBreaker;
-
-    msg_len = stunlib_encodeMessage(&stunRequest,
-                                    buffer,
-                                    256,
-                                    (unsigned char*)password,
-                                    strlen(password),
-                                    false, /*verbose */
-                                    false)  /* msice2 */;
-
-    if ((numbytes = sendto(sockfd, buffer, msg_len, 0,
-                       p->ai_addr, p->ai_addrlen)) == -1) {
-        perror("stunclient: sendto");
-        exit(1);
+    if (getsockname(sockfd, &my_addr, &addrLen) == -1) {
+      perror("getsockname");
     }
 
-
-    printf("stunclient: sent %d bytes to %s\n", numbytes, argv[1]);
+    StunClient_startBindTransaction(TEST_THREAD_CTX,
+                                    NULL,
+                                    p->ai_addr,
+                                    &my_addr,
+                                    false,
+                                    username,
+                                    password,
+                                    priority,
+                                    false,
+                                    false,
+                                    tieBreaker,
+                                    stunMsgId,
+                                    sockfd,
+                                    sendRawStun,
+                                    NULL,
+                                    StunStatusCallBack,
+                                    &stunCbData,
+                                    0);
 
     if((numbytes = recvStunMsg(sockfd, &their_addr, &stunResponse, buf)) != -1) {
         if( stunlib_checkIntegrity(buf,
@@ -101,3 +109,24 @@ int main(int argc, char *argv[])
     return 0;
 }
 
+void StunStatusCallBack(void *ctx, StunCallBackData_T *retData)
+{
+    //ctx points to whatever you initialized the library with. (Not used in this simple example.)
+    printf("StunStatusCallBack called\n");
+}
+
+static void *tickTurn(void *ptr)
+{
+    struct timespec timer;
+    struct timespec remaining;
+    uint32_t  *ctx = (uint32_t *)ptr;
+
+    timer.tv_sec = 0;
+    timer.tv_nsec = 50000000;
+
+    for(;;) {
+        nanosleep(&timer, &remaining);
+        StunClient_HandleTick(*ctx);
+    }
+
+}
