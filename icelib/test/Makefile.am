@@ -23,6 +23,10 @@ if GCOV
   MY_LDFLAGS_4 = -lcheck -lgcov
 endif
 
+if USE_VALGRIND
+  TESTS_ENVIRONMENT = ../../valgrind-wrapper
+endif
+
 AM_CPPFLAGS = $(MY_CFLAGS_1) $(MY_CFLAGS_2) $(MY_CFLAGS_3) $(MY_CFLAGS_4)
 check_icelib_LDFLAGS = $(MY_LDFLAGS_1) $(MY_LDFLAGS_2) $(MY_LDFLAGS_3) $(MY_LDFLAGS_4)
 

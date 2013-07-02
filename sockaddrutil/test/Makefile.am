@@ -15,6 +15,10 @@ else
   check_sockaddrutil_LDFLAGS = -lcheck
 endif
 
+if USE_VALGRIND
+  TESTS_ENVIRONMENT = ../../valgrind-wrapper
+endif
+
 include_HEADERS = ../include/sockaddr_util.h
 
 

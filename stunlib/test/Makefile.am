@@ -18,6 +18,9 @@ else
 
 endif
 
+if USE_VALGRIND
+  TESTS_ENVIRONMENT = ../../valgrind-wrapper
+endif
 
 AM_CPPFLAGS = $(MY_CFLAGS_1) $(MY_CFLAGS_2) $(MY_CFLAGS_3)
 check_stunlib_LDFLAGS = $(MY_LDFLAGS_1) $(MY_LDFLAGS_2) $(MY_LDFLAGS_3)

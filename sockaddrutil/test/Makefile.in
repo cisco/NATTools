@@ -156,6 +156,7 @@ EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 FGREP = @FGREP@
 GREP = @GREP@
+HAVE_VALGRIND = @HAVE_VALGRIND@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
@@ -250,6 +251,7 @@ top_srcdir = @top_srcdir@
 @CHECK_TRUE@@GCOV_TRUE@AM_CPPFLAGS = -I../include -fprofile-arcs -ftest-coverage
 @CHECK_TRUE@@GCOV_FALSE@check_sockaddrutil_LDFLAGS = -lcheck
 @CHECK_TRUE@@GCOV_TRUE@check_sockaddrutil_LDFLAGS = -lcheck -lgcov
+@CHECK_TRUE@@USE_VALGRIND_TRUE@TESTS_ENVIRONMENT = ../../valgrind-wrapper
 @CHECK_TRUE@include_HEADERS = ../include/sockaddr_util.h
 all: all-am
 

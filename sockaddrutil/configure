@@ -639,6 +639,9 @@ LIBOBJS
 LIBCHECK
 CHECK_FALSE
 CHECK_TRUE
+USE_VALGRIND_FALSE
+USE_VALGRIND_TRUE
+HAVE_VALGRIND
 GCOV_FALSE
 GCOV_TRUE
 CPP
@@ -761,6 +764,7 @@ with_gnu_ld
 with_sysroot
 enable_libtool_lock
 enable_gcov
+enable_valgrind
 with_check
 '
       ac_precious_vars='build_alias
@@ -1398,6 +1402,7 @@ Optional Features:
   --enable-dependency-tracking   do not reject slow dependency extractors
   --disable-libtool-lock  avoid locking (might break parallel builds)
   --enable-gcov           enable test coverage with gcov [default=no]
+  --enable-valgrind       Use valgrind when running unit tests.
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -12215,6 +12220,66 @@ fi
 
 
 
+# Support for running test cases using valgrind:
+use_valgrind=true
+# Check whether --enable-valgrind was given.
+if test "${enable_valgrind+set}" = set; then :
+  enableval=$enable_valgrind;  use_valgrind=true
+fi
+
+
+if [ "$use_valgrind" = "true" ]; then
+        # Extract the first word of "valgrind", so it can be a program name with args.
+set dummy valgrind; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_HAVE_VALGRIND+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$HAVE_VALGRIND"; then
+  ac_cv_prog_HAVE_VALGRIND="$HAVE_VALGRIND" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_HAVE_VALGRIND="yes"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_prog_HAVE_VALGRIND" && ac_cv_prog_HAVE_VALGRIND="no"
+fi
+fi
+HAVE_VALGRIND=$ac_cv_prog_HAVE_VALGRIND
+if test -n "$HAVE_VALGRIND"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $HAVE_VALGRIND" >&5
+$as_echo "$HAVE_VALGRIND" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+
+        if [ "$HAVE_VALGRIND" = "no" ]; then
+                as_fn_error $? "Valgrind not found in PATH. " "$LINENO" 5
+        fi
+fi
+ if $use_valgrind; then
+  USE_VALGRIND_TRUE=
+  USE_VALGRIND_FALSE='#'
+else
+  USE_VALGRIND_TRUE='#'
+  USE_VALGRIND_FALSE=
+fi
+
 
 
  if "false"; then
@@ -12677,6 +12742,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${GCOV_TRUE}" && test -z "${GCOV_FALSE}"; then
   as_fn_error $? "conditional \"GCOV\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${USE_VALGRIND_TRUE}" && test -z "${USE_VALGRIND_FALSE}"; then
+  as_fn_error $? "conditional \"USE_VALGRIND\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${CHECK_TRUE}" && test -z "${CHECK_FALSE}"; then
