@@ -2,6 +2,7 @@
 ** talker.c -- a datagram "client" demo
 */
 
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -25,10 +26,13 @@ static const uint32_t TEST_THREAD_CTX = 1;
 
 static void *tickTurn(void *ptr);
 void StunStatusCallBack(void *ctx, StunCallBackData_T *retData);
+void handleInt();
+
+int sockfd;
+int ctx;
 
 int main(int argc, char *argv[])
 {
-    int sockfd;
     struct addrinfo *servinfo, *p;
     int numbytes;
     pthread_t stunTickThread;
@@ -63,6 +67,8 @@ int main(int argc, char *argv[])
     }
 
     sockfd = createSocket(argv[1], SERVERPORT, "stunclient", 0, servinfo, &p);
+    signal(SIGINT, handleInt);
+
     freeaddrinfo(servinfo);
 
     StunClient_Init(TEST_THREAD_CTX, 50, 50, NULL, false, software);
@@ -72,7 +78,7 @@ int main(int argc, char *argv[])
       perror("getsockname");
     }
 
-    StunClient_startBindTransaction(TEST_THREAD_CTX,
+    ctx = StunClient_startBindTransaction(TEST_THREAD_CTX,
                                     NULL,
                                     p->ai_addr,
                                     &my_addr,
@@ -91,16 +97,20 @@ int main(int argc, char *argv[])
                                     &stunCbData,
                                     0);
 
-    if((numbytes = recvStunMsg(sockfd, &their_addr, &stunResponse, buf)) != -1) {
-        if( stunlib_checkIntegrity(buf,
-                                   numbytes,
-                                   &stunResponse,
-                                   password,
-                                   sizeof(password)) ) {
-            printf("Integrity Check OK\n");
+    while(1)
+    {
+        if((numbytes = recvStunMsg(sockfd, &their_addr, &stunResponse, buf)) != -1) {
+            if( stunlib_checkIntegrity(buf,
+                                       numbytes,
+                                       &stunResponse,
+                                       password,
+                                       sizeof(password)) ) {
+                printf("Integrity Check OK\n");
 
-            printf("Could print some attributes here, but check wireshark instead..\n");
+                StunClient_HandleIncResp(TEST_THREAD_CTX, &stunResponse, p->ai_addr);
+                printf("Could print some attributes here, but check wireshark instead..\n");
 
+            }
         }
     }
 
@@ -112,7 +122,30 @@ int main(int argc, char *argv[])
 void StunStatusCallBack(void *ctx, StunCallBackData_T *retData)
 {
     //ctx points to whatever you initialized the library with. (Not used in this simple example.)
-    printf("StunStatusCallBack called\n");
+    printf("StunStatusCallBack:\n");
+    if(retData->stunResult == StunResult_BindOk)
+    {
+        char addr[SOCKADDR_MAX_STRLEN];
+        printf("   RFLX addr: '%s'\n",
+            sockaddr_toString((struct sockaddr *)&retData->bindResp.rflxAddr,
+                addr,
+                sizeof(addr),
+                true),
+            retData->bindResp.rflxPort);
+        printf("   SRC addr: '%s'\n",
+            sockaddr_toString((struct sockaddr *)&retData->srcAddrStr,
+            addr,
+            sizeof(addr),
+            true));
+        printf("   DstBase addr: '%s'\n",
+            sockaddr_toString((struct sockaddr *)&retData->dstBaseAddrStr,
+            addr,
+            sizeof(addr),
+            true));
+    }
+    else
+        printf("   StunResult returned not OK\n");
+
 }
 
 static void *tickTurn(void *ptr)
@@ -129,4 +162,16 @@ static void *tickTurn(void *ptr)
         StunClient_HandleTick(*ctx);
     }
 
+}
+
+void handleInt()
+{
+  printf("\nDeallocating...\n");
+  StunClient_Deallocate(TEST_THREAD_CTX, ctx);
+  // If one wants to avoid the server getting a destination unreachable ICMP message,
+  // handle the response before quitting.
+  // listenAndHandleResponse();
+  close(sockfd);
+  printf("Quitting...\n");
+  exit(0);
 }
