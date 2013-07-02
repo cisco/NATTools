@@ -1122,13 +1122,13 @@ static bool StoreBindResp(STUN_INSTANCE_DATA *pInst, StunMessage *pResp)
     {
         if (pResp->xorMappedAddress.familyType == STUN_ADDR_IPv4Family){
             sockaddr_initFromIPv4Int((struct sockaddr_in *)&addr, 
-                                     pResp->xorMappedAddress.addr.v4.addr,
-                                     pResp->xorMappedAddress.addr.v4.port);
+                                     htonl(pResp->xorMappedAddress.addr.v4.addr),
+                                     htons(pResp->xorMappedAddress.addr.v4.port));
         }
         else if (pResp->xorMappedAddress.familyType == STUN_ADDR_IPv6Family){
             sockaddr_initFromIPv6Int((struct sockaddr_in6 *)&addr, 
                                      pResp->xorMappedAddress.addr.v6.addr,
-                                     pResp->xorMappedAddress.addr.v6.port);
+                                     htons(pResp->xorMappedAddress.addr.v6.port));
         }
         sockaddr_copy((struct sockaddr *)&pInst->rflxAddr,
                       (struct sockaddr *)&addr);
@@ -1149,6 +1149,8 @@ static void  BindRespCallback(STUN_INSTANCE_DATA *pInst, struct sockaddr *srcAdd
 
     if (pRes)
     {
+        char src_addr_str[SOCKADDR_MAX_STRLEN] = {0,};
+
         memcpy(&pRes->msgId, &pInst->stunBindReq.transactionId, 
                sizeof(StunMsgId));
 
@@ -1163,9 +1165,9 @@ static void  BindRespCallback(STUN_INSTANCE_DATA *pInst, struct sockaddr *srcAdd
         sockaddr_copy((struct sockaddr*)&pRes->dstBaseAddrStr, 
                       (struct sockaddr*)&pInst->stunBindReq.baseAddr);
         //printf("<stunclient> Response base addr: '%s'\n", pInst->stunBindReq.baseAddr );
-
+        sockaddr_toString((struct sockaddr *)&pRes->srcAddrStr, src_addr_str, SOCKADDR_MAX_STRLEN, true);
         StunPrint(pInst->threadCtx, StunInfoCategory_Info, "<STUNCLIENT:%02d> BindResp Rflx: %s:%d from src: %s",
-                pInst->inst, pData->rflxAddr, pData->rflxPort, pRes->srcAddrStr);
+                pInst->inst, pData->rflxAddr, pData->rflxPort, src_addr_str);
     }
 
     if (pInst->stunBindReq.stunCbFunc)
@@ -1241,7 +1243,6 @@ static void  StunState_WaitBindResp(STUN_INSTANCE_DATA *pInst, STUN_SIGNAL sig, 
         {
             StunRespStruct *pMsgIn = (StunRespStruct*)payload;
             StunMessage *pResp = &pMsgIn->stunRespMessage;
-
             StopTimer(pInst, STUN_SIGNAL_TimerRetransmit);
             if (StoreBindResp(pInst, pResp))
             {
