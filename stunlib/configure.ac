@@ -30,7 +30,7 @@ AS_HELP_STRING([--enable-gcov],
 AM_CONDITIONAL(GCOV, test x"$gcov" = "xtrue")
 
 # Support for running test cases using valgrind:
-use_valgrind=true
+use_valgrind=false
 AC_ARG_ENABLE(valgrind,
 [  --enable-valgrind       Use valgrind when running unit tests. ],
 [ use_valgrind=true ])
