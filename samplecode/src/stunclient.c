@@ -108,8 +108,6 @@ int main(int argc, char *argv[])
                 printf("Integrity Check OK\n");
 
                 StunClient_HandleIncResp(TEST_THREAD_CTX, &stunResponse, p->ai_addr);
-                printf("Could print some attributes here, but check wireshark instead..\n");
-
             }
         }
     }
@@ -122,7 +120,6 @@ int main(int argc, char *argv[])
 void StunStatusCallBack(void *ctx, StunCallBackData_T *retData)
 {
     //ctx points to whatever you initialized the library with. (Not used in this simple example.)
-    printf("StunStatusCallBack:\n");
     if(retData->stunResult == StunResult_BindOk)
     {
         char addr[SOCKADDR_MAX_STRLEN];
