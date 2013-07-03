@@ -4,7 +4,7 @@ if CHECK
   MY_LDFLAGS_1 = -lcheck
   TESTS = check_stunlib
   check_PROGRAMS = check_stunlib
-  check_stunlib_SOURCES = turnclienttest.c testvector.c  turn_message.c testmain.c testrealworldpackets.c ../src/stunclient.c  ../src/stunfifo.c  ../src/stunlib.c  ../src/stun_os.c  ../src/turnclient.c
+  check_stunlib_SOURCES = turnclienttest.c testvector.c  turn_message.c testmain.c testrealworldpackets.c teststunclient.c ../src/stunclient.c  ../src/stunfifo.c  ../src/stunlib.c  ../src/stun_os.c  ../src/turnclient.c
 
 if LOCAL_SOCKADDR
   MY_LDFLAGS_2 = ../../sockaddrutil/src/libsockaddrutil.la

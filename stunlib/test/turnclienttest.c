@@ -8,7 +8,7 @@
 #include "turn_intern.h"
 #include "sockaddr_util.h"
 
-Suite * stunclient_suite (void);
+Suite * turnclient_suite (void);
 
 
 #define  MAX_INSTANCES  50
@@ -845,7 +845,7 @@ START_TEST ( GetErrorReason )
 END_TEST
 
 
-Suite * stunclient_suite (void)
+Suite * turnclient_suite (void)
 {
   Suite *s = suite_create ("TURN Client");
 
