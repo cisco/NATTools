@@ -128,6 +128,7 @@ static void SimAllocResp(int ctx, bool relay, bool xorMappedAddr, bool lifetime,
             
         }else{
             m.hasXorRelayAddress = true;
+            m.xorRelayAddress.familyType = STUN_ADDR_IPv4Family;
             m.xorRelayAddress.addr.v4.addr = 3251135384UL;// "193.200.99.152"
             m.xorRelayAddress.addr.v4.port = 42000;
         }
@@ -144,6 +145,7 @@ static void SimAllocResp(int ctx, bool relay, bool xorMappedAddr, bool lifetime,
         }else{
             
             m.hasXorMappedAddress = true;
+            m.xorMappedAddress.familyType = STUN_ADDR_IPv4Family;
             m.xorMappedAddress.addr.v4.addr = 1009527574UL;// "60.44.43.22");
             m.xorMappedAddress.addr.v4.port = 43000;
         }
