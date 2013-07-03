@@ -26,7 +26,7 @@ static const uint32_t TEST_THREAD_CTX = 1;
 
 static void *tickTurn(void *ptr);
 void StunStatusCallBack(void *ctx, StunCallBackData_T *retData);
-void handleInt();
+void teardown();
 
 int sockfd;
 int ctx;
@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
     }
 
     sockfd = createSocket(argv[1], SERVERPORT, "stunclient", 0, servinfo, &p);
-    signal(SIGINT, handleInt);
+    signal(SIGINT, teardown);
 
     freeaddrinfo(servinfo);
 
@@ -108,13 +108,13 @@ int main(int argc, char *argv[])
                 printf("Integrity Check OK\n");
 
                 StunClient_HandleIncResp(TEST_THREAD_CTX, &stunResponse, p->ai_addr);
+
+                break;
             }
         }
     }
 
-    close(sockfd);
-
-    return 0;
+    teardown();
 }
 
 void StunStatusCallBack(void *ctx, StunCallBackData_T *retData)
@@ -158,16 +158,10 @@ static void *tickTurn(void *ptr)
         nanosleep(&timer, &remaining);
         StunClient_HandleTick(*ctx);
     }
-
 }
 
-void handleInt()
+void teardown()
 {
-  printf("\nDeallocating...\n");
-  StunClient_Deallocate(TEST_THREAD_CTX, ctx);
-  // If one wants to avoid the server getting a destination unreachable ICMP message,
-  // handle the response before quitting.
-  // listenAndHandleResponse();
   close(sockfd);
   printf("Quitting...\n");
   exit(0);
