@@ -12,6 +12,10 @@ Suite * stunclient_suite (void);
 #define  MAX_INSTANCES  50
 #define  TEST_THREAD_CTX 1
 
+#define  TEST_IPv4_ADDR 
+#define  TEST_IPv4_PORT
+#define  TEST_IPv6_ADDR 
+
 typedef  struct
 {
     uint32_t a;
@@ -30,8 +34,9 @@ static StunMsgId      LastTransId;
 static struct sockaddr_storage LastAddress;
 static bool runningAsIPv6;
 
-const uint32_t priority = 1845494271;
-const uint64_t tieBreaker = 0x932FF9B151263B36LL;
+const uint8_t test_addr_ipv6[16] = {0x20, 0x1, 0x4, 0x70, 0xdc, 0x88, 0x1, 0x22, 0x21, 0x26, 0x18, 0xff, 0xfe, 0x92, 0x6d, 0x53};
+const uint64_t test_addr_ipv4 = 1009527574;// "60.44.43.22");
+const uint32_t test_port_ipv4 = 43000;
 
 static  const uint8_t StunCookie[]   = STUN_MAGIC_COOKIE_ARRAY;
 
@@ -90,10 +95,10 @@ static int StartBindTransaction(int n)
                                            false,
                                            "pem",
                                            "pem",
-                                           priority,
+                                           0, // uint32_t 1845494271 (priority)
                                            false,
                                            false,
-                                           tieBreaker,
+                                           0, // uint64_t 0x932FF9B151263B36LL (tieBreaker)
                                            LastTransId,
                                            0,                       /* socket */
                                            SendRawStun,             /* send func */
@@ -110,17 +115,15 @@ static void SimBindSuccessResp(int ctx, bool IPv6)
     memcpy(&m.msgHdr.id, &LastTransId, STUN_MSG_ID_SIZE);  
     memcpy(&m.msgHdr.cookie, StunCookie, sizeof(m.msgHdr.cookie));
     m.msgHdr.msgType = STUN_MSG_BindResponseMsg;
+    m.hasXorMappedAddress = true;
 
     if(IPv6){
-        uint8_t addr[16] = {0x20, 0x1, 0x4, 0x70, 0xdc, 0x88, 0x1, 0x22, 0x21, 0x26, 0x18, 0xff, 0xfe, 0x92, 0x6d, 0x53};
-        m.hasXorMappedAddress = true;
-        stunlib_setIP6Address(&m.xorMappedAddress, addr, 0x4200);
+        stunlib_setIP6Address(&m.xorMappedAddress, test_addr_ipv6, 0x4200);
 
     }else{
-        
-        m.hasXorMappedAddress = true;
-        m.xorMappedAddress.addr.v4.addr = 1009527574UL;// "60.44.43.22");
-        m.xorMappedAddress.addr.v4.port = 43000;
+        m.xorMappedAddress.familyType = STUN_ADDR_IPv4Family;
+        m.xorMappedAddress.addr.v4.addr = test_addr_ipv4;
+        m.xorMappedAddress.addr.v4.port = test_port_ipv4;
     }
 
     StunClient_HandleIncResp(TEST_THREAD_CTX, &m, NULL);
@@ -194,6 +197,7 @@ END_TEST
 
 START_TEST (WaitBindRespNotAut_BindSuccess)
 {
+    printf("IPv6: %s\n", runningAsIPv6? "True" : "False");
     int ctx;
     ctx = StartBindTransaction(5);
     StunClient_HandleTick(TEST_THREAD_CTX);
@@ -241,7 +245,8 @@ Suite * stunclient_suite (void)
 
       tcase_add_checked_fixture (sc_allocateIPv6, setupIPv6, teardownIPv6);
 
-      // tcase_add_test (sc_allocateIPv6, WaitAllocRespNotAut_Timeout);
+      tcase_add_test (sc_allocateIPv6, WaitBindRespNotAut_Timeout);
+      tcase_add_test (sc_allocateIPv6, WaitBindRespNotAut_BindSuccess);
 
       suite_add_tcase (s, sc_allocateIPv6);
 
