@@ -16,7 +16,7 @@ int recvStunMsg(int sockfd, struct sockaddr_storage *their_addr, StunMessage *st
           exit(1);
     }
 
-    printf("stunclient: Got a packet that is %d bytes long\n", numbytes);
+    printf("Got a packet that is %d bytes long\n", numbytes);
     if (stunlib_isStunMsg(buf, numbytes, &isMsStun)) {
         printf("   Packet is STUN\n");
 
