@@ -46,6 +46,7 @@ extern "C" {
 /* Result of  binding  protocol, returned in callback */
 typedef enum 
 {
+    StunResult_Empty,
     StunResult_BindOk,                   /* successful */
     StunResult_BindFail,                 /* Received BindErrorResp */
     StunResult_BindFailNoAnswer,         /* Bind Req failed - no contact with stun server */
