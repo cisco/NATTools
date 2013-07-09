@@ -20,7 +20,7 @@
 
 #include "utils.h"
 
-#define MYPORT "4950"    // the port users will be connecting to
+#define MYPORT "4951"    // the port users will be connecting to
 
 #define MAXBUFLEN 200
 
@@ -62,6 +62,23 @@ int main(void)
 
             if(stunlib_checkIntegrity(buf, numbytes, &stunRequest, password, sizeof(password)) ) {
                 printf("   Integrity OK\n");
+
+                if (stunRequest.hasMDAgent)
+                {
+                    printf("hasMDAgent!\n");
+                }
+                if (stunRequest.hasMDRespUP)
+                {
+                    printf("hasMDRespUP!\n");
+                }
+                if (stunRequest.hasMDRespDN)
+                {
+                    printf("hasMDRespDN!\n");
+                }
+                if (stunRequest.hasMDPeerCheck)
+                {
+                    printf("hasMDPeerCheck!\n");
+                }
 
                 memset(&stunResponse, 0, sizeof(StunMessage));
                 /*Header*/

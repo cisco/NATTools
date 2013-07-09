@@ -21,7 +21,7 @@
 
 #include "utils.h"
 
-#define SERVERPORT "4950"    // the port users will be connecting to
+#define SERVERPORT "4951"    // the port users will be connecting to
 static const uint32_t TEST_THREAD_CTX = 1;
 
 static void *tickTurn(void *ptr);
@@ -59,6 +59,22 @@ int main(int argc, char *argv[])
         "\xbc\x34\xd6\x86"
         "\xfa\x87\xdf\xae";
 
+    /*********************** start MALICE specific **************************/
+    MaliceMetadata maliceMetadata;
+    
+    maliceMetadata.hasMDAgent = true;
+    maliceMetadata.mdAgent.hasFlowdataReq = true;
+
+    maliceMetadata.hasMDRespUP = true;
+    maliceMetadata.mdRespUP.hasFlowdataResp = false;
+
+    maliceMetadata.hasMDRespDN = true;
+    maliceMetadata.mdRespDN.hasFlowdataResp = false;
+
+    maliceMetadata.hasMDPeerCheck = true;
+
+    /*********************** end MALICE specific **************************/
+
     memcpy(stunMsgId.octet, msgId, sizeof(stunMsgId.octet));
 
     if (argc != 2) {
@@ -78,6 +94,8 @@ int main(int argc, char *argv[])
       perror("getsockname");
     }
 
+
+
     ctx = StunClient_startBindTransaction(TEST_THREAD_CTX,
                                           NULL,
                                           p->ai_addr,
@@ -96,7 +114,7 @@ int main(int argc, char *argv[])
                                           StunStatusCallBack,
                                           &stunCbData,
                                           0,
-                                          NULL);
+                                          &maliceMetadata);
 
     while(1)
     {
