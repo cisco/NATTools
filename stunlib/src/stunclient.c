@@ -915,19 +915,19 @@ static void  BuildStunBindReq(STUN_INSTANCE_DATA *pInst, StunMessage  *stunReqMs
     /************************* start MALICE specific ***************************************************/
     /***************************************************************************************************/
 
-    if (stunBindReq.maliceMetadate != nullptr)
+    if (pInst->stunBindReq.maliceMetadata != NULL)
     {
-        stunReqMsg->hasMDAgent = pInst->stunBindReq.maliceMetadate->hasMDAgent;
-        stunReqMsg->mdAgent = pInst->stunBindReq.maliceMetadate->mdAgent;
+        stunReqMsg->hasMDAgent = pInst->stunBindReq.maliceMetadata->hasMDAgent;
+        stunReqMsg->mdAgent = pInst->stunBindReq.maliceMetadata->mdAgent;
 
-        stunReqMsg->hasMDRespUP = pInst->stunBindReq.maliceMetadate->hasMDRespUP;
-        stunReqMsg->mdRespUP = pInst->stunBindReq.maliceMetadate->mdRespUP;
+        stunReqMsg->hasMDRespUP = pInst->stunBindReq.maliceMetadata->hasMDRespUP;
+        stunReqMsg->mdRespUP = pInst->stunBindReq.maliceMetadata->mdRespUP;
         
-        stunReqMsg->hasMDRespDN = pInst->stunBindReq.maliceMetadate->hasMDRespDN;
-        stunReqMsg->mdRespDN = pInst->stunBindReq.maliceMetadate->mdRespDN;
+        stunReqMsg->hasMDRespDN = pInst->stunBindReq.maliceMetadata->hasMDRespDN;
+        stunReqMsg->mdRespDN = pInst->stunBindReq.maliceMetadata->mdRespDN;
 
-        stunReqMsg->hasMDPeerCheck = pInst->stunBindReq.maliceMetadate->hasMDPeerCheck;
-        stunReqMsg->mdPeerCheck = pInst->stunBindReq.maliceMetadate->mdPeerCheck;
+        stunReqMsg->hasMDPeerCheck = pInst->stunBindReq.maliceMetadata->hasMDPeerCheck;
+        stunReqMsg->mdPeerCheck = pInst->stunBindReq.maliceMetadata->mdPeerCheck;
     }
 
     /***************************************************************************************************/
