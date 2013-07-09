@@ -151,25 +151,6 @@ extern "C" {
 #define STUN_ATTR_MS2_CandidateId      0x8054  /* no equiv */
 #define STUN_ATTR_MS2_ServiceQuality   0x8055  /* no equiv */
 
-
-/****************************************************************************************************************/
-/****************************************** start MALICE specific ***********************************************/
-/****************************************************************************************************************/
-
-#define MALICE_ATTR_MD_AGENT        0x0C02
-#define MALICE_ATTR_MD_RESP_UP      0x0C03
-#define MALICE_ATTR_MD_RESP_DN      0x0C04
-#define MALICE_ATTR_MD_PEER_CHECK   0x0C05
-
-#define MALICE_IE_FLOWDATA_REQ      0x01
-#define MALICE_IE_FLOWDATA_RESP      0x02
-
-/****************************************************************************************************************/
-/****************************************** end MALICE specific ***********************************************/
-/****************************************************************************************************************/
-
-
-
 /* MSICE2 coding of Service Quality Attribute  */
 #define STUN_MS2_ServiceQuality_BestEffort  0
 #define STUN_MS2_Servicequality_Reliable    1
@@ -433,65 +414,6 @@ typedef struct
 } STUN_USER_CREDENTIALS;
 
 
-
-/****************************************************************************************************************/
-/****************************************** start MALICE specific ***********************************************/
-/****************************************************************************************************************/
-
-typedef struct
-{
-    uint8_t type;
-    uint16_t length;
-} MaliceIEHdr;
-
-typedef struct
-{
-    uint8_t uDT;
-    uint8_t uLT;
-    uint8_t uJT;
-
-    uint8_t dDT;
-    uint8_t dLT;
-    uint8_t dJT;
-
-    uint32_t minBWup;
-    uint32_t minBWdn;
-    uint32_t maxBWup;
-    uint32_t maxBWdn;
-} MaliceFlowdataReq;
-
-typedef struct
-{
-    uint8_t DT;
-    uint8_t LT;
-    uint8_t JT;
-
-    uint32_t minBW;
-    uint32_t maxBW;
-} MaliceFlowdataResp;
-
-typedef struct
-{
-    bool hasFlowdataReq;
-    MaliceFlowdataReq flowdataReq;
-} MaliceAttrAgent;
-
-typedef struct
-{
-    bool hasFlowdataResp;
-    MaliceFlowdataResp flowdataResp;
-} MaliceAttrResp;
-
-typedef struct
-{
-    uint16_t peerMaliceCheckResult;
-} MaliceAttrPeerCheck;
-
-/****************************************************************************************************************/
-/****************************************** end MALICE specific *************************************************/
-/****************************************************************************************************************/
-
-
 /* Decoded  STUN message */
 typedef struct
 {
@@ -597,25 +519,6 @@ typedef struct
     /******* End MS-ICE2 specific *****/
 
 
-    /****************************************************************************************************************/
-    /****************************************** start MALICE specific *************************************************/
-    /****************************************************************************************************************/
-
-    bool hasMDAgent;
-    MaliceAttrAgent mdAgent;
-
-    bool hasMDRespUP;
-    MaliceAttrResp mdRespUP;
-
-    bool hasMDRespDN;
-    MaliceAttrResp mdRespDN;
-
-    bool hasMDPeerCheck;
-    MaliceAttrPeerCheck mdPeerCheck;
-
-    /****************************************************************************************************************/
-    /****************************************** end MALICE specific *************************************************/
-    /****************************************************************************************************************/
 
 } StunMessage;
 
