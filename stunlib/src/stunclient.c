@@ -301,7 +301,8 @@ int  StunClient_startBindTransaction(uint32_t            threadCtx,
                                      uint32_t           *timeoutList,
                                      STUNCB              stunCbFunc,
                                      StunCallBackData_T *stunCbData,
-                                     int                 turnInst)
+                                     int                 turnInst,
+                                     MaliceMetadata     *maliceMetadata) // nullptr if no malicedata should be sent.
 {
 
 
@@ -346,6 +347,14 @@ int  StunClient_startBindTransaction(uint32_t            threadCtx,
     /* callback and  data (owned by caller) */
     m.stunCbFunc = stunCbFunc;
     m.stunCbData = stunCbData;
+
+
+    /******************************** start MALICE specific ******************************/
+
+    m.maliceMetadata = maliceMetadata;
+
+    /******************************** start MALICE specific ******************************/
+
     ret = StunClientMain(threadCtx, STUNCLIENT_CTX_UNKNOWN, STUN_SIGNAL_BindReq, (uint8_t*)&m);
     return ret;
 }
@@ -901,6 +910,29 @@ static void  BuildStunBindReq(STUN_INSTANCE_DATA *pInst, StunMessage  *stunReqMs
     /* controlling */
     stunReqMsg->hasControlling = (pInst->stunBindReq.iceControlling ? true : false);
     stunReqMsg->controlling.value =  pInst->stunBindReq.tieBreaker;
+
+    /***************************************************************************************************/
+    /************************* start MALICE specific ***************************************************/
+    /***************************************************************************************************/
+
+    if (stunBindReq.maliceMetadate != nullptr)
+    {
+        stunReqMsg->hasMDAgent = pInst->stunBindReq.maliceMetadate->hasMDAgent;
+        stunReqMsg->mdAgent = pInst->stunBindReq.maliceMetadate->mdAgent;
+
+        stunReqMsg->hasMDRespUP = pInst->stunBindReq.maliceMetadate->hasMDRespUP;
+        stunReqMsg->mdRespUP = pInst->stunBindReq.maliceMetadate->mdRespUP;
+        
+        stunReqMsg->hasMDRespDN = pInst->stunBindReq.maliceMetadate->hasMDRespDN;
+        stunReqMsg->mdRespDN = pInst->stunBindReq.maliceMetadate->mdRespDN;
+
+        stunReqMsg->hasMDPeerCheck = pInst->stunBindReq.maliceMetadate->hasMDPeerCheck;
+        stunReqMsg->mdPeerCheck = pInst->stunBindReq.maliceMetadate->mdPeerCheck;
+    }
+
+    /***************************************************************************************************/
+    /************************* end MALICE specific ***************************************************/
+    /***************************************************************************************************/
 
     stunlib_addSoftware(stunReqMsg, SoftwareVersionStr, STUN_DFLT_PAD);
 
