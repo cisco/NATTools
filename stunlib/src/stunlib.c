@@ -743,9 +743,9 @@ static bool maliceEncodeFlowdataReq(MaliceFlowdataReq *flowdataReq, uint8_t **pB
 
 static bool maliceEncodeFlowdataResp(MaliceFlowdataResp *flowdataResp, uint8_t **pBuf, int *nBufLen)
 {
-    write_8(pBuf, MALICE_IE_FLOWDATA_REQ);
+    write_8(pBuf, MALICE_IE_FLOWDATA_RESP);
     write_8(pBuf, 0); // Reserved
-    write_16(pBuf, 4 * 8);
+    write_16(pBuf, 4 * 6);
     *nBufLen -= 4;
    
     // TODO: implement encoding after the malice-ice compatibility check has passed.
@@ -778,7 +778,7 @@ static bool maliceEncodeAgent(MaliceAttrAgent *pAgent, uint8_t **pBuf, int *nBuf
     return true;
 }
 
-static bool maliceEncodeResp(MaliceAttrResp *pResp, uint8_t **pBuf, int *nBufLen, bool UP)
+static int maliceEncodeResp(MaliceAttrResp *pResp, uint8_t **pBuf, int *nBufLen, bool UP)
 {
     uint16_t length;
     uint8_t *pCurrPtr = *pBuf + 4; // Make room for header.
@@ -787,7 +787,7 @@ static bool maliceEncodeResp(MaliceAttrResp *pResp, uint8_t **pBuf, int *nBufLen
     if (pResp->hasFlowdataResp && !maliceEncodeFlowdataResp(&pResp->flowdataResp, &pCurrPtr, nBufLen))
     {
         printf("maliceEncodeAgent: Failed to encode flowdata request.\n");
-        return false;
+        return 0;
     }
 
     // Write header
@@ -802,7 +802,7 @@ static bool maliceEncodeResp(MaliceAttrResp *pResp, uint8_t **pBuf, int *nBufLen
 
     *pBuf += length; // Add length of attributes written with pCurrPtr to pBuf.
 
-    return true;
+    return length + 4;
 }
 
 static bool maliceEncodePeerCheck(MaliceAttrPeerCheck *pPeerCheck, uint8_t **pBuf, int *nBufLen)
@@ -1178,20 +1178,20 @@ maliceDecodeIEHead(MaliceIEHdr *pIE, uint8_t **pBuf, int *nBufLen)
 static bool
 maliceDecodeFlowdataReq(MaliceAttrAgent *pAgent, uint8_t **pBuf, int *nBufLen)
 {
-    printf("maliceDecodeAgent: Recieved IE Flowdata request\n");
+    printf("maliceDecodeFlowdataReq: Recieved IE Flowdata request\n");
     // TODO: decode flowdata req, but implement after malice-ice compatibiity check.
-    *pBuf += 4 * 9;
-    *nBufLen -= 4 * 9;
+    *pBuf += 4 * 8;
+    *nBufLen -= 4 * 8;
     return true;
 }
 
 static bool
 maliceDecodeFlowdataResp(MaliceAttrResp *pResp, uint8_t **pBuf, int *nBufLen)
 {
-    printf("maliceDecodeAgent: Recieved IE Flowdata response\n");
+    printf("maliceDecodeFlowdataResp: Recieved IE Flowdata response\n");
     // TODO: decode flowdata resp, but implement after malice-ice compatibiity check.
-    *pBuf += 4 * 7;
-    *nBufLen -= 4 * 7;
+    *pBuf += 4 * 6;
+    *nBufLen -= 4 * 6;
     return true;
 }
 
@@ -1201,13 +1201,16 @@ maliceDecodeAgent(MaliceAttrAgent *pAgent, uint8_t **pBuf, int *nBufLen, int atr
     MaliceIEHdr ie;
     int nBufLenEnd = (*nBufLen) - atrLen;
 
+    printf("atrLen: %d\n", atrLen);
+
     if (*nBufLen < atrLen)
     {
         printf("maliceDecodeAgent: failed nBufLen %d atrLen %d\n", *nBufLen, atrLen);
         return false;
     }
 
-    while (nBufLenEnd > (*nBufLen))
+    printf("%d\n", (*nBufLen) - nBufLenEnd);
+    while (nBufLenEnd < (*nBufLen))
     {
         if (!maliceDecodeIEHead(&ie, pBuf, nBufLen))
         {
@@ -1229,7 +1232,7 @@ maliceDecodeAgent(MaliceAttrAgent *pAgent, uint8_t **pBuf, int *nBufLen, int atr
 
     if(nBufLenEnd != (*nBufLen))
     {
-        printf("maliceDecodeAgent: Attribute length error\n");
+        printf("maliceDecodeAgent: Attribute length error with difference %d\n", nBufLenEnd - (*nBufLen));
         return false;
     }
 
@@ -2039,7 +2042,7 @@ stunlib_DecodeMessage(unsigned char* buf,
                 break;
 
             /******************************/
-            /*** end MALICE specific  ***/
+            /*** end MALICE specific  *****/
             /******************************/
 
             default:
@@ -2065,6 +2068,15 @@ stunlib_DecodeMessage(unsigned char* buf,
         return false;
     }
 
+    /**********************************************************************************/
+    /********************** start MALICE specific  ************************************/
+    /**********************************************************************************/
+
+
+
+    /**********************************************************************************/
+    /********************** end MALICE specific  **************************************/
+    /**********************************************************************************/
 
 
     if (stream != NULL)
@@ -2630,25 +2642,37 @@ stunlib_encodeMessage(StunMessage* message,
 
     if (message->msgHdr.msgType == STUN_MSG_BindRequestMsg || message->msgHdr.msgType == STUN_MSG_RefreshRequestMsg)
     {
-        if (message->hasMDRespUP && !maliceEncodeResp(&message->mdRespUP,
-                                                      &pCurrPtr,
-                                                      &restlen,
-                                                      true))
+        if (message->hasMDRespUP)
         {
-            printf("Failed to encode MD-RESP-UP after integrity\n");
-            // Dont return 0 just because of malice.
+            int length = maliceEncodeResp(&message->mdRespUP,
+                                          &pCurrPtr,
+                                          &restlen,
+                                          true);
+            printf("Encoding mdRespUP after integrity\n");
+            if (length == 0) printf("Failed to encode MD-RESP-UP after integrity\n"); // Dont return 0 just because of malice.
+            else
+            {
+                message->msgHdr.msgLength += length;
+                msglen += length;
+            }
         }
     }
     else if (message->msgHdr.msgType == STUN_MSG_BindResponseMsg || message->msgHdr.msgType == STUN_MSG_RefreshResponseMsg
              || message->msgHdr.msgType == STUN_MSG_BindErrorResponseMsg || message->msgHdr.msgType == STUN_MSG_RefreshErrorResponseMsg)
     {
-        if (message->hasMDRespDN && !maliceEncodeResp(&message->mdRespDN,
-                                                      &pCurrPtr,
-                                                      &restlen,
-                                                      false))
+        if (message->hasMDRespUP)
         {
-            printf("Failed to encode MD-RESP-DN after integrity\n");
-            // Dont return 0 just because of malice.
+            int length = maliceEncodeResp(&message->mdRespDN,
+                                          &pCurrPtr,
+                                          &restlen,
+                                          true);
+            printf("Encoding mdRespDN after integrity\n");
+            if (length == 0) printf("Failed to encode MD-RESP-DN after integrity\n"); // Dont return 0 just because of malice.
+            else
+            {
+                message->msgHdr.msgLength += length;
+                msglen += length;
+            }
         }
     }
 

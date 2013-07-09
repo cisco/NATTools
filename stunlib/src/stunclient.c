@@ -929,6 +929,13 @@ static void  BuildStunBindReq(STUN_INSTANCE_DATA *pInst, StunMessage  *stunReqMs
         stunReqMsg->hasMDPeerCheck = pInst->stunBindReq.maliceMetadata->hasMDPeerCheck;
         stunReqMsg->mdPeerCheck = pInst->stunBindReq.maliceMetadata->mdPeerCheck;
     }
+    else
+    {
+        stunReqMsg->hasMDAgent =  false;
+        stunReqMsg->hasMDRespUP =  false;
+        stunReqMsg->hasMDRespDN =  false;
+        stunReqMsg->hasMDPeerCheck =  false;
+    }
 
     /***************************************************************************************************/
     /************************* end MALICE specific ***************************************************/
