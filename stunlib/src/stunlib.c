@@ -1949,12 +1949,12 @@ uint32_t stunlib_encodeStunKeepAliveResp(StunMsgId     *transId,
 
 unsigned int
 stunlib_encodeMessage(StunMessage* message,
-                  unsigned char* buf,
-                  unsigned int bufLen,
-                  unsigned char *md5key,
-                  unsigned int keyLen,
-                  FILE *stream,
-                  bool isMsStun)
+                      unsigned char* buf,
+                      unsigned int bufLen,
+                      unsigned char *md5key,
+                      unsigned int keyLen,
+                      FILE *stream,
+                      bool isMsStun)
 {
     bool addFingerprint;
     int msglen;
@@ -2077,8 +2077,6 @@ stunlib_encodeMessage(StunMessage* message,
         if (stream != NULL) printError(stream, "Invalid Destination Address\n");
         return 0;
     }
-
-
 
     if (message->hasRequestedTransport && !stunEncodeRequestedTransport(&message->requestedTransport,
                                                                         &pCurrPtr,

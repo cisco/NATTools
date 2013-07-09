@@ -317,19 +317,19 @@ int  StunClient_startBindTransaction(uint32_t            threadCtx,
     }
     memset(&m, 0, sizeof(m));
     m.threadCtx = threadCtx;
-    m.userCtx        = userCtx;
+    m.userCtx = userCtx;
     sockaddr_copy((struct sockaddr *)&m.serverAddr, serverAddr);
     sockaddr_copy((struct sockaddr *)&m.baseAddr, baseAddr);
     strncpy(m.ufrag, ufrag, sizeof(m.ufrag));
-    strncpy(m.password,   password, sizeof(m.password));
+    strncpy(m.password, password, sizeof(m.password));
     m.useRelay = useRelay;
     m.peerPriority = peerPriority;
     m.useCandidate = useCandidate;
     m.iceControlling = iceControlling;
     m.tieBreaker = tieBreaker;
     m.transactionId = transactionId;
-    m.sockhandle     = sockhandle;
-    m.sendFunc       = sendFunc;
+    m.sockhandle = sockhandle;
+    m.sendFunc = sendFunc;
     m.turnInst = turnInst;
 
     /* use default timeout list if none provided */
@@ -908,16 +908,16 @@ static void  BuildStunBindReq(STUN_INSTANCE_DATA *pInst, StunMessage  *stunReqMs
 
 
 /* encode and send */
-static bool  SendStunReq(STUN_INSTANCE_DATA *pInst, StunMessage  *stunReqMsg)
+static bool SendStunReq(STUN_INSTANCE_DATA *pInst, StunMessage  *stunReqMsg)
 {
     /* encode the BindReq */
     pInst->stunReqMsgBufLen = stunlib_encodeMessage(stunReqMsg,
-                                                (unsigned char*) (pInst->stunReqMsgBuf),
-                                                STUN_MAX_PACKET_SIZE, 
-                                                (unsigned char*)&pInst->stunBindReq.password,  /* key */
-                                                strlen( pInst->stunBindReq.password ) ,     /* keyLen  */
-                                                false,
-                                                false);
+                                                    (unsigned char*) (pInst->stunReqMsgBuf),
+                                                    STUN_MAX_PACKET_SIZE,
+                                                    (unsigned char*)&pInst->stunBindReq.password,  /* key */
+                                                    strlen( pInst->stunBindReq.password ) ,     /* keyLen  */
+                                                    false,
+                                                    false);
 
     if (!pInst->stunReqMsgBufLen)
     {

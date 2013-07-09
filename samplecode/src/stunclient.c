@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
     pthread_t stunTickThread;
     StunCallBackData_T stunCbData;
 
-    StunMessage stunRequest, stunResponse;
+    StunMessage stunResponse;
     char buffer[256];
     int msg_len;
 
@@ -79,23 +79,23 @@ int main(int argc, char *argv[])
     }
 
     ctx = StunClient_startBindTransaction(TEST_THREAD_CTX,
-                                    NULL,
-                                    p->ai_addr,
-                                    &my_addr,
-                                    false,
-                                    username,
-                                    password,
-                                    priority,
-                                    false,
-                                    false,
-                                    tieBreaker,
-                                    stunMsgId,
-                                    sockfd,
-                                    sendRawStun,
-                                    NULL,
-                                    StunStatusCallBack,
-                                    &stunCbData,
-                                    0);
+                                          NULL,
+                                          p->ai_addr,
+                                          &my_addr,
+                                          false,
+                                          username,
+                                          password,
+                                          priority,
+                                          false,
+                                          false,
+                                          tieBreaker,
+                                          stunMsgId,
+                                          sockfd,
+                                          sendRawStun,
+                                          NULL,
+                                          StunStatusCallBack,
+                                          &stunCbData,
+                                          0);
 
     while(1)
     {
