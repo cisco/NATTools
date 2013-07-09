@@ -95,7 +95,8 @@ int main(int argc, char *argv[])
                                           NULL,
                                           StunStatusCallBack,
                                           &stunCbData,
-                                          0);
+                                          0,
+                                          NULL);
 
     while(1)
     {

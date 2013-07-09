@@ -105,7 +105,8 @@ static int StartBindTransaction(int n)
                                            StunDefaultTimeoutList,  /* timeout list */
                                            StunStatusCallBack,
                                            &StunCbData[n],
-                                           -1);
+                                           -1,
+                                           NULL);
 }
 
 static void SimBindSuccessResp(int ctx, bool IPv6)
