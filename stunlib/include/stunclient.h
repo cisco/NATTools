@@ -78,6 +78,20 @@ typedef struct
     struct sockaddr_storage dstBaseAddrStr; //The destination seen from the sender of the response
 } StunCallBackData_T;
 
+/******************* start MALICE specific ************************/
+typedef struct
+{
+    bool                    hasMDAgent;
+    MaliceAttrAgent         mdAgent;
+    bool                    hasMDRespUP;
+    MaliceAttrResp          mdRespUP;
+    bool                    hasMDRespDN;
+    MaliceAttrResp          mdRespDN;
+    bool                    hasMDPeerCheck;
+    MaliceAttrPeerCheck     mdPeerCheck;
+} MaliceMetadata;
+
+/******************* end MALICE specific ************************/
 
 /* category of info sent in STUN_INFO_FUNC */
 typedef enum
@@ -124,8 +138,23 @@ typedef struct
     uint32_t BindRespSent_ViaRelay;
     uint32_t Retransmits;
     uint32_t Failures;
-}
-StunClientStats_T;
+}StunClientStats_T;
+
+
+/*********************************************************************************************************************/
+/******************************************* start MALICE specific  **************************************************/
+/*********************************************************************************************************************/
+
+typedef struct
+{
+
+} MALICE_REQ;
+
+/*********************************************************************************************************************/
+/******************************************* end MALICE specific  **************************************************/
+/*********************************************************************************************************************/
+
+
 
 /* Signalling back to user e.g. result of BindResp.
  *   userCtx        - User provided context, as provided in StunClient_startxxxx(userCtx,...)
@@ -213,7 +242,8 @@ int  StunClient_startBindTransaction(uint32_t            threadCtx,
                                      uint32_t           *timeoutList,
                                      STUNCB              stunCbFunc,
                                      StunCallBackData_T *stunCbData,
-                                     int                 turnInst);
+                                     int                 turnInst,
+                                     MaliceMetadata     *maliceMetadata);
 
 
 

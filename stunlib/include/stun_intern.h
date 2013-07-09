@@ -73,22 +73,6 @@ typedef struct {
     MaliceMetadata          *maliceMetadata; // nullptr if no malice attributes should be sent.
 } StunBindReqStuct;
 
-/******************* start MALICE specific ************************/
-typedef struct
-{
-    bool                    hasMDAgent;
-    MaliceAttrAgent         mdAgent;
-    bool                    hasMDRespUP;
-    MaliceAttrResp          mdRespUP;
-    bool                    hasMDRespDN;
-    MaliceAttrResp          mdRespDN;
-    bool                    hasMDPeerCheck;
-    MaliceAttrPeerCheck     mdPeerCheck;
-} MaliceMetadata;
-
-/******************* end MALICE specific ************************/
-
-
 typedef struct
 {
     struct sockaddr_storage srcAddr;
