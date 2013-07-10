@@ -5,6 +5,7 @@
 #include <cstdio>
 
 #include <time.h>
+#include <string.h>
 
 #include <netinet/in.h>
 
@@ -32,8 +33,13 @@ static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
   int ip_header_size = (pktData[0] & 0xF) * 4;
 
   int offset = ip_header_size + UDP_HEADER_SIZE;
-
   cout << "Offset to UDP data: " << offset << endl;
+
+  unsigned char magicCookie[] =  "\x21\x12\xa4\x42";
+
+  if (memcmp((&pktData[offset + 4]), magicCookie, 4) == 0) {
+    cout << "Magic cookie found, this is a STUN packet." << endl;
+  }
 
   return nfq_set_verdict(myQueue, id, NF_ACCEPT, 0, NULL);
 }
