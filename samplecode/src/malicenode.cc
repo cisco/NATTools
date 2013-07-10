@@ -21,6 +21,9 @@ static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
                     nfq_data *pkt, void *cbData) {
   uint32_t id = 0;
   nfqnl_msg_packet_hdr *header;
+  if ((header = nfq_get_msg_packet_hdr(pkt))) {
+    id = ntohl(header->packet_id);
+  }
 
   cout << "pkt recvd: ";
 
