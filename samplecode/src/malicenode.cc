@@ -13,6 +13,8 @@ extern "C" {
   #include <libnetfilter_queue/libnetfilter_queue.h>
 }
 
+#define UDP_HEADER_SIZE 8
+
 using namespace std;
 
 static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
@@ -21,51 +23,14 @@ static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
   nfqnl_msg_packet_hdr *header;
 
   cout << "pkt recvd: ";
-  if ((header = nfq_get_msg_packet_hdr(pkt))) {
-    id = ntohl(header->packet_id);
-    cout << "id " << id << "; hw_protocol " << setfill('0') << setw(4) <<
-      hex << ntohs(header->hw_protocol) << "; hook " << ('0'+header->hook)
-         << " ; ";
-  }
-
-  nfqnl_msg_packet_hw *macAddr = nfq_get_packet_hw(pkt);
-  if (macAddr) {
-    cout << "mac len " << ntohs(macAddr->hw_addrlen) << " addr ";
-    for (int i = 0; i < 8; i++) {
-      cout << setfill('0') << setw(2) << hex << macAddr->hw_addr;
-    }
-  } else {
-    cout << "no MAC addr";
-  }
-
-  timeval tv;
-  if (!nfq_get_timestamp(pkt, &tv)) {
-    cout << "; tstamp " << tv.tv_sec << "." << tv.tv_usec;
-  } else {
-    cout << "; no tstamp";
-  }
-
-  cout << "; mark " << nfq_get_nfmark(pkt);
-
-  cout << "; indev " << nfq_get_indev(pkt);
-  cout << "; outdev " << nfq_get_outdev(pkt);
-
-  cout << endl;
 
   char *pktData;
   int len = nfq_get_payload(pkt, &pktData);
   int ip_header_size = (pktData[0] & 0xF) * 4;
 
-  cout << "\n Headersize: " << dec << ip_header_size << endl;
-  if (len) {
-    cout << "data[" << len << "]: '";
-    for (int i = 0; i < len; i++) {
-      if (isprint(pktData[i]))
-        cout << pktData[i];
-      else cout << " ";
-    }
-    cout << "'" << endl;
-  }
+  int offset = ip_header_size + UDP_HEADER_SIZE;
+
+  cout << "Offset to UDP data: " << offset << endl;
 
   return nfq_set_verdict(myQueue, id, NF_ACCEPT, 0, NULL);
 }
