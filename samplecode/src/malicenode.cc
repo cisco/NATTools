@@ -25,7 +25,7 @@ static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
     id = ntohl(header->packet_id);
   }
 
-  cout << "pkt recvd: ";
+  cout << "pkt recvd: " << id << endl;
 
   char *pktData;
   int len = nfq_get_payload(pkt, &pktData);
