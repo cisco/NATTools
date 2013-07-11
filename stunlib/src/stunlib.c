@@ -728,29 +728,71 @@ static bool stunEncodeCandidateIdAtr(StunAtrCandidateId *pCandId, uint16_t attrt
 /********************************* start MALICE specific encoding ***********************************************/
 /****************************************************************************************************************/
 
-static bool maliceEncodeFlowdataReq(MaliceFlowdataReq *flowdataReq, uint8_t **pBuf, int *nBufLen)
+static void maliceEncodeFlowdataDLJT(MaliceFlowdata *pFlowdata, uint8_t **pBuf, int *nBufLen)
+{
+    // DT, LT and JT. 3 bits each.
+    **pBuf = pFlowdata->DT << 5;
+    **pBuf |= pFlowdata->LT << 2;
+    **pBuf |= pFlowdata->JT >> 1;
+    (*pBuf)++;
+    **pBuf = pFlowdata->JT << 7;
+    (*pBuf)++;
+
+    *nBufLen -= 2;
+}
+
+static bool maliceEncodeFlowdataReq(MaliceFlowdataReq *pFlowdataReq, uint8_t **pBuf, int *nBufLen)
 {
     write_8(pBuf, MALICE_IE_FLOWDATA_REQ);
     write_8(pBuf, 0); // Reserved
-    write_16(pBuf, 4 * 8);
+    write_16(pBuf, 8 * 4);
     *nBufLen -= 4;
 
-    // TODO: implement encoding after the malice-ice compatibility check has passed.
-    *pBuf += 4 * 8;
-    *nBufLen -= 4 * 8;
+    // TODO: Implement instance identifier. Temporary solution: set bits to 0.
+    memset(*pBuf, 0, 3 * 4);
+    *pBuf += 3 * 4;
+    *nBufLen -= 3 * 4;
+
+    // DT, LT and JT.
+    maliceEncodeFlowdataDLJT(&pFlowdataReq->flowdataUP, pBuf, nBufLen);
+    maliceEncodeFlowdataDLJT(&pFlowdataReq->flowdataDN, pBuf, nBufLen);
+
+    // Min and max BW for UP and DN stream.
+    write_32(pBuf, pFlowdataReq->flowdataUP.minBW);
+    write_32(pBuf, pFlowdataReq->flowdataDN.minBW);
+    write_32(pBuf, pFlowdataReq->flowdataUP.maxBW);
+    write_32(pBuf, pFlowdataReq->flowdataDN.maxBW);    
+    *nBufLen -= 4 * 4;
+
     return true;
 }
 
-static bool maliceEncodeFlowdataResp(MaliceFlowdataResp *flowdataResp, uint8_t **pBuf, int *nBufLen)
+static bool maliceEncodeFlowdataResp(MaliceFlowdata *pFlowdataResp, uint8_t **pBuf, int *nBufLen)
 {
-    write_8(pBuf, MALICE_IE_FLOWDATA_RESP);
+    // header
+    write_8(pBuf, MALICE_IE_FLOWDATA_RESP); // type 
     write_8(pBuf, 0); // Reserved
-    write_16(pBuf, 4 * 6);
+    write_16(pBuf, 6 * 4); // length
     *nBufLen -= 4;
-   
-    // TODO: implement encoding after the malice-ice compatibility check has passed.
-    *pBuf += 4 * 6;
-    *nBufLen -= 4 * 6;
+
+    // Set 96 reserved bits to 0.
+    memset(*pBuf, 0, 3 * 4);
+    *pBuf += 3 * 4;
+    *nBufLen -= 3 * 4;
+
+    // DT, LT and JT.
+    maliceEncodeFlowdataDLJT(pFlowdataResp, pBuf, nBufLen);
+
+    // set reserved bits to 0.
+    memset(*pBuf, 0, 2);
+    *pBuf += 2;
+    *nBufLen -= 2;
+
+    // Min and max BW.
+    write_32(pBuf, pFlowdataResp->minBW);
+    write_32(pBuf, pFlowdataResp->maxBW);
+    *nBufLen -= 2 * 4;
+
     return true;
 }
 
@@ -1175,23 +1217,61 @@ maliceDecodeIEHead(MaliceIEHdr *pIE, uint8_t **pBuf, int *nBufLen)
     return true;
 }
 
-static bool
-maliceDecodeFlowdataReq(MaliceAttrAgent *pAgent, uint8_t **pBuf, int *nBufLen)
+static void
+maliceDecodeFlowdataDLJT(MaliceFlowdata *flowdata, uint8_t **pBuf, int *nBufLen)
 {
-    printf("maliceDecodeFlowdataReq: Recieved IE Flowdata request\n");
-    // TODO: decode flowdata req, but implement after malice-ice compatibiity check.
-    *pBuf += 4 * 8;
-    *nBufLen -= 4 * 8;
+    // DT, LT and JT. 3 bits each.
+    flowdata->DT = (**pBuf >> 5) & 0x07;
+    flowdata->LT = (**pBuf >> 2) & 0x07;
+    flowdata->JT = (**pBuf) & 0x03;
+    flowdata->JT <<= 1;
+    (*pBuf)++;
+    flowdata->JT |= (**pBuf >> 7);
+    (*pBuf)++;
+    
+    *nBufLen-= 2;
+}
+
+static bool
+maliceDecodeFlowdataReq(MaliceFlowdataReq *pFlowdataReq, uint8_t **pBuf, int *nBufLen)
+{
+    // TODO: decode Instance Identifier. Dont know what this looks like yet.
+    *pBuf += 3 * 4;
+    *nBufLen -= 3 * 4;
+
+    // uDT, uLT, uJT, dDT, dLT and dJT.
+    maliceDecodeFlowdataDLJT(&pFlowdataReq->flowdataUP, pBuf, nBufLen);
+    maliceDecodeFlowdataDLJT(&pFlowdataReq->flowdataDN, pBuf, nBufLen);
+
+    // Min and Max BW for up- and downstream
+    read_32(pBuf, &pFlowdataReq->flowdataUP.minBW);
+    read_32(pBuf, &pFlowdataReq->flowdataDN.minBW);
+    read_32(pBuf, &pFlowdataReq->flowdataUP.maxBW);
+    read_32(pBuf, &pFlowdataReq->flowdataDN.maxBW);
+    *nBufLen -= 4 * 4;
+
     return true;
 }
 
 static bool
-maliceDecodeFlowdataResp(MaliceAttrResp *pResp, uint8_t **pBuf, int *nBufLen)
+maliceDecodeFlowdataResp(MaliceFlowdata *pFlowdataResp, uint8_t **pBuf, int *nBufLen)
 {
-    printf("maliceDecodeFlowdataResp: Recieved IE Flowdata response\n");
-    // TODO: decode flowdata resp, but implement after malice-ice compatibiity check.
-    *pBuf += 4 * 6;
-    *nBufLen -= 4 * 6;
+    // 96 reserved bits (12 reserved bytes)
+    *pBuf += 3 * 4;
+    *nBufLen -= 3 * 4;
+
+    // DT, LT and JT
+    maliceDecodeFlowdataDLJT(pFlowdataResp, pBuf, nBufLen);
+
+    // 16 reserved bits (2 reserved bytes)
+    *pBuf += 2;
+    *nBufLen -= 2;
+
+    // Min and max BW.
+    read_32(pBuf, &pFlowdataResp->minBW);
+    read_32(pBuf, &pFlowdataResp->maxBW);
+    *nBufLen -= 2 * 4;
+
     return true;
 }
 
@@ -1201,15 +1281,12 @@ maliceDecodeAgent(MaliceAttrAgent *pAgent, uint8_t **pBuf, int *nBufLen, int atr
     MaliceIEHdr ie;
     int nBufLenEnd = (*nBufLen) - atrLen;
 
-    printf("atrLen: %d\n", atrLen);
-
     if (*nBufLen < atrLen)
     {
         printf("maliceDecodeAgent: failed nBufLen %d atrLen %d\n", *nBufLen, atrLen);
         return false;
     }
 
-    printf("%d\n", (*nBufLen) - nBufLenEnd);
     while (nBufLenEnd < (*nBufLen))
     {
         if (!maliceDecodeIEHead(&ie, pBuf, nBufLen))
@@ -1220,7 +1297,7 @@ maliceDecodeAgent(MaliceAttrAgent *pAgent, uint8_t **pBuf, int *nBufLen, int atr
         switch (ie.type)
         {
             case MALICE_IE_FLOWDATA_REQ:
-                if (!maliceDecodeFlowdataReq(pAgent, pBuf, nBufLen))
+                if (!maliceDecodeFlowdataReq(&pAgent->flowdataReq, pBuf, nBufLen))
                     return false;
                 pAgent->hasFlowdataReq = true;
                 break;
@@ -1251,7 +1328,7 @@ maliceDecodeResp(MaliceAttrResp *pResp, uint8_t **pBuf, int *nBufLen, int atrLen
         return false;
     }
 
-    while (nBufLenEnd > (*nBufLen))
+    while (nBufLenEnd < (*nBufLen))
     {
         if (!maliceDecodeIEHead(&ie, pBuf, nBufLen))
         {
@@ -1261,7 +1338,7 @@ maliceDecodeResp(MaliceAttrResp *pResp, uint8_t **pBuf, int *nBufLen, int atrLen
         switch (ie.type)
         {
             case MALICE_IE_FLOWDATA_RESP:
-                if (!maliceDecodeFlowdataResp(pResp, pBuf, nBufLen))
+                if (!maliceDecodeFlowdataResp(&pResp->flowdataResp, pBuf, nBufLen))
                     return false;
                 pResp->hasFlowdataResp = true;
                 break;
