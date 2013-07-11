@@ -18,7 +18,8 @@
 using namespace std;
 
 static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
-                    nfq_data *pkt, void *cbData) {
+                    nfq_data *pkt, void *cbData)
+{
   uint32_t id = 0;
   nfqnl_msg_packet_hdr *header;
   if ((header = nfq_get_msg_packet_hdr(pkt))) {
@@ -28,7 +29,7 @@ static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
   cout << "pkt recvd: " << id << endl;
 
   char *pktData;
-  int len = nfq_get_payload(pkt, &pktData);
+  int packet_size = nfq_get_payload(pkt, &pktData);
   int ip_header_size = (pktData[0] & 0xF) * 4;
 
   int udp_length = (pktData[ip_header_size + 4] << 8) + pktData[ip_header_size + 5];
@@ -72,6 +73,60 @@ static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
   static const char password[] = "VOkJxbRl1RmTxUk/WvJxBt";
   int msg_len = stunlib_encodeMessage(&stunPkt, payload, udp_length, (unsigned char*)password, strlen(password), NULL, false);
   cout << "Reencoded message, " << msg_len << " bytes." << endl;
+  memcpy(&pktData[udp_data_offset], payload, (size_t)udp_length);
+
+  //////////////////////////////////
+  // UDP Checksum
+  int sum = 0;
+
+  // Protocol
+  uint16_t *ptr = (uint16_t*)pktData + 8;
+  sum += *ptr & 0xFF;
+  ptr++;
+
+  // Source address
+  sum += *ptr;
+  ptr++;
+  sum += *ptr;
+  ptr++;
+
+  // Destination address
+  sum += *ptr;
+  ptr++;
+  sum += *ptr;
+  ptr++;
+
+  // UDP packet length
+  sum += udp_length + 8;
+
+  // Source port
+  sum += *ptr;
+  ptr++;
+
+  // Destination port
+  sum += *ptr;
+  ptr++;
+
+  // Payload length
+  sum += *ptr;
+  ptr += 2; // Skipping checksum
+
+  uint16_t *i = ptr + udp_length;
+  while (ptr < i) {
+    sum += *ptr;
+    ptr++;
+  }
+
+  while ((sum >> 16) != 0x0000) {
+    sum = (sum >> 16) + (sum & 0xFFFF);
+  }
+
+  uint16_t checksum = ~(sum & 0xFFFF);
+
+  pktData[ip_header_size + 6] = checksum >> 8 & 0xFF;
+  pktData[ip_header_size + 7] = checksum & 0xFF;
+
+  //////////////////////////////////////////////////////////
 
   // ---Exchange this with stunlib_isStunMsg
   // ---If not stunmsg, return ACCEPT verdict.
@@ -79,14 +134,15 @@ static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
   // ---Find MD-AGENT and MD-RESP-UP/DN.
   // ---Print contents of all of them.
   // ---Do some change in whichever of RESP-UP/DN is outside the integrity.
-  // Recalculate IP, UDP and STUN checksums/fingerprints.
-  // Return verdict WITH changed packet.
+  // ---Recalculate IP, UDP and STUN checksums/fingerprints.
+  // ---Return verdict WITH changed packet.
 
   free(payload);
-  return nfq_set_verdict(myQueue, id, NF_ACCEPT, 0, NULL);
+  return nfq_set_verdict(myQueue, id, NF_ACCEPT, packet_size, (unsigned char*)pktData);
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
   struct nfq_handle *nfqHandle;
 
   struct nfq_q_handle *myQueue;
