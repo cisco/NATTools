@@ -14,6 +14,7 @@
 
 #define UDP_HEADER_SIZE 8
 
+
 using namespace std;
 
 static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
@@ -47,21 +48,37 @@ static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
   }
   cout << "Is a STUN packet." << endl;
 
-  StunMessage *stunPkt;
+  StunMessage stunPkt;
 
-  if (!stunlib_DecodeMessage(payload, udp_length, stunPkt, NULL, stderr, isMsStun)) {
+  if (!stunlib_DecodeMessage(payload, udp_length, &stunPkt, NULL, NULL, isMsStun)) {
     cout << "Something went wrong in decoding..." << endl;
     free(payload);
     return nfq_set_verdict(myQueue, id, NF_ACCEPT, 0, NULL);
   }
   cout << "Message decoded fine." << endl;
 
+  if ((stunPkt.msgHdr.msgType == STUN_MSG_BindRequestMsg
+      || stunPkt.msgHdr.msgType == STUN_MSG_RefreshRequestMsg) && stunPkt.hasMDRespUP) {
+    if (stunPkt.mdRespUP.hasFlowdataResp) {
+      stunPkt.mdRespUP.flowdataResp.DT = 5;
+      stunPkt.mdRespUP.flowdataResp.LT = 5;
+      stunPkt.mdRespUP.flowdataResp.JT = 5;
+      stunPkt.mdRespUP.flowdataResp.minBW = 42;
+      stunPkt.mdRespUP.flowdataResp.maxBW = 31337;
+      cout << "Changing MD-RESP-UP to some sweet, sweet bandwith and stuff." << endl;
+    }
+  }
+
+  static const char password[] = "VOkJxbRl1RmTxUk/WvJxBt";
+  int msg_len = stunlib_encodeMessage(&stunPkt, payload, udp_length, (unsigned char*)password, strlen(password), NULL, false);
+  cout << "Reencoded message, " << msg_len << " bytes." << endl;
+
   // ---Exchange this with stunlib_isStunMsg
   // ---If not stunmsg, return ACCEPT verdict.
   // ---If it is, decode.
-  // Find MD-AGENT and MD-RESP-UP/DN.
-  // Print contents of all of them.
-  // Do some change in whichever of RESP-UP/DN is outside the integrity.
+  // ---Find MD-AGENT and MD-RESP-UP/DN.
+  // ---Print contents of all of them.
+  // ---Do some change in whichever of RESP-UP/DN is outside the integrity.
   // Recalculate IP, UDP and STUN checksums/fingerprints.
   // Return verdict WITH changed packet.
 
