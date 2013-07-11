@@ -21,7 +21,7 @@
 
 #include "utils.h"
 
-#define SERVERPORT "4951"    // the port users will be connecting to
+#define SERVERPORT "4951" // the port users will be connecting to
 static const uint32_t TEST_THREAD_CTX = 1;
 
 static void *tickTurn(void *ptr);
@@ -64,12 +64,32 @@ int main(int argc, char *argv[])
     
     maliceMetadata.hasMDAgent = true;
     maliceMetadata.mdAgent.hasFlowdataReq = true;
+    maliceMetadata.mdAgent.flowdataReq.flowdataUP.DT = 0;
+    maliceMetadata.mdAgent.flowdataReq.flowdataUP.LT = 1;
+    maliceMetadata.mdAgent.flowdataReq.flowdataUP.JT = 2;
+    maliceMetadata.mdAgent.flowdataReq.flowdataUP.minBW = 333;
+    maliceMetadata.mdAgent.flowdataReq.flowdataUP.maxBW = 444;
+    maliceMetadata.mdAgent.flowdataReq.flowdataDN.DT = 3;
+    maliceMetadata.mdAgent.flowdataReq.flowdataDN.LT = 4;
+    maliceMetadata.mdAgent.flowdataReq.flowdataDN.JT = 2;
+    maliceMetadata.mdAgent.flowdataReq.flowdataDN.minBW = 111;
+    maliceMetadata.mdAgent.flowdataReq.flowdataDN.maxBW = 222;
 
     maliceMetadata.hasMDRespUP = true;
-    maliceMetadata.mdRespUP.hasFlowdataResp = false;
+    maliceMetadata.mdRespUP.hasFlowdataResp = true;
+    maliceMetadata.mdRespUP.flowdataResp.DT = 0;
+    maliceMetadata.mdRespUP.flowdataResp.LT = 1;
+    maliceMetadata.mdRespUP.flowdataResp.JT = 2;
+    maliceMetadata.mdRespUP.flowdataResp.minBW = 333;
+    maliceMetadata.mdRespUP.flowdataResp.maxBW = 444;
 
     maliceMetadata.hasMDRespDN = true;
-    maliceMetadata.mdRespDN.hasFlowdataResp = false;
+    maliceMetadata.mdRespDN.hasFlowdataResp = true;
+    maliceMetadata.mdRespDN.flowdataResp.DT = 3;
+    maliceMetadata.mdRespDN.flowdataResp.LT = 4;
+    maliceMetadata.mdRespDN.flowdataResp.JT = 2;
+    maliceMetadata.mdRespDN.flowdataResp.minBW = 111;
+    maliceMetadata.mdRespDN.flowdataResp.maxBW = 222;
 
     maliceMetadata.hasMDPeerCheck = true;
 

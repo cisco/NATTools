@@ -22,7 +22,7 @@
 
 #define MYPORT "4951"    // the port users will be connecting to
 
-#define MAXBUFLEN 200
+#define MAXBUFLEN 500
 
 static char password[] = "VOkJxbRl1RmTxUk/WvJxBt";
 const char *software_resp= "STUN server\0";
@@ -65,19 +65,59 @@ int main(void)
 
                 if (stunRequest.hasMDAgent)
                 {
-                    printf("hasMDAgent!\n");
+                    printf("mdAgent:\n");
+                    if(stunRequest.mdAgent.hasFlowdataReq)
+                    {
+                        printf("    Flowdata:\n");
+
+                        printf("        UP:\n");
+                        printf("            DT: %d LT: %d JT: %d minBW: %d maxBW: %d\n",
+                            stunRequest.mdAgent.flowdataReq.flowdataUP.DT,
+                            stunRequest.mdAgent.flowdataReq.flowdataUP.LT,
+                            stunRequest.mdAgent.flowdataReq.flowdataUP.JT,
+                            stunRequest.mdAgent.flowdataReq.flowdataUP.minBW,
+                            stunRequest.mdAgent.flowdataReq.flowdataUP.maxBW);
+
+                        printf("        DN:\n");
+                        printf("            DT: %d LT: %d JT: %d minBW: %d maxBW: %d\n",
+                            stunRequest.mdAgent.flowdataReq.flowdataDN.DT,
+                            stunRequest.mdAgent.flowdataReq.flowdataDN.LT,
+                            stunRequest.mdAgent.flowdataReq.flowdataDN.JT,
+                            stunRequest.mdAgent.flowdataReq.flowdataDN.minBW,
+                            stunRequest.mdAgent.flowdataReq.flowdataDN.maxBW);
+                    }
                 }
                 if (stunRequest.hasMDRespUP)
                 {
-                    printf("hasMDRespUP!\n");
+                    printf("mdRespUP:\n");
+                    if(stunRequest.mdRespUP.hasFlowdataResp)
+                    {
+                        printf("    Flowdata:\n");
+                        printf("        DT: %d LT: %d JT: %d minBW: %d maxBW: %d\n",
+                            stunRequest.mdRespUP.flowdataResp.DT,
+                            stunRequest.mdRespUP.flowdataResp.LT,
+                            stunRequest.mdRespUP.flowdataResp.JT,
+                            stunRequest.mdRespUP.flowdataResp.minBW,
+                            stunRequest.mdRespUP.flowdataResp.maxBW);
+                    }
                 }
                 if (stunRequest.hasMDRespDN)
                 {
-                    printf("hasMDRespDN!\n");
+                    printf("mdRespDN:\n");
+                    if(stunRequest.mdRespDN.hasFlowdataResp)
+                    {
+                        printf("    Flowdata:\n");
+                        printf("        DT: %d LT: %d JT: %d minBW: %d maxBW: %d\n",
+                            stunRequest.mdRespDN.flowdataResp.DT,
+                            stunRequest.mdRespDN.flowdataResp.LT,
+                            stunRequest.mdRespDN.flowdataResp.JT,
+                            stunRequest.mdRespDN.flowdataResp.minBW,
+                            stunRequest.mdRespDN.flowdataResp.maxBW);
+                    }
                 }
                 if (stunRequest.hasMDPeerCheck)
                 {
-                    printf("hasMDPeerCheck!\n");
+                    printf("mdPeerCheck!\n");
                 }
 
                 memset(&stunResponse, 0, sizeof(StunMessage));
@@ -91,7 +131,7 @@ int main(void)
                 stunResponse.software.sizeValue = strlen(software_resp);
 
                 if( their_addr.ss_family == AF_INET ) {
-                    printf("   Request was IPv4\n");
+                    printf("\nRequest was IPv4\n");
                     struct sockaddr *a = (struct sockaddr *)&their_addr;
                     struct sockaddr_in *b = (struct sockaddr_in *)a;
 
@@ -102,7 +142,7 @@ int main(void)
                 }
 
                 if( their_addr.ss_family == AF_INET6 ) {
-                    printf("   Request was IPv6\n");
+                    printf("Request was IPv6\n");
                     struct sockaddr *a = (struct sockaddr *)&their_addr;
                     struct sockaddr_in6 *b = (struct sockaddr_in6 *)a;
 
@@ -112,7 +152,7 @@ int main(void)
                                           htons(b->sin6_port));
                 }
 
-                printf("   Encoding response\n");
+                printf("Encoding response\n");
                 msg_len = stunlib_encodeMessage(&stunResponse,
                                                 response_buffer,
                                                 256,
@@ -122,7 +162,7 @@ int main(void)
                                                 false)  /* msice2 */;
 
 
-                printf("   Sending response\n\n");
+                printf("Sending response\n\n");
                 if ((numbytes = sendto(sockfd, response_buffer, msg_len, 0,
                                        (struct sockaddr *)&their_addr, sizeof their_addr)) == -1) {
                     perror("stunclient: sendto");
