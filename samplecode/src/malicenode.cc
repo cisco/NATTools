@@ -1,6 +1,5 @@
 #include <iostream>
 #include <iomanip>
-
 #include <cstdlib>
 #include <cstdio>
 
@@ -8,9 +7,10 @@
 #include <string.h>
 
 #include <netinet/in.h>
-
 #include <linux/netfilter.h>
 #include <libnetfilter_queue/libnetfilter_queue.h>
+
+#include <stunlib.h>
 
 #define UDP_HEADER_SIZE 8
 
@@ -30,15 +30,14 @@ static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
   int len = nfq_get_payload(pkt, &pktData);
   int ip_header_size = (pktData[0] & 0xF) * 4;
 
-  int offset = ip_header_size + UDP_HEADER_SIZE;
-  cout << "Offset to UDP data: " << offset << endl;
-
-  unsigned char magicCookie[] =  "\x21\x12\xa4\x42";
+  int udp_length = (pktData[ip_header_size + 4] << 4) + pktData[ip_header_size + 5];
+  int udp_data_offset = ip_header_size + UDP_HEADER_SIZE;
+  cout << "Offset to UDP data: " << udp_data_offset << " UDP data length: " << udp_length << endl;
 
   // Exchange this with stunlib_isStunMsg
-  if (memcmp((&pktData[offset + 4]), magicCookie, 4) == 0) {
-    cout << "Magic cookie found, this is a STUN packet:" << endl;
-  }
+  //if (memcmp((&pktData[udp_data_offset + 4]), magicCookie, 4) == 0) {
+  //  cout << "Magic cookie found, this is a STUN packet:" << endl;
+  //}
 
   // If not stunmsg, return ACCEPT verdict.
   // If it is, decode.
