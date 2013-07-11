@@ -428,7 +428,8 @@ static bool CreateConnectivityBindingResp(uint32_t threadCtx,
                                           StunMessage *stunMsg,
                                           StunMsgId transactionId,
                                           char *userName,
-                                          struct sockaddr *mappedSockAddr)
+                                          struct sockaddr *mappedSockAddr,
+                                          MaliceMetadata *maliceMetadata)
 {
     StunIPAddress mappedAddr;
 
@@ -469,6 +470,12 @@ static bool CreateConnectivityBindingResp(uint32_t threadCtx,
 
     /* Username */
     stunlib_addUserName(stunMsg, userName, STUN_DFLT_PAD);
+
+    if (maliceMetadata != NULL)
+    {
+        stunMsg->hasMaliceMetadata = true;
+        stunMsg->maliceMetadata = *maliceMetadata;
+    }
 
     return true;
 }
@@ -583,7 +590,7 @@ static bool SendConnectivityBindResponse(uint32_t         threadCtx,
 }
 
 /********* Server handling of STUN BIND RESP *************/
-void StunServer_SendConnectivityBindingResp(uint32_t             threadCtx,
+void StunServer_SendConnectivityBindingResp(uint32_t         threadCtx,
                                             int32_t          globalSocketId,
                                             StunMsgId        transactionId,
                                             char            *username,
@@ -595,7 +602,8 @@ void StunServer_SendConnectivityBindingResp(uint32_t             threadCtx,
                                             void            *userData,
                                             STUN_SENDFUNC    sendFunc,
                                             bool             useRelay,
-                                            int              turnInst)
+                                            int              turnInst,
+                                            MaliceMetadata  *maliceMetadata)
                                             
 {
     StunMessage stunRespMsg;
@@ -605,7 +613,8 @@ void StunServer_SendConnectivityBindingResp(uint32_t             threadCtx,
                                       &stunRespMsg, 
                                       transactionId, 
                                       username, 
-                                      mappedAddr))
+                                      mappedAddr,
+                                      maliceMetadata))
     {
         /* encode and send */
         SendConnectivityBindResponse(threadCtx, 

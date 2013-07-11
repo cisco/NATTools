@@ -89,7 +89,8 @@ int main(void)
                                                        NULL,
                                                        sendRawStun,
                                                        false,
-                                                       -1);
+                                                       -1,
+                                                       &stunRequest.maliceMetadata);
 
 
                 printf("Sending response\n\n");

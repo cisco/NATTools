@@ -149,6 +149,8 @@ int main(int argc, char *argv[])
 
                 StunClient_HandleIncResp(TEST_THREAD_CTX, &stunResponse, p->ai_addr);
 
+                printMalice(stunResponse);
+
                 break;
             }
         }

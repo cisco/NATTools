@@ -2752,12 +2752,12 @@ stunlib_encodeMessage(StunMessage* message,
         else if (message->msgHdr.msgType == STUN_MSG_BindResponseMsg || message->msgHdr.msgType == STUN_MSG_RefreshResponseMsg
                  || message->msgHdr.msgType == STUN_MSG_BindErrorResponseMsg || message->msgHdr.msgType == STUN_MSG_RefreshErrorResponseMsg)
         {
-            if (message->maliceMetadata.hasMDRespUP)
+            if (message->maliceMetadata.hasMDRespDN)
             {
                 int length = maliceEncodeResp(&message->maliceMetadata.mdRespDN,
                                               &pCurrPtr,
                                               &restlen,
-                                              true);
+                                              false);
                 printf("Encoding mdRespDN after integrity\n");
                 if (length == 0) printf("Failed to encode MD-RESP-DN after integrity\n"); // Dont return 0 just because of malice.
                 else

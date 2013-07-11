@@ -265,7 +265,8 @@ void StunServer_SendConnectivityBindingResp(uint32_t         threadCtx,
                                             void            *userData,
                                             STUN_SENDFUNC    sendFunc,
                                             bool             useRelay,
-                                            int          turnInst);
+                                            int              turnInst,
+                                            MaliceMetadata  *maliceMetadata);
 
 /********** Server handling:  incoming STUN BIND REQ **********/
 bool StunServer_HandleStunIncomingBindReqMsg(uint32_t     threadCtx,
