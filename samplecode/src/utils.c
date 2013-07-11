@@ -97,3 +97,63 @@ int sendRawStun(int sockfd,
 {
     return sendRawUDP(sockfd, buf, len, addr, t);
 }
+
+void printMalice(StunMessage stunRequest)
+{
+    if (stunRequest.hasMDAgent)
+    {
+        printf("\nmdAgent:\n");
+        if(stunRequest.mdAgent.hasFlowdataReq)
+        {
+            printf("    Flowdata:\n");
+
+            printf("        UP:\n");
+            printf("            DT: %d LT: %d JT: %d minBW: %d maxBW: %d\n",
+                stunRequest.mdAgent.flowdataReq.flowdataUP.DT,
+                stunRequest.mdAgent.flowdataReq.flowdataUP.LT,
+                stunRequest.mdAgent.flowdataReq.flowdataUP.JT,
+                stunRequest.mdAgent.flowdataReq.flowdataUP.minBW,
+                stunRequest.mdAgent.flowdataReq.flowdataUP.maxBW);
+
+            printf("        DN:\n");
+            printf("            DT: %d LT: %d JT: %d minBW: %d maxBW: %d\n",
+                stunRequest.mdAgent.flowdataReq.flowdataDN.DT,
+                stunRequest.mdAgent.flowdataReq.flowdataDN.LT,
+                stunRequest.mdAgent.flowdataReq.flowdataDN.JT,
+                stunRequest.mdAgent.flowdataReq.flowdataDN.minBW,
+                stunRequest.mdAgent.flowdataReq.flowdataDN.maxBW);
+        }
+    }
+    if (stunRequest.hasMDRespUP)
+    {
+        printf("mdRespUP:\n");
+        if(stunRequest.mdRespUP.hasFlowdataResp)
+        {
+            printf("    Flowdata:\n");
+            printf("        DT: %d LT: %d JT: %d minBW: %d maxBW: %d\n",
+                stunRequest.mdRespUP.flowdataResp.DT,
+                stunRequest.mdRespUP.flowdataResp.LT,
+                stunRequest.mdRespUP.flowdataResp.JT,
+                stunRequest.mdRespUP.flowdataResp.minBW,
+                stunRequest.mdRespUP.flowdataResp.maxBW);
+        }
+    }
+    if (stunRequest.hasMDRespDN)
+    {
+        printf("mdRespDN:\n");
+        if(stunRequest.mdRespDN.hasFlowdataResp)
+        {
+            printf("    Flowdata:\n");
+            printf("        DT: %d LT: %d JT: %d minBW: %d maxBW: %d\n",
+                stunRequest.mdRespDN.flowdataResp.DT,
+                stunRequest.mdRespDN.flowdataResp.LT,
+                stunRequest.mdRespDN.flowdataResp.JT,
+                stunRequest.mdRespDN.flowdataResp.minBW,
+                stunRequest.mdRespDN.flowdataResp.maxBW);
+        }
+    }
+    if (stunRequest.hasMDPeerCheck)
+    {
+        printf("mdPeerCheck!\n");
+    }
+}
