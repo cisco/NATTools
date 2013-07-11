@@ -40,16 +40,24 @@ static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
 
   bool isMsStun;
   if (!stunlib_isStunMsg(payload, udp_length, &isMsStun)) {
-    free(payload);
     cout << "NOT a STUN packet." << endl;
+    free(payload);
     return nfq_set_verdict(myQueue, id, NF_ACCEPT, 0, NULL);
   }
 
   cout << "Is a STUN packet." << endl;
 
+  StunMessage *stunPkt;
+
+  if (!stunlib_DecodeMessage(payload, udp_length, stunPkt, NULL, NULL, isMsStun)) {
+    cout << "Something went wrong in decoding..." << endl;
+    free(payload);
+    return nfq_set_verdict(myQueue, id, NF_ACCEPT, 0, NULL);
+  }
+
   // ---Exchange this with stunlib_isStunMsg
   // ---If not stunmsg, return ACCEPT verdict.
-  // If it is, decode.
+  // ---If it is, decode.
   // Find MD-AGENT and MD-RESP-UP/DN.
   // Print contents of all of them.
   // Do some change in whichever of RESP-UP/DN is outside the integrity.
