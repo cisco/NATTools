@@ -4,7 +4,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
-#define MAXBUFLEN 200 
+#define MAXBUFLEN 500
 int recvStunMsg(int sockfd, struct sockaddr_storage *their_addr, StunMessage *stunResponse, unsigned char *buf)
 {
     socklen_t addr_len = sizeof their_addr;
