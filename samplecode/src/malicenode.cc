@@ -47,9 +47,9 @@ static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
   }
   cout << "Is a STUN packet." << endl;
 
-  StunMessage *stunPkt;
+  StunMessage stunPkt;
 
-  if (!stunlib_DecodeMessage(payload, udp_length, stunPkt, NULL, stderr, isMsStun)) {
+  if (!stunlib_DecodeMessage(payload, udp_length, &stunPkt, NULL, NULL, isMsStun)) {
     cout << "Something went wrong in decoding..." << endl;
     free(payload);
     return nfq_set_verdict(myQueue, id, NF_ACCEPT, 0, NULL);
