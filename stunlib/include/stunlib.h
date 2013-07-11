@@ -446,29 +446,19 @@ typedef struct
 
 typedef struct
 {
-    uint8_t uDT;
-    uint8_t uLT;
-    uint8_t uJT;
-
-    uint8_t dDT;
-    uint8_t dLT;
-    uint8_t dJT;
-
-    uint32_t minBWup;
-    uint32_t minBWdn;
-    uint32_t maxBWup;
-    uint32_t maxBWdn;
-} MaliceFlowdataReq;
-
-typedef struct
-{
     uint8_t DT;
     uint8_t LT;
     uint8_t JT;
 
     uint32_t minBW;
     uint32_t maxBW;
-} MaliceFlowdataResp;
+} MaliceFlowdata;
+
+typedef struct
+{
+    MaliceFlowdata flowdataUP;
+    MaliceFlowdata flowdataDN;
+} MaliceFlowdataReq;
 
 typedef struct
 {
@@ -479,7 +469,7 @@ typedef struct
 typedef struct
 {
     bool hasFlowdataResp;
-    MaliceFlowdataResp flowdataResp;
+    MaliceFlowdata flowdataResp;
 } MaliceAttrResp;
 
 typedef struct
