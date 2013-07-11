@@ -21,7 +21,8 @@
 
 #include "utils.h"
 
-#define SERVERPORT "4951" // the port users will be connecting to
+#define SERVERPORT "4950"    // the port users will be connecting to
+
 static const uint32_t TEST_THREAD_CTX = 1;
 
 static void *tickTurn(void *ptr);
