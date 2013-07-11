@@ -34,12 +34,21 @@ static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
   int udp_data_offset = ip_header_size + UDP_HEADER_SIZE;
   cout << "Offset to UDP data: " << udp_data_offset << " UDP data length: " << udp_length << endl;
 
-  // Exchange this with stunlib_isStunMsg
-  //if (memcmp((&pktData[udp_data_offset + 4]), magicCookie, 4) == 0) {
-  //  cout << "Magic cookie found, this is a STUN packet:" << endl;
-  //}
+  unsigned char *payload = (unsigned char *)malloc((size_t)udp_length);
 
-  // If not stunmsg, return ACCEPT verdict.
+  memcpy(payload, &pktData[udp_data_offset], (size_t)udp_length);
+
+  bool isMsStun;
+  if (!stunlib_isStunMsg(payload, udp_length, &isMsStun)) {
+    free(payload);
+    cout << "NOT a STUN packet." << endl;
+    return nfq_set_verdict(myQueue, id, NF_ACCEPT, 0, NULL);
+  }
+
+  cout << "Is a STUN packet." << endl;
+
+  // ---Exchange this with stunlib_isStunMsg
+  // ---If not stunmsg, return ACCEPT verdict.
   // If it is, decode.
   // Find MD-AGENT and MD-RESP-UP/DN.
   // Print contents of all of them.
@@ -47,6 +56,7 @@ static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
   // Recalculate IP, UDP and STUN checksums/fingerprints.
   // Return verdict WITH changed packet.
 
+  free(payload);
   return nfq_set_verdict(myQueue, id, NF_ACCEPT, 0, NULL);
 }
 
