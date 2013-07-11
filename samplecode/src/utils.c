@@ -100,59 +100,59 @@ int sendRawStun(int sockfd,
 
 void printMalice(StunMessage stunRequest)
 {
-    if (stunRequest.hasMDAgent)
+    if (stunRequest.maliceMetadata.hasMDAgent)
     {
         printf("\nmdAgent:\n");
-        if(stunRequest.mdAgent.hasFlowdataReq)
+        if(stunRequest.maliceMetadata.mdAgent.hasFlowdataReq)
         {
             printf("    Flowdata:\n");
 
             printf("        UP:\n");
             printf("            DT: %d LT: %d JT: %d minBW: %d maxBW: %d\n",
-                stunRequest.mdAgent.flowdataReq.flowdataUP.DT,
-                stunRequest.mdAgent.flowdataReq.flowdataUP.LT,
-                stunRequest.mdAgent.flowdataReq.flowdataUP.JT,
-                stunRequest.mdAgent.flowdataReq.flowdataUP.minBW,
-                stunRequest.mdAgent.flowdataReq.flowdataUP.maxBW);
+                stunRequest.maliceMetadata.mdAgent.flowdataReq.flowdataUP.DT,
+                stunRequest.maliceMetadata.mdAgent.flowdataReq.flowdataUP.LT,
+                stunRequest.maliceMetadata.mdAgent.flowdataReq.flowdataUP.JT,
+                stunRequest.maliceMetadata.mdAgent.flowdataReq.flowdataUP.minBW,
+                stunRequest.maliceMetadata.mdAgent.flowdataReq.flowdataUP.maxBW);
 
             printf("        DN:\n");
             printf("            DT: %d LT: %d JT: %d minBW: %d maxBW: %d\n",
-                stunRequest.mdAgent.flowdataReq.flowdataDN.DT,
-                stunRequest.mdAgent.flowdataReq.flowdataDN.LT,
-                stunRequest.mdAgent.flowdataReq.flowdataDN.JT,
-                stunRequest.mdAgent.flowdataReq.flowdataDN.minBW,
-                stunRequest.mdAgent.flowdataReq.flowdataDN.maxBW);
+                stunRequest.maliceMetadata.mdAgent.flowdataReq.flowdataDN.DT,
+                stunRequest.maliceMetadata.mdAgent.flowdataReq.flowdataDN.LT,
+                stunRequest.maliceMetadata.mdAgent.flowdataReq.flowdataDN.JT,
+                stunRequest.maliceMetadata.mdAgent.flowdataReq.flowdataDN.minBW,
+                stunRequest.maliceMetadata.mdAgent.flowdataReq.flowdataDN.maxBW);
         }
     }
-    if (stunRequest.hasMDRespUP)
+    if (stunRequest.maliceMetadata.hasMDRespUP)
     {
         printf("mdRespUP:\n");
-        if(stunRequest.mdRespUP.hasFlowdataResp)
+        if(stunRequest.maliceMetadata.mdRespUP.hasFlowdataResp)
         {
             printf("    Flowdata:\n");
             printf("        DT: %d LT: %d JT: %d minBW: %d maxBW: %d\n",
-                stunRequest.mdRespUP.flowdataResp.DT,
-                stunRequest.mdRespUP.flowdataResp.LT,
-                stunRequest.mdRespUP.flowdataResp.JT,
-                stunRequest.mdRespUP.flowdataResp.minBW,
-                stunRequest.mdRespUP.flowdataResp.maxBW);
+                stunRequest.maliceMetadata.mdRespUP.flowdataResp.DT,
+                stunRequest.maliceMetadata.mdRespUP.flowdataResp.LT,
+                stunRequest.maliceMetadata.mdRespUP.flowdataResp.JT,
+                stunRequest.maliceMetadata.mdRespUP.flowdataResp.minBW,
+                stunRequest.maliceMetadata.mdRespUP.flowdataResp.maxBW);
         }
     }
-    if (stunRequest.hasMDRespDN)
+    if (stunRequest.maliceMetadata.hasMDRespDN)
     {
         printf("mdRespDN:\n");
-        if(stunRequest.mdRespDN.hasFlowdataResp)
+        if(stunRequest.maliceMetadata.mdRespDN.hasFlowdataResp)
         {
             printf("    Flowdata:\n");
             printf("        DT: %d LT: %d JT: %d minBW: %d maxBW: %d\n",
-                stunRequest.mdRespDN.flowdataResp.DT,
-                stunRequest.mdRespDN.flowdataResp.LT,
-                stunRequest.mdRespDN.flowdataResp.JT,
-                stunRequest.mdRespDN.flowdataResp.minBW,
-                stunRequest.mdRespDN.flowdataResp.maxBW);
+                stunRequest.maliceMetadata.mdRespDN.flowdataResp.DT,
+                stunRequest.maliceMetadata.mdRespDN.flowdataResp.LT,
+                stunRequest.maliceMetadata.mdRespDN.flowdataResp.JT,
+                stunRequest.maliceMetadata.mdRespDN.flowdataResp.minBW,
+                stunRequest.maliceMetadata.mdRespDN.flowdataResp.maxBW);
         }
     }
-    if (stunRequest.hasMDPeerCheck)
+    if (stunRequest.maliceMetadata.hasMDPeerCheck)
     {
         printf("mdPeerCheck!\n");
     }

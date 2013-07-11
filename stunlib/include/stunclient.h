@@ -78,20 +78,6 @@ typedef struct
     struct sockaddr_storage dstBaseAddrStr; //The destination seen from the sender of the response
 } StunCallBackData_T;
 
-/******************* start MALICE specific ************************/
-typedef struct
-{
-    bool                    hasMDAgent;
-    MaliceAttrAgent         mdAgent;
-    bool                    hasMDRespUP;
-    MaliceAttrResp          mdRespUP;
-    bool                    hasMDRespDN;
-    MaliceAttrResp          mdRespDN;
-    bool                    hasMDPeerCheck;
-    MaliceAttrPeerCheck     mdPeerCheck;
-} MaliceMetadata;
-
-/******************* end MALICE specific ************************/
 
 /* category of info sent in STUN_INFO_FUNC */
 typedef enum

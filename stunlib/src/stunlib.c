@@ -2086,43 +2086,47 @@ stunlib_DecodeMessage(unsigned char* buf,
             /******************************/
 
             case MALICE_ATTR_MD_AGENT:
-                if(!maliceDecodeAgent(&message->mdAgent,
+                if(!maliceDecodeAgent(&message->maliceMetadata.mdAgent,
                                       &pCurrPtr,
                                       &restlen,
                                       sAtr.length))
                     printf("failed to decode MD-AGENT\n"); //dont return false because of malice decode failure
                 else 
-                    message->hasMDAgent = true;
+                    message->hasMaliceMetadata = true;
+                    message->maliceMetadata.hasMDAgent = true;
                 break;
 
             case MALICE_ATTR_MD_RESP_UP:
-                if(!maliceDecodeResp(&message->mdRespUP,
+                if(!maliceDecodeResp(&message->maliceMetadata.mdRespUP,
                                      &pCurrPtr,
                                      &restlen,
                                      sAtr.length)) 
                     printf("failed to decode MD-RESP_UP\n"); //dont return false because of malice decode failure
                 else 
-                    message->hasMDRespUP = true;
+                    message->hasMaliceMetadata = true;
+                    message->maliceMetadata.hasMDRespUP = true;
                 break;
 
             case MALICE_ATTR_MD_RESP_DN:
-                if(!maliceDecodeResp(&message->mdRespDN,
+                if(!maliceDecodeResp(&message->maliceMetadata.mdRespDN,
                                      &pCurrPtr,
                                      &restlen,
                                      sAtr.length)) 
                     printf("failed to decode MD-RESP-DN\n"); //dont return false because of malice decode failure
                 else 
-                    message->hasMDRespDN = true;
+                    message->hasMaliceMetadata = true;
+                    message->maliceMetadata.hasMDRespDN = true;
                 break;
 
             case MALICE_ATTR_MD_PEER_CHECK:
-                if(!maliceDecodeMDPeerCheck(&message->mdPeerCheck,
+                if(!maliceDecodeMDPeerCheck(&message->maliceMetadata.mdPeerCheck,
                                             &pCurrPtr,
                                             &restlen,
                                             sAtr.length))
                     printf("failed to decode MD-PEER-CHECK\n"); //dont return false because of malice decode failure
                 else
-                    message->hasMDPeerCheck = true;
+                    message->hasMaliceMetadata = true;
+                    message->maliceMetadata.hasMDPeerCheck = true;
                 break;
 
             /******************************/
@@ -2634,44 +2638,47 @@ stunlib_encodeMessage(StunMessage* message,
     /********************************* start MALICE specific encoding ***********************************************/
     /****************************************************************************************************************/
 
-    if (message->hasMDAgent && !maliceEncodeAgent(&message->mdAgent,
-                                                  &pCurrPtr,
-                                                  &restlen))
+    if(message->hasMaliceMetadata)
     {
-        printf("Failed to encode MD-AGENT\n");
-        // Dont return 0 just because of malice.
-    }
+        if (message->maliceMetadata.hasMDAgent && !maliceEncodeAgent(&message->maliceMetadata.mdAgent,
+                                                      &pCurrPtr,
+                                                      &restlen))
+        {
+            printf("Failed to encode MD-AGENT\n");
+            // Dont return 0 just because of malice.
+        }
 
-    if (message->msgHdr.msgType == STUN_MSG_BindRequestMsg || message->msgHdr.msgType == STUN_MSG_RefreshRequestMsg)
-    {
-        if (message->hasMDRespDN && !maliceEncodeResp(&message->mdRespDN,
-                                                      &pCurrPtr,
-                                                      &restlen,
-                                                      false))
+        if (message->msgHdr.msgType == STUN_MSG_BindRequestMsg || message->msgHdr.msgType == STUN_MSG_RefreshRequestMsg)
         {
-            printf("Failed to encode MD-RESP-DN before integrity\n");
-            // Dont return 0 just because of malice.
-        }
-    }
-    else if (message->msgHdr.msgType == STUN_MSG_BindResponseMsg || message->msgHdr.msgType == STUN_MSG_RefreshResponseMsg
-             || message->msgHdr.msgType == STUN_MSG_BindErrorResponseMsg || message->msgHdr.msgType == STUN_MSG_RefreshErrorResponseMsg)
-    {
-        if (message->hasMDRespUP && !maliceEncodeResp(&message->mdRespUP,
-                                                      &pCurrPtr,
-                                                      &restlen,
-                                                      true))
-        {
-            printf("Failed to encode MD-RESP-UP before integrity\n");
-            // Dont return 0 just because of malice.
-        }
-    }
-    
-    if (message->hasMDPeerCheck && !maliceEncodePeerCheck(&message->mdPeerCheck,
+            if (message->maliceMetadata.hasMDRespDN && !maliceEncodeResp(&message->maliceMetadata.mdRespDN,
                                                           &pCurrPtr,
-                                                          &restlen))
-    {
-        printf("Failed to encode MD-PEER-CHECK\n");
-        // Dont return 0 just because of malice.
+                                                          &restlen,
+                                                          false))
+            {
+                printf("Failed to encode MD-RESP-DN before integrity\n");
+                // Dont return 0 just because of malice.
+            }
+        }
+        else if (message->msgHdr.msgType == STUN_MSG_BindResponseMsg || message->msgHdr.msgType == STUN_MSG_RefreshResponseMsg
+                 || message->msgHdr.msgType == STUN_MSG_BindErrorResponseMsg || message->msgHdr.msgType == STUN_MSG_RefreshErrorResponseMsg)
+        {
+            if (message->maliceMetadata.hasMDRespUP && !maliceEncodeResp(&message->maliceMetadata.mdRespUP,
+                                                          &pCurrPtr,
+                                                          &restlen,
+                                                          true))
+            {
+                printf("Failed to encode MD-RESP-UP before integrity\n");
+                // Dont return 0 just because of malice.
+            }
+        }
+        
+        if (message->maliceMetadata.hasMDPeerCheck && !maliceEncodePeerCheck(&message->maliceMetadata.mdPeerCheck,
+                                                              &pCurrPtr,
+                                                              &restlen))
+        {
+            printf("Failed to encode MD-PEER-CHECK\n");
+            // Dont return 0 just because of malice.
+        }
     }
 
     /****************************************************************************************************************/
@@ -2723,39 +2730,41 @@ stunlib_encodeMessage(StunMessage* message,
     /********************************* start MALICE specific encoding ***********************************************/
     /****************************************************************************************************************/
 
-
-    if (message->msgHdr.msgType == STUN_MSG_BindRequestMsg || message->msgHdr.msgType == STUN_MSG_RefreshRequestMsg)
+    if(message->hasMaliceMetadata)
     {
-        if (message->hasMDRespUP)
+        if (message->msgHdr.msgType == STUN_MSG_BindRequestMsg || message->msgHdr.msgType == STUN_MSG_RefreshRequestMsg)
         {
-            int length = maliceEncodeResp(&message->mdRespUP,
-                                          &pCurrPtr,
-                                          &restlen,
-                                          true);
-            printf("Encoding mdRespUP after integrity\n");
-            if (length == 0) printf("Failed to encode MD-RESP-UP after integrity\n"); // Dont return 0 just because of malice.
-            else
+            if (message->maliceMetadata.hasMDRespUP)
             {
-                message->msgHdr.msgLength += length;
-                msglen += length;
+                int length = maliceEncodeResp(&message->maliceMetadata.mdRespUP,
+                                              &pCurrPtr,
+                                              &restlen,
+                                              true);
+                printf("Encoding mdRespUP after integrity\n");
+                if (length == 0) printf("Failed to encode MD-RESP-UP after integrity\n"); // Dont return 0 just because of malice.
+                else
+                {
+                    message->msgHdr.msgLength += length;
+                    msglen += length;
+                }
             }
         }
-    }
-    else if (message->msgHdr.msgType == STUN_MSG_BindResponseMsg || message->msgHdr.msgType == STUN_MSG_RefreshResponseMsg
-             || message->msgHdr.msgType == STUN_MSG_BindErrorResponseMsg || message->msgHdr.msgType == STUN_MSG_RefreshErrorResponseMsg)
-    {
-        if (message->hasMDRespUP)
+        else if (message->msgHdr.msgType == STUN_MSG_BindResponseMsg || message->msgHdr.msgType == STUN_MSG_RefreshResponseMsg
+                 || message->msgHdr.msgType == STUN_MSG_BindErrorResponseMsg || message->msgHdr.msgType == STUN_MSG_RefreshErrorResponseMsg)
         {
-            int length = maliceEncodeResp(&message->mdRespDN,
-                                          &pCurrPtr,
-                                          &restlen,
-                                          true);
-            printf("Encoding mdRespDN after integrity\n");
-            if (length == 0) printf("Failed to encode MD-RESP-DN after integrity\n"); // Dont return 0 just because of malice.
-            else
+            if (message->maliceMetadata.hasMDRespUP)
             {
-                message->msgHdr.msgLength += length;
-                msglen += length;
+                int length = maliceEncodeResp(&message->maliceMetadata.mdRespDN,
+                                              &pCurrPtr,
+                                              &restlen,
+                                              true);
+                printf("Encoding mdRespDN after integrity\n");
+                if (length == 0) printf("Failed to encode MD-RESP-DN after integrity\n"); // Dont return 0 just because of malice.
+                else
+                {
+                    message->msgHdr.msgLength += length;
+                    msglen += length;
+                }
             }
         }
     }
