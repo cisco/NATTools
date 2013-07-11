@@ -30,10 +30,11 @@ static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
   int len = nfq_get_payload(pkt, &pktData);
   int ip_header_size = (pktData[0] & 0xF) * 4;
 
-  int udp_length = (pktData[ip_header_size + 4] << 4) + pktData[ip_header_size + 5];
+  int udp_length = (pktData[ip_header_size + 4] << 8) + pktData[ip_header_size + 5];
   int udp_data_offset = ip_header_size + UDP_HEADER_SIZE;
   cout << "Offset to UDP data: " << udp_data_offset << " UDP data length: " << udp_length << endl;
 
+  // Not pretty... Should really rewrite to pure c.
   unsigned char *payload = (unsigned char *)malloc((size_t)udp_length);
 
   memcpy(payload, &pktData[udp_data_offset], (size_t)udp_length);
@@ -44,7 +45,6 @@ static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
     free(payload);
     return nfq_set_verdict(myQueue, id, NF_ACCEPT, 0, NULL);
   }
-
   cout << "Is a STUN packet." << endl;
 
   StunMessage *stunPkt;
@@ -54,6 +54,7 @@ static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
     free(payload);
     return nfq_set_verdict(myQueue, id, NF_ACCEPT, 0, NULL);
   }
+  cout << "Message decoded fine." << endl;
 
   // ---Exchange this with stunlib_isStunMsg
   // ---If not stunmsg, return ACCEPT verdict.
