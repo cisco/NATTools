@@ -59,13 +59,14 @@ static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
   cout << "Message decoded fine." << endl;
 
   if ((stunPkt.msgHdr.msgType == STUN_MSG_BindRequestMsg
-      || stunPkt.msgHdr.msgType == STUN_MSG_RefreshRequestMsg) && stunPkt.hasMDRespUP) {
-    if (stunPkt.mdRespUP.hasFlowdataResp) {
-      stunPkt.mdRespUP.flowdataResp.DT = 5;
-      stunPkt.mdRespUP.flowdataResp.LT = 5;
-      stunPkt.mdRespUP.flowdataResp.JT = 5;
-      stunPkt.mdRespUP.flowdataResp.minBW = 42;
-      stunPkt.mdRespUP.flowdataResp.maxBW = 31337;
+      || stunPkt.msgHdr.msgType == STUN_MSG_RefreshRequestMsg)
+      && stunPkt.hasMaliceMetadata && stunPkt.maliceMetadata.hasMDRespUP) {
+    if (stunPkt.maliceMetadata.mdRespUP.hasFlowdataResp) {
+      stunPkt.maliceMetadata.mdRespUP.flowdataResp.DT = 5;
+      stunPkt.maliceMetadata.mdRespUP.flowdataResp.LT = 5;
+      stunPkt.maliceMetadata.mdRespUP.flowdataResp.JT = 5;
+      stunPkt.maliceMetadata.mdRespUP.flowdataResp.minBW = 42;
+      stunPkt.maliceMetadata.mdRespUP.flowdataResp.maxBW = 31337;
       cout << "Changing MD-RESP-UP to some sweet, sweet bandwith and stuff." << endl;
     }
   }
