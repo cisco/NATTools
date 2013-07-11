@@ -49,7 +49,7 @@ static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
 
   StunMessage *stunPkt;
 
-  if (!stunlib_DecodeMessage(payload, udp_length, stunPkt, NULL, NULL, isMsStun)) {
+  if (!stunlib_DecodeMessage(payload, udp_length, stunPkt, NULL, stderr, isMsStun)) {
     cout << "Something went wrong in decoding..." << endl;
     free(payload);
     return nfq_set_verdict(myQueue, id, NF_ACCEPT, 0, NULL);
