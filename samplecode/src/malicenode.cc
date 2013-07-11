@@ -9,10 +9,8 @@
 
 #include <netinet/in.h>
 
-extern "C" {
-  #include <linux/netfilter.h>
-  #include <libnetfilter_queue/libnetfilter_queue.h>
-}
+#include <linux/netfilter.h>
+#include <libnetfilter_queue/libnetfilter_queue.h>
 
 #define UDP_HEADER_SIZE 8
 
@@ -37,9 +35,18 @@ static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
 
   unsigned char magicCookie[] =  "\x21\x12\xa4\x42";
 
+  // Exchange this with stunlib_isStunMsg
   if (memcmp((&pktData[offset + 4]), magicCookie, 4) == 0) {
-    cout << "Magic cookie found, this is a STUN packet." << endl;
+    cout << "Magic cookie found, this is a STUN packet:" << endl;
   }
+
+  // If not stunmsg, return ACCEPT verdict.
+  // If it is, decode.
+  // Find MD-AGENT and MD-RESP-UP/DN.
+  // Print contents of all of them.
+  // Do some change in whichever of RESP-UP/DN is outside the integrity.
+  // Recalculate IP, UDP and STUN checksums/fingerprints.
+  // Return verdict WITH changed packet.
 
   return nfq_set_verdict(myQueue, id, NF_ACCEPT, 0, NULL);
 }
