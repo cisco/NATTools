@@ -1676,9 +1676,16 @@ stunlib_DecodeMessage(unsigned char* buf,
     int restlen = bufLen;
     StunAtrHdr sAtr;
 
-    if (!buf || !message)
+    if (!buf)
     {
-        if (stream != NULL) printError(stderr, "No buffer or no message recieved\n");
+        if (stream != NULL) printError(stderr, "No buffer recieved\n");
+        return false;
+    }
+
+
+    if (!message)
+    {
+        if (stream != NULL) printError(stderr, "No message recieved\n");
         return false;
     }
 
