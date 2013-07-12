@@ -157,7 +157,6 @@ uint16_t udp_checksum(char *buff, size_t len, uint16_t *ip_src, uint16_t *ip_dst
   uint32_t sum;
   size_t length = len;
 
-  // Calculate the sum
   sum = 0;
   while (len > 1)
   {
@@ -168,10 +167,8 @@ uint16_t udp_checksum(char *buff, size_t len, uint16_t *ip_src, uint16_t *ip_dst
   }
 
   if ( len & 1 )
-    // Add the padding if the packet length
     sum += *((uint8_t *)buf);
 
-  // Add the pseudo-header
   sum += *(ip_src++);
   sum += *ip_src;
 
@@ -181,10 +178,8 @@ uint16_t udp_checksum(char *buff, size_t len, uint16_t *ip_src, uint16_t *ip_dst
   sum += htons(IPPROTO_UDP);
   sum += htons(length);
 
-  // Add the carries
   while (sum >> 16)
     sum = (sum & 0xFFFF) + (sum >> 16);
 
-  // Return the one's complement of sum
   return (uint16_t)(~sum);
 }
