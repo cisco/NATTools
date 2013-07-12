@@ -22,7 +22,7 @@
 
 #define MYPORT "4950"    // the port users will be connecting to
 
-#define MAXBUFLEN 200
+#define MAXBUFLEN 500
 
 static char password[] = "VOkJxbRl1RmTxUk/WvJxBt";
 const char *software_resp= "STUN server\0";
