@@ -91,8 +91,7 @@ static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
   memcpy(&pktData[udp_data_offset], payload, (size_t)udp_payload_length);
 
   // UDP Checksum recalculation.
-  pktData[ip_header_size + 6] = 0x00; 
-  pktData[ip_header_size + 7] = 0x00; 
+  memset(&pktData[ip_header_size + 6], 0x00, 2);
   uint16_t *ip_src = (uint16_t *) (pktData + 3 * 4), *ip_dst = (uint16_t *) (pktData + 4 * 4);
   uint16_t checksum = htonl(udp_checksum(&pktData[ip_header_size], udp_length, ip_src, ip_dst));
   pktData[ip_header_size + 6] = (checksum >> 8) & 0xFF;
