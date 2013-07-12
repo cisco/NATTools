@@ -477,6 +477,18 @@ typedef struct
     uint16_t peerMaliceCheckResult;
 } MaliceAttrPeerCheck;
 
+typedef struct
+{
+    bool                    hasMDAgent;
+    MaliceAttrAgent         mdAgent;
+    bool                    hasMDRespUP;
+    MaliceAttrResp          mdRespUP;
+    bool                    hasMDRespDN;
+    MaliceAttrResp          mdRespDN;
+    bool                    hasMDPeerCheck;
+    MaliceAttrPeerCheck     mdPeerCheck;
+} MaliceMetadata;
+
 /****************************************************************************************************************/
 /****************************************** end MALICE specific *************************************************/
 /****************************************************************************************************************/
@@ -591,17 +603,20 @@ typedef struct
     /****************************************** start MALICE specific *************************************************/
     /****************************************************************************************************************/
 
-    bool hasMDAgent;
-    MaliceAttrAgent mdAgent;
+    bool hasMaliceMetadata;
+    MaliceMetadata maliceMetadata;
+    
+    // bool hasMDAgent;
+    // MaliceAttrAgent mdAgent;
 
-    bool hasMDRespUP;
-    MaliceAttrResp mdRespUP;
+    // bool hasMDRespUP;
+    // MaliceAttrResp mdRespUP;
 
-    bool hasMDRespDN;
-    MaliceAttrResp mdRespDN;
+    // bool hasMDRespDN;
+    // MaliceAttrResp mdRespDN;
 
-    bool hasMDPeerCheck;
-    MaliceAttrPeerCheck mdPeerCheck;
+    // bool hasMDPeerCheck;
+    // MaliceAttrPeerCheck mdPeerCheck;
 
     /****************************************************************************************************************/
     /****************************************** end MALICE specific *************************************************/
