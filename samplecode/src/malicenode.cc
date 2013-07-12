@@ -17,6 +17,8 @@
 
 using namespace std;
 
+uint16_t udp_checksum(char *buff, size_t len, uint16_t *src_addr, uint16_t *dest_addr);
+
 static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
                     nfq_data *pkt, void *cbData)
 {
@@ -78,53 +80,10 @@ static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
 
   //////////////////////////////////
   // UDP Checksum
-  int sum = 0;
 
-  // Protocol
-  uint16_t *ptr = (uint16_t*)pktData + 8;
-  sum += *ptr & 0xFF;
-  ptr++;
-
-  // Source address
-  sum += *ptr;
-  ptr++;
-  sum += *ptr;
-  ptr++;
-
-  // Destination address
-  sum += *ptr;
-  ptr++;
-  sum += *ptr;
-  ptr++;
-
-  // UDP packet length
-  sum += udp_length + 8;
-
-  // Source port
-  sum += *ptr;
-  ptr++;
-
-  // Destination port
-  sum += *ptr;
-  ptr++;
-
-  // Payload length
-  sum += *ptr;
-  ptr += 2; // Skipping checksum
-
-  uint16_t *i = ptr + udp_length;
-  while (ptr < i) {
-    sum += *ptr;
-    ptr++;
-  }
-
-  while ((sum >> 16) != 0x0000) {
-    sum = (sum >> 16) + (sum & 0xFFFF);
-  }
-
-  uint16_t checksum = ~(sum & 0xFFFF);
-
-  pktData[ip_header_size + 6] = checksum >> 8 & 0xFF;
+  uint16_t *ip_src = (uint16_t *) pktData + 3 * 4, *ip_dst = (uint16_t *) pktData + 4 * 4;
+  uint16_t checksum = udp_checksum(&pktData[ip_header_size], udp_length + 8, ip_src, ip_dst);
+  pktData[ip_header_size + 6] = (checksum >> 8) & 0xFF;
   pktData[ip_header_size + 7] = checksum & 0xFF;
 
   //////////////////////////////////////////////////////////
@@ -190,4 +149,42 @@ int main(int argc, char **argv)
   nfq_close(nfqHandle);
 
   return 0;
+}
+
+uint16_t udp_checksum(char *buff, size_t len, uint16_t *ip_src, uint16_t *ip_dst)
+{
+  uint16_t *buf = (uint16_t *)buff;
+  uint32_t sum;
+  size_t length=len;
+
+  // Calculate the sum                                            //
+  sum = 0;
+  while (len > 1)
+  {
+    sum += *buf++;
+    if (sum & 0x80000000)
+           sum = (sum & 0xFFFF) + (sum >> 16);
+    len -= 2;
+  }
+
+  if ( len & 1 )
+    // Add the padding if the packet lenght is odd          //
+    sum += *((uint8_t *)buf);
+
+  // Add the pseudo-header                                        //
+  sum += *(ip_src++);
+  sum += *ip_src;
+
+  sum += *(ip_dst++);
+  sum += *ip_dst;
+
+  sum += htons(IPPROTO_UDP);
+  sum += htons(length);
+
+  // Add the carries                                              //
+  while (sum >> 16)
+    sum = (sum & 0xFFFF) + (sum >> 16);
+
+  // Return the one's complement of sum                           //
+  return ( (uint16_t)(~sum)  );
 }
