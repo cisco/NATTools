@@ -80,8 +80,8 @@ static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
   int sum = 0;
 
   // Protocol
-  uint16_t *ptr = (uint16_t*)pktData + 8;
-  sum += *ptr & 0xFF;
+  //uint16_t *ptr = (uint16_t*)pktData + 8;
+  sum += htons(17);//*ptr & 0xFF;
   ptr++;
 
   // Source address
@@ -97,7 +97,7 @@ static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
   ptr++;
 
   // UDP packet length
-  sum += udp_length + 8;
+  sum += htons(udp_length + 8);
 
   // Source port
   sum += *ptr;
@@ -117,11 +117,11 @@ static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
     ptr++;
   }
 
-  while ((sum >> 16) != 0x0000) {
+  while (sum >> 16) {
     sum = (sum >> 16) + (sum & 0xFFFF);
   }
 
-  uint16_t checksum = ~(sum & 0xFFFF);
+  uint16_t checksum = ~(sum);
 
   pktData[ip_header_size + 6] = checksum >> 8 & 0xFF;
   pktData[ip_header_size + 7] = checksum & 0xFF;
