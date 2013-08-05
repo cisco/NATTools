@@ -301,7 +301,8 @@ int  StunClient_startBindTransaction(uint32_t            threadCtx,
                                      uint32_t           *timeoutList,
                                      STUNCB              stunCbFunc,
                                      StunCallBackData_T *stunCbData,
-                                     int                 turnInst)
+                                     int                 turnInst,
+                                     MaliceMetadata     *maliceMetadata) // nullptr if no malicedata should be sent.
 {
 
 
@@ -317,19 +318,19 @@ int  StunClient_startBindTransaction(uint32_t            threadCtx,
     }
     memset(&m, 0, sizeof(m));
     m.threadCtx = threadCtx;
-    m.userCtx        = userCtx;
+    m.userCtx = userCtx;
     sockaddr_copy((struct sockaddr *)&m.serverAddr, serverAddr);
     sockaddr_copy((struct sockaddr *)&m.baseAddr, baseAddr);
     strncpy(m.ufrag, ufrag, sizeof(m.ufrag));
-    strncpy(m.password,   password, sizeof(m.password));
+    strncpy(m.password, password, sizeof(m.password));
     m.useRelay = useRelay;
     m.peerPriority = peerPriority;
     m.useCandidate = useCandidate;
     m.iceControlling = iceControlling;
     m.tieBreaker = tieBreaker;
     m.transactionId = transactionId;
-    m.sockhandle     = sockhandle;
-    m.sendFunc       = sendFunc;
+    m.sockhandle = sockhandle;
+    m.sendFunc = sendFunc;
     m.turnInst = turnInst;
 
     /* use default timeout list if none provided */
@@ -346,6 +347,14 @@ int  StunClient_startBindTransaction(uint32_t            threadCtx,
     /* callback and  data (owned by caller) */
     m.stunCbFunc = stunCbFunc;
     m.stunCbData = stunCbData;
+
+
+    /******************************** start MALICE specific ******************************/
+
+    m.maliceMetadata = maliceMetadata;
+
+    /******************************** start MALICE specific ******************************/
+
     ret = StunClientMain(threadCtx, STUNCLIENT_CTX_UNKNOWN, STUN_SIGNAL_BindReq, (uint8_t*)&m);
     return ret;
 }
@@ -419,7 +428,8 @@ static bool CreateConnectivityBindingResp(uint32_t threadCtx,
                                           StunMessage *stunMsg,
                                           StunMsgId transactionId,
                                           char *userName,
-                                          struct sockaddr *mappedSockAddr)
+                                          struct sockaddr *mappedSockAddr,
+                                          MaliceMetadata *maliceMetadata)
 {
     StunIPAddress mappedAddr;
 
@@ -460,6 +470,12 @@ static bool CreateConnectivityBindingResp(uint32_t threadCtx,
 
     /* Username */
     stunlib_addUserName(stunMsg, userName, STUN_DFLT_PAD);
+
+    if (maliceMetadata != NULL)
+    {
+        stunMsg->hasMaliceMetadata = true;
+        stunMsg->maliceMetadata = *maliceMetadata;
+    }
 
     return true;
 }
@@ -574,7 +590,7 @@ static bool SendConnectivityBindResponse(uint32_t         threadCtx,
 }
 
 /********* Server handling of STUN BIND RESP *************/
-void StunServer_SendConnectivityBindingResp(uint32_t             threadCtx,
+void StunServer_SendConnectivityBindingResp(uint32_t         threadCtx,
                                             int32_t          globalSocketId,
                                             StunMsgId        transactionId,
                                             char            *username,
@@ -586,7 +602,8 @@ void StunServer_SendConnectivityBindingResp(uint32_t             threadCtx,
                                             void            *userData,
                                             STUN_SENDFUNC    sendFunc,
                                             bool             useRelay,
-                                            int              turnInst)
+                                            int              turnInst,
+                                            MaliceMetadata  *maliceMetadata)
                                             
 {
     StunMessage stunRespMsg;
@@ -596,7 +613,8 @@ void StunServer_SendConnectivityBindingResp(uint32_t             threadCtx,
                                       &stunRespMsg, 
                                       transactionId, 
                                       username, 
-                                      mappedAddr))
+                                      mappedAddr,
+                                      maliceMetadata))
     {
         /* encode and send */
         SendConnectivityBindResponse(threadCtx, 
@@ -902,22 +920,36 @@ static void  BuildStunBindReq(STUN_INSTANCE_DATA *pInst, StunMessage  *stunReqMs
     stunReqMsg->hasControlling = (pInst->stunBindReq.iceControlling ? true : false);
     stunReqMsg->controlling.value =  pInst->stunBindReq.tieBreaker;
 
+    /***************************************************************************************************/
+    /************************* start MALICE specific ***************************************************/
+    /***************************************************************************************************/
+
+    if (pInst->stunBindReq.maliceMetadata != NULL)
+    {
+        stunReqMsg->hasMaliceMetadata = true;
+        stunReqMsg->maliceMetadata = *pInst->stunBindReq.maliceMetadata;
+    }
+
+    /***************************************************************************************************/
+    /************************* end MALICE specific ***************************************************/
+    /***************************************************************************************************/
+
     stunlib_addSoftware(stunReqMsg, SoftwareVersionStr, STUN_DFLT_PAD);
 
 }
 
 
 /* encode and send */
-static bool  SendStunReq(STUN_INSTANCE_DATA *pInst, StunMessage  *stunReqMsg)
+static bool SendStunReq(STUN_INSTANCE_DATA *pInst, StunMessage  *stunReqMsg)
 {
     /* encode the BindReq */
     pInst->stunReqMsgBufLen = stunlib_encodeMessage(stunReqMsg,
-                                                (unsigned char*) (pInst->stunReqMsgBuf),
-                                                STUN_MAX_PACKET_SIZE, 
-                                                (unsigned char*)&pInst->stunBindReq.password,  /* key */
-                                                strlen( pInst->stunBindReq.password ) ,     /* keyLen  */
-                                                false,
-                                                false);
+                                                    (unsigned char*) (pInst->stunReqMsgBuf),
+                                                    STUN_MAX_PACKET_SIZE,
+                                                    (unsigned char*)&pInst->stunBindReq.password,  /* key */
+                                                    strlen( pInst->stunBindReq.password ) ,     /* keyLen  */
+                                                    false,
+                                                    false);
 
     if (!pInst->stunReqMsgBufLen)
     {

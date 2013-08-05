@@ -413,6 +413,64 @@ typedef struct
                              /* for short term cred: key=password  */
 } STUN_USER_CREDENTIALS;
 
+/****************************************************************************************************************/
+/****************************************** start MALICE specific ***********************************************/
+/****************************************************************************************************************/
+
+typedef struct
+{
+    uint8_t type;
+    uint16_t length;
+} MaliceIEHdr;
+
+typedef struct
+{
+    uint8_t DT;
+    uint8_t LT;
+    uint8_t JT;
+
+    uint32_t minBW;
+    uint32_t maxBW;
+} MaliceFlowdata;
+
+typedef struct
+{
+    MaliceFlowdata flowdataUP;
+    MaliceFlowdata flowdataDN;
+} MaliceFlowdataReq;
+
+typedef struct
+{
+    bool hasFlowdataReq;
+    MaliceFlowdataReq flowdataReq;
+} MaliceAttrAgent;
+
+typedef struct
+{
+    bool hasFlowdataResp;
+    MaliceFlowdata flowdataResp;
+} MaliceAttrResp;
+
+typedef struct
+{
+    uint16_t peerMaliceCheckResult;
+} MaliceAttrPeerCheck;
+
+typedef struct
+{
+    bool                    hasMDAgent;
+    MaliceAttrAgent         mdAgent;
+    bool                    hasMDRespUP;
+    MaliceAttrResp          mdRespUP;
+    bool                    hasMDRespDN;
+    MaliceAttrResp          mdRespDN;
+    bool                    hasMDPeerCheck;
+    MaliceAttrPeerCheck     mdPeerCheck;
+} MaliceMetadata;
+
+/****************************************************************************************************************/
+/****************************************** end MALICE specific *************************************************/
+/****************************************************************************************************************/
 
 /* Decoded  STUN message */
 typedef struct
@@ -518,8 +576,16 @@ typedef struct
 
     /******* End MS-ICE2 specific *****/
 
+    /****************************************************************************************************************/
+    /****************************************** start MALICE specific *************************************************/
+    /****************************************************************************************************************/
 
+    bool hasMaliceMetadata;
+    MaliceMetadata maliceMetadata;
 
+    /****************************************************************************************************************/
+    /****************************************** end MALICE specific *************************************************/
+    /****************************************************************************************************************/
 } StunMessage;
 
 /* Defines how a user of stun sends data on e.g. socket */
