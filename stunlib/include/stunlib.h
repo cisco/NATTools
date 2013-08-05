@@ -151,6 +151,22 @@ extern "C" {
 #define STUN_ATTR_MS2_CandidateId      0x8054  /* no equiv */
 #define STUN_ATTR_MS2_ServiceQuality   0x8055  /* no equiv */
 
+/****************************************************************************************************************/
+/****************************************** start MALICE specific ***********************************************/
+/****************************************************************************************************************/
+
+#define MALICE_ATTR_MD_AGENT        0x0C02
+#define MALICE_ATTR_MD_RESP_UP      0x0C03
+#define MALICE_ATTR_MD_RESP_DN      0x0C04
+#define MALICE_ATTR_MD_PEER_CHECK   0x0C05
+
+#define MALICE_IE_FLOWDATA_REQ      0x01
+#define MALICE_IE_FLOWDATA_RESP     0x02
+
+/****************************************************************************************************************/
+/****************************************** end MALICE specific ***********************************************/
+/****************************************************************************************************************/
+
 /* MSICE2 coding of Service Quality Attribute  */
 #define STUN_MS2_ServiceQuality_BestEffort  0
 #define STUN_MS2_Servicequality_Reliable    1
