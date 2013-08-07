@@ -984,19 +984,20 @@ static bool SendStunReq(STUN_INSTANCE_DATA *pInst, StunMessage  *stunReqMsg)
                                           pInst->stunBindReq.turnInst, 
                                           (struct sockaddr *)&TurnServerAddr);
 
-        StunPrint(pInst->threadCtx, 
+        StunPrint(pInst->threadCtx,
                   StunInfoCategory_Trace, 
                   "<STUNCLIENT:%02d> OUT --> STUN: %s Len=%i to peer %s via %s", 
                   pInst->inst, 
-                  stunlib_getMessageName(stunReqMsg->msgHdr.msgType), 
-                  pInst->stunReqMsgBufLen, 
-                  pInst->stunBindReq.serverAddr,
-                  sockaddr_toString((struct sockaddr *)&TurnServerAddr, 
+                  stunlib_getMessageName(stunReqMsg->msgHdr.msgType),
+                  pInst->stunReqMsgBufLen,
+                  sockaddr_toString((struct sockaddr *)&pInst->stunBindReq.serverAddr,
                                     TurnServerAddrStr,
-                                    SOCKADDR_MAX_STRLEN, 
-                                    true));  
-        
-        
+                                    SOCKADDR_MAX_STRLEN,
+                                    true),
+                  sockaddr_toString((struct sockaddr *)&TurnServerAddr,
+                                    TurnServerAddrStr,
+                                    SOCKADDR_MAX_STRLEN,
+                                    true));
 
 
         sockaddr_copy((struct sockaddr *)&pInst->stunBindReq.serverAddr, 
