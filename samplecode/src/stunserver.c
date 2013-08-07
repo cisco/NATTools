@@ -17,17 +17,18 @@
 #include <stdbool.h>
 
 #include <stunlib.h>
+#include <stunclient.h>
 
 #include "utils.h"
 
 #define MYPORT "4950"    // the port users will be connecting to
-
 #define MAXBUFLEN 500
 
-static char password[] = "VOkJxbRl1RmTxUk/WvJxBt";
-const char *software_resp= "STUN server\0";
+static const uint32_t TEST_THREAD_CTX = 1;
+
 int sockfd;
 void teardown();
+void printMalice(StunMessage strunRequest);
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -48,8 +49,13 @@ int main(void)
     char s[INET6_ADDRSTRLEN];
 
     StunMessage stunRequest, stunResponse;
+    STUN_INCOMING_REQ_DATA pReq;
     char response_buffer[256];
     int msg_len;
+
+    char username[] = "evtj:h6vY2";
+    char password[] = "VOkJxbRl1RmTxUk/WvJxBt";
+    char *software_resp= "STUN server\0";
 
     signal(SIGINT, teardown);
 
@@ -63,54 +69,30 @@ int main(void)
             if(stunlib_checkIntegrity(buf, numbytes, &stunRequest, password, sizeof(password)) ) {
                 printf("   Integrity OK\n");
 
-                memset(&stunResponse, 0, sizeof(StunMessage));
-                /*Header*/
-                stunResponse.msgHdr.msgType = STUN_MSG_BindResponseMsg;
-                /*TransactionID from request*/
-                memcpy(&stunResponse.msgHdr.id.octet, &stunRequest.msgHdr.id.octet ,12);
-                /*Server*/
-                stunResponse.hasSoftware = true;
-                memcpy( stunResponse.software.value, software_resp, strlen(software_resp));
-                stunResponse.software.sizeValue = strlen(software_resp);
+                printMalice(stunRequest);
 
-                if( their_addr.ss_family == AF_INET ) {
-                    printf("   Request was IPv4\n");
-                    struct sockaddr *a = (struct sockaddr *)&their_addr;
-                    struct sockaddr_in *b = (struct sockaddr_in *)a;
+                StunServer_HandleStunIncomingBindReqMsg(TEST_THREAD_CTX,
+                                                        &pReq,
+                                                        &stunRequest,
+                                                        false);
 
-                    stunResponse.hasXorMappedAddress = true;
-                    stunlib_setIP4Address(&stunResponse.xorMappedAddress,
-                                          htonl(b->sin_addr.s_addr),
-                                          htons(b->sin_port));
-                }
-
-                if( their_addr.ss_family == AF_INET6 ) {
-                    printf("   Request was IPv6\n");
-                    struct sockaddr *a = (struct sockaddr *)&their_addr;
-                    struct sockaddr_in6 *b = (struct sockaddr_in6 *)a;
-
-                    stunResponse.hasXorMappedAddress = true;
-                    stunlib_setIP6Address(&stunResponse.xorMappedAddress,
-                                          b->sin6_addr.s6_addr,
-                                          htons(b->sin6_port));
-                }
-
-                printf("   Encoding response\n");
-                msg_len = stunlib_encodeMessage(&stunResponse,
-                                                response_buffer,
-                                                256,
-                                                (unsigned char*)password,
-                                                strlen(password),
-                                                false, /*verbose */
-                                                false)  /* msice2 */;
+                StunServer_SendConnectivityBindingResp(TEST_THREAD_CTX,
+                                                       sockfd,
+                                                       stunRequest.msgHdr.id,
+                                                       username,
+                                                       password,
+                                                       &their_addr,
+                                                       sizeof(their_addr),
+                                                       &their_addr,
+                                                       sizeof(their_addr),
+                                                       NULL,
+                                                       sendRawStun,
+                                                       false,
+                                                       -1,
+                                                       &stunRequest.maliceMetadata);
 
 
-                printf("   Sending response\n\n");
-                if ((numbytes = sendto(sockfd, response_buffer, msg_len, 0,
-                                       (struct sockaddr *)&their_addr, sizeof their_addr)) == -1) {
-                    perror("stunclient: sendto");
-                    exit(1);
-                }
+                printf("Sending response\n\n");
             }
         }
     }

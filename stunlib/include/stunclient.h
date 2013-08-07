@@ -124,8 +124,7 @@ typedef struct
     uint32_t BindRespSent_ViaRelay;
     uint32_t Retransmits;
     uint32_t Failures;
-}
-StunClientStats_T;
+}StunClientStats_T;
 
 /* Signalling back to user e.g. result of BindResp.
  *   userCtx        - User provided context, as provided in StunClient_startxxxx(userCtx,...)
@@ -213,7 +212,8 @@ int  StunClient_startBindTransaction(uint32_t            threadCtx,
                                      uint32_t           *timeoutList,
                                      STUNCB              stunCbFunc,
                                      StunCallBackData_T *stunCbData,
-                                     int                 turnInst);
+                                     int                 turnInst,
+                                     MaliceMetadata     *maliceMetadata);
 
 
 
@@ -265,7 +265,8 @@ void StunServer_SendConnectivityBindingResp(uint32_t         threadCtx,
                                             void            *userData,
                                             STUN_SENDFUNC    sendFunc,
                                             bool             useRelay,
-                                            int          turnInst);
+                                            int              turnInst,
+                                            MaliceMetadata  *maliceMetadata);
 
 /********** Server handling:  incoming STUN BIND REQ **********/
 bool StunServer_HandleStunIncomingBindReqMsg(uint32_t     threadCtx,

@@ -70,15 +70,14 @@ typedef struct {
     StunCallBackData_T      *stunCbData;
     uint32_t                 stunTimeoutList[STUNCLIENT_MAX_RETRANSMITS];
     int                      turnInst;
+    MaliceMetadata          *maliceMetadata; // nullptr if no malice attributes should be sent.
 } StunBindReqStuct;
-
 
 typedef struct
 {
     struct sockaddr_storage srcAddr;
     StunMessage             stunRespMessage;
-}
-StunRespStruct;
+} StunRespStruct;
 
 /* Internal STUN  states */
 typedef enum {
