@@ -26,54 +26,57 @@ authors and should not be interpreted as representing official policies, either 
 or implied, of Cisco.
 */
 
-/*
- * OS interface used by STUN/TURN
- *
- * Mutex functions:
- *   CriticalSetions are used for Win32 as this is considerably faster than Win32 Mutex
- *   pthread_mutex used for linux
- */
 
-#include "stun_os.h"
+#include <string.h>
+#include "icelib.h"
+#include "icelib_intern.h"
 
-bool Stun_MutexCreate(STUN_MUTEX *m, char *name)
+
+void ICELIB_timerConstructor(ICELIB_TIMER *timer,
+                             unsigned int tickIntervalMS)
 {
-#ifdef WIN32
-    InitializeCriticalSection(m);
-    return true;
-#else
-    return (pthread_mutex_init(m, NULL) == 0);
-#endif
-}
-
-bool Stun_MutexLock(STUN_MUTEX *m)
-{
-#ifdef WIN32
-    EnterCriticalSection(m);
-    return true;
-#else
-    return (pthread_mutex_lock(m) == 0);
-#endif
-}
-
-bool Stun_MutexUnlock(STUN_MUTEX *m)
-{
-#ifdef WIN32
-    LeaveCriticalSection(m);
-    return true;
-#else
-    return (pthread_mutex_unlock(m) == 0);
-#endif
-}
-
-bool Stun_MutexDestroy(STUN_MUTEX *m)
-{
-#ifdef WIN32
-    DeleteCriticalSection(m);
-    return true;
-#else
-    return (pthread_mutex_destroy(m) == 0);
-#endif
+    memset(timer, 0, sizeof(*timer));
+    timer->tickIntervalMS = tickIntervalMS;
+    timer->countUpMS      = 0;
+    timer->timerState     = ICELIB_timerStopped;
 }
 
 
+void ICELIB_timerStart(ICELIB_TIMER *timer,
+                       unsigned int timeoutMS)
+{
+    timer->timeoutValueMS = timeoutMS;
+    timer->countUpMS      = 0;
+    timer->timerState     = ICELIB_timerRunning;
+}
+
+
+void ICELIB_timerStop(ICELIB_TIMER *timer)
+{
+    timer->timerState = ICELIB_timerStopped;
+}
+
+
+void ICELIB_timerTick(ICELIB_TIMER *timer)
+{
+    if (timer->timerState == ICELIB_timerRunning) {
+
+        timer->countUpMS += timer->tickIntervalMS;
+
+        if (timer->countUpMS >= timer->timeoutValueMS) {
+            timer->timerState = ICELIB_timerTimeout;
+        }
+    }
+}
+
+
+bool ICELIB_timerIsRunning(const ICELIB_TIMER *timer)
+{
+    return timer->timerState == ICELIB_timerRunning;
+}
+
+
+bool ICELIB_timerIsTimedOut(const ICELIB_TIMER *timer)
+{
+    return timer->timerState == ICELIB_timerTimeout;
+}

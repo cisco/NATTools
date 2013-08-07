@@ -5,8 +5,11 @@
 
 #include "sockaddr_util.h"
 
-
-
+void sockaddr_reset(struct sockaddr_storage * sa)
+{
+    memset(sa, 0, sizeof *sa);
+    sa->ss_family = AF_UNSPEC;
+}
 
 void sockaddr_initAsIPv4Any(struct sockaddr_in * sa)
 {
@@ -266,7 +269,7 @@ bool sockaddr_isAddrPrivate(const struct sockaddr * sa)
     uint32_t private_10 = 0x0A000000;
     uint32_t mask_8 = 0xFF000000;
 
-    if (sa->sa_family == AF_INET) {   
+    if (sa->sa_family == AF_INET) {
         if( (htonl(((struct sockaddr_in*)sa)->sin_addr.s_addr) & mask_16) == private_192 ) {
             return true;
         }
@@ -300,40 +303,48 @@ const char *sockaddr_toString( const struct sockaddr *sa,
                                size_t destlen,
                                bool addport)
 {
-    if (destlen < SOCKADDR_MAX_STRLEN) {
-        dest[0] = '\0';
-        return dest;
-    }
-
     if (sa->sa_family == AF_INET) {
-        const struct sockaddr_in *sa4 = (const struct sockaddr_in *)sa;
-
-        inet_ntop(AF_INET, &(sa4->sin_addr), dest, destlen);
-        if(addport){
-            int r = strlen(dest);
-            sprintf(dest + r, ":%d", ntohs(sa4->sin_port));
+        if (destlen < INET_ADDRSTRLEN + 8) { // 8 is enough for :port and termination
+                 dest[0] = '\0';
+                 return dest;
         }
-        return dest;
+        else
+        {
+            const struct sockaddr_in *sa4 = (const struct sockaddr_in *)sa;
 
+            inet_ntop(AF_INET, &(sa4->sin_addr), dest, destlen);
+            if(addport){
+                int r = strlen(dest);
+                sprintf(dest + r, ":%d", ntohs(sa4->sin_port));
+            }
+            return dest;
+        }
     }else if (sa->sa_family == AF_INET6) {
-        int r;
-        const struct sockaddr_in6 *sa6 = (const struct sockaddr_in6 *)sa;
-        if (addport){
-            dest[0] = '[';
-            inet_ntop(AF_INET6, &(sa6->sin6_addr), dest+1, destlen);
-        }else{
-            inet_ntop(AF_INET6, &(sa6->sin6_addr), dest, destlen);
+        if (destlen < SOCKADDR_MAX_STRLEN) {
+            dest[0] = '\0';
+            return dest;
         }
-        r = strlen(dest);
+        else
+        {
+            int r;
+            const struct sockaddr_in6 *sa6 = (const struct sockaddr_in6 *)sa;
+            if (addport){
+                dest[0] = '[';
+                inet_ntop(AF_INET6, &(sa6->sin6_addr), dest+1, destlen);
+            }else{
+                inet_ntop(AF_INET6, &(sa6->sin6_addr), dest, destlen);
+            }
+            r = strlen(dest);
 
-        if (addport)
-            dest[r++] = ']';
-        if (addport){
-            sprintf(dest + r, ":%d", ntohs(sa6->sin6_port));
-        }else {
-            dest[r] = '\0';
+            if (addport)
+                dest[r++] = ']';
+            if (addport){
+                sprintf(dest + r, ":%d", ntohs(sa6->sin6_port));
+            }else {
+                dest[r] = '\0';
+            }
+            return dest;
         }
-        return dest;
     }
 
     return NULL;
@@ -347,18 +358,18 @@ void sockaddr_copy(struct sockaddr * dst,
         if (src->sa_family == AF_INET) {
             struct sockaddr_in *dst4 = (struct sockaddr_in *)dst;
             const struct sockaddr_in *src4 = (const struct sockaddr_in *)src;
-            
+
             dst4->sin_family = AF_INET;
             dst4->sin_port = src4->sin_port;
             dst4->sin_addr.s_addr = src4->sin_addr.s_addr;
-            
+
         }else if (src->sa_family == AF_INET6) {
             struct sockaddr_in6 *dst6 = (struct sockaddr_in6 *)dst;
             const struct sockaddr_in6 *src6 = (const struct sockaddr_in6 *)src;
-            
+
             dst6->sin6_family = AF_INET6;
             dst6->sin6_port = src6->sin6_port;
-            
+
             memcpy(&(dst6->sin6_addr.s6_addr), &(src6->sin6_addr.s6_addr),
                    sizeof(struct in6_addr));
         }

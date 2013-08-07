@@ -34,7 +34,8 @@ or implied, of Cisco.
 extern "C" {
 #endif
 
-#define Dflt_TimerResMsec      50
+#define STUNCLIENT_CTX_UNKNOWN  -1
+#define STUN_MAX_ERR_STRLEN    256  /* max size of string in STUN_INFO_FUNC */
 
 /* Internal STUN signals, inputs to stun bind client. */
 typedef enum {
@@ -49,7 +50,26 @@ typedef enum {
     STUN_SIGNAL_Illegal = -1
 } STUN_SIGNAL;
 
-/* Internal message formats */          
+
+typedef struct
+{
+    struct sockaddr_storage srcAddr;
+    StunMessage             stunRespMessage;
+}
+StunRespStruct;
+
+
+
+/* Internal STUN  states */
+typedef enum {
+    STUN_STATE_Idle = 0,
+    STUN_STATE_WaitBindResp,
+    STUN_STATE_Cancelled,
+    STUN_STATE_End  /* must be last */
+} STUN_STATE;
+
+
+/* Internal message formats */
 typedef struct {
     uint32_t                 threadCtx;
     void                    *userCtx;
@@ -65,43 +85,33 @@ typedef struct {
     StunMsgId                transactionId;
     uint32_t                 sockhandle;
     STUN_SENDFUNC            sendFunc;
-    uint32_t                *timeoutList;
     STUNCB                   stunCbFunc;
-    StunCallBackData_T      *stunCbData;
-    uint32_t                 stunTimeoutList[STUNCLIENT_MAX_RETRANSMITS];
-    int                      turnInst;
-    MaliceMetadata          *maliceMetadata; // nullptr if no malice attributes should be sent.
 } StunBindReqStuct;
 
-typedef struct
+struct StunClientStats
 {
-    struct sockaddr_storage srcAddr;
-    StunMessage             stunRespMessage;
-} StunRespStruct;
+    uint32_t InProgress;
+    uint32_t BindReqSent;
+    uint32_t BindReqSent_ViaRelay;
+    uint32_t BindRespReceived;
+    uint32_t BindRespReceived_AfterCancel;
+    uint32_t BindRespReceived_InIdle;
+    uint32_t BindRespReceived_ViaRelay;
+    uint32_t BindRespErrReceived;
+    uint32_t BindReqReceived;
+    uint32_t BindReqReceived_ViaRelay;
+    uint32_t BindRespSent;
+    uint32_t BindRespSent_ViaRelay;
+    uint32_t Retransmits;
+    uint32_t Failures;
+};
 
-/* Internal STUN  states */
-typedef enum {
-    STUN_STATE_Idle = 0,
-    STUN_STATE_WaitBindResp,
-    STUN_STATE_Cancelled,
-    STUN_STATE_End  /* must be last */
-} STUN_STATE;
-
-
-
-/********************************************/
-/******  instance data ********  (internal) */
-/********************************************/
-
-
-typedef struct 
+typedef struct
 {
     STUN_STATE             state;
     bool                   inUse;
     uint32_t               inst;
     StunBindReqStuct       stunBindReq;
-    uint32_t               threadCtx;                  /* identified which thread is using this instance */
-
 
     uint8_t      stunReqMsgBuf[STUN_MAX_PACKET_SIZE];  /* encoded STUN request    */
     int          stunReqMsgBufLen;                     /* of encoded STUN request */
@@ -110,23 +120,40 @@ typedef struct
     bool authenticated;
 
     /* returned in allocate resp */
-    char  rflxAddr[IPV6_ADDR_LEN];
-    int   rflxPort;
+    struct sockaddr_storage rflxAddr;
 
     /* timers */
-    int32_t TimerRetransmit;      
+    int32_t TimerRetransmit;
     int     retransmits;
 
-    void *userData;
+    struct StunClientStats stats;
 
-} STUN_INSTANCE_DATA;
+    STUN_CLIENT_DATA *client;
+
+} STUN_TRANSACTION_DATA;
+
+
+struct STUN_CLIENT_DATA
+{
+    STUN_TRANSACTION_DATA data [MAX_STUN_TRANSACTIONS];
+
+    // duplicated for logging on unknown transactions etc.
+    STUN_INFO_FUNC_PTR   Log_cb;
+    void * logUserData;
+    struct StunClientStats stats;
+};
+
+
+/********************************************/
+/******  instance data ********  (internal) */
+/********************************************/
 
 
 /* state function */
-typedef void (*STUN_STATE_FUNC)(STUN_INSTANCE_DATA *pInst, STUN_SIGNAL sig, uint8_t *payload);
+typedef void (*STUN_STATE_FUNC)(STUN_TRANSACTION_DATA *pInst, STUN_SIGNAL sig, uint8_t *payload);
 
 /* entry in state table */
-typedef struct 
+typedef struct
 {
     STUN_STATE_FUNC Statefunc;
     const char *StateStr;

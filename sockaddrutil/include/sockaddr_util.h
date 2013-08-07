@@ -42,6 +42,9 @@ extern "C" {
 //static const uint32_t SOCKADDR_MAX_STRLEN = INET6_ADDRSTRLEN + 8; //port, :, [];
 #define SOCKADDR_MAX_STRLEN  INET6_ADDRSTRLEN + 8 //port, :, [];
 
+
+void sockaddr_reset(struct sockaddr_storage * sa);
+
 /*
  *  Initialize a sockaddr_in (IPv4) as any ("0.0.0.0:0").
  *  Remember to put aside enough memory. (sockaddr_storage)

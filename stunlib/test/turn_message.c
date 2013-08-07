@@ -136,8 +136,7 @@ START_TEST(encode_integrity)
                                        120,
                                        (unsigned char*)password,
                                        strlen(password),
-                                       false, /*verbose */
-                                       false)  /* msice2 */);
+                                       NULL));
 
 
 
@@ -145,8 +144,7 @@ START_TEST(encode_integrity)
                                         120,
                                         &decodeStunMsg,
                                         NULL,
-                                        false,
-                                        false ));
+                                        NULL ));
 
     fail_unless(  stunlib_checkIntegrity(stunBuf,
                                          120,
@@ -173,8 +171,7 @@ START_TEST(decode_integrity)
                                         sizeof(allocate_resp),
                                         &stunMsg,
                                         NULL,
-                                        false,
-                                        false ));
+                                        NULL));
 
     fail_unless(  stunlib_checkIntegrity(allocate_resp,
                                          sizeof(allocate_resp),
@@ -206,8 +203,7 @@ START_TEST(encode_requestedAddrFamily)
                                        120,
                                        (unsigned char*)password,
                                        strlen(password),
-                                       false, /*verbose */
-                                       false)  /* msice2 */);
+                                       NULL));
 
     fail_unless( memcmp(stunBuf, requested_addrFamilyReq, 60 ) == 0 );
 }
@@ -234,8 +230,7 @@ START_TEST(encode_requestedAddrFamily_IPv6)
                                        120,
                                        (unsigned char*)password,
                                        strlen(password),
-                                       false, /*verbose */
-                                       false)  /* msice2 */);
+                                       NULL));
 
     fail_unless( memcmp(stunBuf, requested_addrFamilyReq_IPv6, 60 ) == 0 );
 }
@@ -250,8 +245,7 @@ START_TEST(decode_requestedAddrFamily)
                                         60,
                                         &stunMsg,
                                         NULL,
-                                        false,
-                                        false ));
+                                        NULL ));
 
     fail_unless( stunMsg.hasRequestedAddrFamily );
     fail_unless( stunMsg.requestedAddrFamily.family == 0x1 );
@@ -268,8 +262,7 @@ START_TEST(decode_requestedAddrFamily_IPv6)
                                         60,
                                         &stunMsg,
                                         NULL,
-                                        false,
-                                        false ));
+                                        NULL ));
 
     fail_unless( stunMsg.hasRequestedAddrFamily );
     fail_unless( stunMsg.requestedAddrFamily.family == 0x2 );

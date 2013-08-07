@@ -15,6 +15,6 @@ include_HEADERS = ../include/icelib.h ../include/icelibtypes.h ../include/icelib
 
 
 lib_LTLIBRARIES = libice.la
-libice_la_SOURCES = icelib.c icelibtypes.c icelib_intern.h
+libice_la_SOURCES = icelib.c icelibtypes.c icelib_intern.h fifo.c timer.c
 libice_la_LDFLAGS = -version-info 1:0:0
 

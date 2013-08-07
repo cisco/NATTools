@@ -48,9 +48,9 @@ START_TEST (integrity_turn_response)
   int keyLen = 16;
   char md5[keyLen];
 
-  fail_unless(stunlib_isStunMsg(turnResp, numbytes, &isMsStun));
+  fail_unless(stunlib_isStunMsg(turnResp, numbytes));
 
-  fail_unless(stunlib_DecodeMessage(turnResp, numbytes, &stunResponse, NULL, false, false));
+  fail_unless(stunlib_DecodeMessage(turnResp, numbytes, &stunResponse, NULL, NULL));
 
   stunlib_createMD5Key((unsigned char *)md5, user, realm, password);
 

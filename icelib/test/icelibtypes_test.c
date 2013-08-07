@@ -20,7 +20,7 @@ START_TEST( candidate_dump )
     ICE_CANDIDATE candidate;
     FILE *devnull = fopen("/dev/null", "wt");
 
-    ICELIBTYPES_ICE_CANDIDATE_dump(devnull, &candidate);
+    //ICELIBTYPES_ICE_CANDIDATE_dump(devnull, &candidate);
     
     close(devnull);
 }
@@ -34,12 +34,12 @@ START_TEST( mediastream_dump )
 
     ICELIBTYPES_ICE_MEDIA_STREAM_reset(&iceMediaStream);
 
-    ICELIBTYPES_ICE_MEDIA_STREAM_dump(devnull, &iceMediaStream);
+    //ICELIBTYPES_ICE_MEDIA_STREAM_dump(devnull, &iceMediaStream);
 
 
     iceMediaStream.numberOfCandidates = 2;
 
-    ICELIBTYPES_ICE_MEDIA_STREAM_dump(devnull, &iceMediaStream);
+    //ICELIBTYPES_ICE_MEDIA_STREAM_dump(devnull, &iceMediaStream);
 
     close(devnull);
 
@@ -56,12 +56,12 @@ START_TEST( media_dump )
     
     //ICELIBTYPES_ICE_MEDIA_dump(stderr, &iceMedia);
     
-    ICELIBTYPES_ICE_MEDIA_dump(devnull, &iceMedia);
+    //ICELIBTYPES_ICE_MEDIA_dump(devnull, &iceMedia);
     
     iceMedia.numberOfICEMediaLines = 1;
     iceMedia.mediaStream[0].numberOfCandidates = 2;
 
-    ICELIBTYPES_ICE_MEDIA_dump(devnull, &iceMedia);
+    //ICELIBTYPES_ICE_MEDIA_dump(devnull, &iceMedia);
 
     iceMedia.numberOfICEMediaLines = (ICE_MAX_MEDIALINES + 10);
 
@@ -72,7 +72,7 @@ START_TEST( media_dump )
     iceMedia.mediaStream[ICE_MAX_MEDIALINES -1].numberOfCandidates = 2;
     //iceMedia.mediaStream[ICE_MAX_MEDIALINES+1].numberOfCandidates = 2;
 
-    ICELIBTYPES_ICE_MEDIA_dump(devnull, &iceMedia);
+    //ICELIBTYPES_ICE_MEDIA_dump(devnull, &iceMedia);
     
     close(devnull);
 

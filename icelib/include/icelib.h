@@ -73,7 +73,7 @@ typedef ICELIB_Result (*ICELIB_outgoingBindingRequest)(void                  *pU
                                                        bool                  iceControlled,
                                                        uint64_t              tieBreaker,
                                                        StunMsgId             transactionId);
-    
+
 //
 //----- Callback sending a Binding Response message (STUN server role)
 //
@@ -89,7 +89,7 @@ typedef ICELIB_Result (*ICELIB_outgoingBindingResponse)(void *pUserData,
                                                         bool useRelay,
                                                         const char *pUfragPair,
                                                         const char *pPasswd);
-    
+
 
 //
 //----- Callback to signal ICE completion
@@ -98,14 +98,13 @@ typedef ICELIB_Result (*ICELIB_connectivityChecksComplete)(void            *pUse
                                                            uint32_t         userValue1,
                                                            bool             isControlling,
                                                            bool             iceFailed);
-    
+
 
 
 //
 //----- Callback used to generate keepalives
 //
-typedef ICELIB_Result (*ICELIB_sendKeepAlive)(void
-                                              *pUserData,
+typedef ICELIB_Result (*ICELIB_sendKeepAlive)(void        *pUserData,
                                               uint32_t    userValue1,
                                               uint32_t    userValue2,
                                               uint32_t    mediaIdx);
@@ -116,7 +115,7 @@ typedef ICELIB_Result (*ICELIB_sendKeepAlive)(void
 typedef ICELIB_Result (*ICELIB_outgoingCancelRequest)(void      *pUserData,
                                                       uint32_t   userValue1,
                                                       StunMsgId  transactionId);
-    
+
 //
 //----- Callback for updating password in the media stream (Used to validate STUN packets)
 //
@@ -124,7 +123,7 @@ typedef ICELIB_Result (*ICELIB_passwordUpdate)(void      *pUserData,
                                                uint32_t   userValue1,
                                                uint32_t   userValue2,
                                                char      *password);
-    
+
 //
 //----- Callback for logging
 //
@@ -208,7 +207,6 @@ typedef struct {
     unsigned int    maxCheckListPairs;
     bool            aggressiveNomination;
     bool            iceLite;
-    unsigned int    stoppingTimeoutS;
     ICELIB_logLevel logLevel;
 } ICELIB_CONFIGURATION;
 
@@ -247,13 +245,14 @@ void FORMAT_CHECK(3,4) ICELIB_logVaString( const ICELIB_CALLBACK_LOG *pCallbackL
 //
 //----- TEST API Functions
 //
-void ICELIB_timerConstructor(ICELIB_TIMER *pTimer,
+void ICELIB_timerConstructor(ICELIB_TIMER *timer,
                              unsigned int tickIntervalMS);
-void ICELIB_timerStart(ICELIB_TIMER *pTimer,
+void ICELIB_timerStart(ICELIB_TIMER *timer,
                        unsigned int timeoutMS);
-void ICELIB_timerTick(ICELIB_TIMER *pTimer);
-bool ICELIB_timerIsRunning(ICELIB_TIMER *pTimer);    
-bool ICELIB_timerIsTimedOut(ICELIB_TIMER *pTimer);
+void ICELIB_timerStop(ICELIB_TIMER *timer);
+void ICELIB_timerTick(ICELIB_TIMER *timer);
+bool ICELIB_timerIsRunning(const ICELIB_TIMER *timer);
+bool ICELIB_timerIsTimedOut(const ICELIB_TIMER *timer);
 
 
 //-----------------------------------------------------------------------------
@@ -329,11 +328,11 @@ void ICELIB_incommingBindingRequest(ICELIB_INSTANCE       *pInstance,
                                     const struct sockaddr *peerAddr,
                                     uint16_t               componentId);
 
-ICE_TURN_STATE ICELIB_getTurnState(const ICELIB_INSTANCE  *pInstance, 
+ICE_TURN_STATE ICELIB_getTurnState(const ICELIB_INSTANCE  *pInstance,
                                    uint32_t mediaIdx);
 
-void ICELIB_setTurnState(ICELIB_INSTANCE  *pInstance, 
-                         uint32_t mediaIdx, 
+void ICELIB_setTurnState(ICELIB_INSTANCE  *pInstance,
+                         uint32_t mediaIdx,
                          ICE_TURN_STATE turnState);
 
 int32_t ICELIB_getNumberOfLocalICEMediaLines(const ICELIB_INSTANCE *pInstance );
@@ -342,41 +341,43 @@ int32_t ICELIB_getNumberOfRemoteICEMediaLines(const ICELIB_INSTANCE *pInstance )
 int32_t ICELIB_getNumberOfLocalCandidates(const ICELIB_INSTANCE *pInstance, uint32_t idx);
 int32_t ICELIB_getNumberOfRemoteCandidates(const ICELIB_INSTANCE *pInstance, uint32_t idx);
 
-uint32_t ICELIB_getLocalComponentId(const ICELIB_INSTANCE *pInstance, 
-                                    uint32_t mediaIdx, 
+const char * ICELIB_getLocalPassword(const ICELIB_INSTANCE *pInstance, uint32_t idx);
+
+uint32_t ICELIB_getLocalComponentId(const ICELIB_INSTANCE *pInstance,
+                                    uint32_t mediaIdx,
                                     uint32_t candIdx);
 
-uint32_t ICELIB_getRemoteComponentId(const ICELIB_INSTANCE *pInstance, 
-                                     uint32_t mediaIdx, 
+uint32_t ICELIB_getRemoteComponentId(const ICELIB_INSTANCE *pInstance,
+                                     uint32_t mediaIdx,
                                      uint32_t candIdx);
 
-struct sockaddr const *ICELIB_getLocalConnectionAddr(const ICELIB_INSTANCE *pInstance, 
-                                                     uint32_t mediaIdx, 
+struct sockaddr const *ICELIB_getLocalConnectionAddr(const ICELIB_INSTANCE *pInstance,
+                                                     uint32_t mediaIdx,
                                                      uint32_t candIdx);
-    
-struct sockaddr const *ICELIB_getRemoteConnectionAddr(const ICELIB_INSTANCE *pInstance, 
-                                                      uint32_t mediaIdx, 
+
+struct sockaddr const *ICELIB_getRemoteConnectionAddr(const ICELIB_INSTANCE *pInstance,
+                                                      uint32_t mediaIdx,
                                                       uint32_t candIdx);
 
-ICE_CANDIDATE_TYPE ICELIB_getLocalCandidateType(const ICELIB_INSTANCE *pInstance, 
-                                                uint32_t mediaIdx, 
+ICE_CANDIDATE_TYPE ICELIB_getLocalCandidateType(const ICELIB_INSTANCE *pInstance,
+                                                uint32_t mediaIdx,
                                                 uint32_t candIdx);
 
-ICE_CANDIDATE_TYPE ICELIB_getRemoteCandidateType(const ICELIB_INSTANCE *pInstance, 
-                                                 uint32_t mediaIdx, 
+ICE_CANDIDATE_TYPE ICELIB_getRemoteCandidateType(const ICELIB_INSTANCE *pInstance,
+                                                 uint32_t mediaIdx,
                                                  uint32_t candIdx);
 
 ICE_MEDIA const *ICELIB_getLocalIceMedia(const ICELIB_INSTANCE *pInstance );
 
 
 int32_t ICELIB_addRemoteMediaStream(ICELIB_INSTANCE *pInstance,
-                                    const char* ufrag, 
-                                    const char *pwd, 
-                                    struct sockaddr *defaultAddr );
+                                    const char *ufrag,
+                                    const char *pwd,
+                                    const struct sockaddr *defaultAddr );
 
 int32_t ICELIB_addRemoteCandidate(ICELIB_INSTANCE *pInstance,
                                   uint32_t mediaIdx,
-                                  const char* foundation,
+                                  const char *foundation,
                                   uint32_t foundationLen,
                                   uint32_t componentId,
                                   uint32_t priority,
@@ -384,13 +385,11 @@ int32_t ICELIB_addRemoteCandidate(ICELIB_INSTANCE *pInstance,
                                   uint16_t port,
                                   ICE_CANDIDATE_TYPE candType );
 
-void ICELIB_fillRemoteCandidate(ICE_CANDIDATE *cand,
-                                uint32_t componentId,
-                                const char* foundation,
-                                uint32_t foundationLen,
-                                uint32_t priority,
-                                struct sockaddr *connectionAddr,
-                                ICE_CANDIDATE_TYPE candType);
+int32_t
+ICELIB_updateLocalMediaStreamDefaultCandidate(ICELIB_INSTANCE *pInstance,
+                                              uint32_t mediaIdx,
+                                              ICE_CANDIDATE_TYPE defaultCandType);
+
 
 int32_t ICELIB_addLocalMediaStream(ICELIB_INSTANCE *pInstance,
                                    uint32_t mediaIdx,
@@ -398,17 +397,17 @@ int32_t ICELIB_addLocalMediaStream(ICELIB_INSTANCE *pInstance,
                                    uint32_t userValue2,
                                    ICE_CANDIDATE_TYPE defaultCandType );
 
-    
+
 int32_t ICELIB_addLocalCandidate(ICELIB_INSTANCE *pInstance,
                                  uint32_t mediaIdx,
                                  uint32_t componentId,
-                                 struct sockaddr *connectionAddr,
-                                 struct sockaddr *relAddr,
-                                 ICE_CANDIDATE_TYPE candType);
+                                 const struct sockaddr *connectionAddr,
+                                 const struct sockaddr *relAddr,
+                                 ICE_CANDIDATE_TYPE candType,
+                                 uint16_t local_pref);
 
 
-
-bool ICELIB_isControlling(ICELIB_INSTANCE *pInstance);
+bool ICELIB_isControlling(const ICELIB_INSTANCE *pInstance);
 
 
 void ICELIB_checkListDumpAllLog(const ICELIB_CALLBACK_LOG   *pCallbackLog,
@@ -418,7 +417,7 @@ void ICELIB_checkListDumpAllLog(const ICELIB_CALLBACK_LOG   *pCallbackLog,
 
 bool ICELIB_isRestart(ICELIB_INSTANCE *pInstance, unsigned int mediaIdx,
                       const char *ufrag, const char *passwd);
-    
+
 
 struct sockaddr const *ICELIB_getLocalRelayAddr(const ICELIB_INSTANCE *pInstance,
                                          uint32_t mediaIdx);
@@ -426,14 +425,19 @@ struct sockaddr const *ICELIB_getLocalRelayAddr(const ICELIB_INSTANCE *pInstance
 struct sockaddr const *ICELIB_getLocalRelayAddrFromHostAddr(const ICELIB_INSTANCE *pInstance,
                                                             const struct sockaddr *hostAddr);
 
-ICE_CANDIDATE const *ICELIB_getActiveCandidate(ICELIB_INSTANCE *pInstance,
+ICE_CANDIDATE const *ICELIB_getActiveCandidate(const ICELIB_INSTANCE *pInstance,
                                                int mediaLineId,
                                                uint32_t componentId );
 
-ICE_REMOTE_CANDIDATES const *ICELIB_getActiveRemoteCandidates(ICELIB_INSTANCE *pInstance,
+ICE_REMOTE_CANDIDATES const *ICELIB_getActiveRemoteCandidates(const ICELIB_INSTANCE *pInstance,
                                                               int mediaLineId);
 
+bool ICELIB_isRunning(const ICELIB_INSTANCE *pInstance);
+bool ICELIB_hasIceCompleted (const ICELIB_INSTANCE *pInstance);
+bool ICELIB_Mangled (const ICELIB_INSTANCE *pInstance);
 
+
+const ICE_MEDIA_STREAM * ICELIB_getLocalMediaStream(const ICELIB_INSTANCE *pInstance, uint32_t mediaIdx);
 
 #ifdef __cplusplus
 }

@@ -26,13 +26,11 @@ authors and should not be interpreted as representing official policies, either 
 or implied, of Cisco.
 */
 
-#include <stdio.h>
 #include <string.h>
 
 
 #include "sockaddr_util.h"
 #include "icelibtypes.h"
-
 
 char const * ICELIBTYPES_ICE_CANDIDATE_TYPE_toString(const ICE_CANDIDATE_TYPE candidateType){
     switch(candidateType){
@@ -50,55 +48,20 @@ char const * ICELIBTYPES_ICE_CANDIDATE_TYPE_toString(const ICE_CANDIDATE_TYPE ca
     return "UNKNOWN";
 }
 
-void ICELIBTYPES_ICE_CANDIDATE_dump(FILE *stream, const ICE_CANDIDATE *candidate){
-    char addr[SOCKADDR_MAX_STRLEN];
-    fprintf(stream, "   Fnd: '%s' ", candidate->foundation);
-    fprintf(stream, "Comp: %i ", candidate->componentid);
-    fprintf(stream, "Pri: %u ", candidate->priority);
-    fprintf(stream, "Addr: %s", sockaddr_toString((const struct sockaddr *)&candidate->connectionAddr, 
-                                         addr, sizeof addr, true));
-           //netaddr_dump(&candidate->connectionAddr, true);
-    fprintf(stream, " Type: '%s' ", ICELIBTYPES_ICE_CANDIDATE_TYPE_toString(candidate->type));
-    fprintf(stream, " UVal1: %u ", candidate->userValue1);
-    fprintf(stream, " UVal2: %u\n", candidate->userValue2);
-}
-
-void ICELIBTYPES_ICE_MEDIA_STREAM_dump(FILE *stream, const ICE_MEDIA_STREAM *iceMediaStream)
+char const * ICELIBTYPES_ICE_CANDIDATE_Component_toString (uint32_t componentid)
 {
-    uint32_t i;
-    fprintf(stream, " Number of Candidates: %i\n", iceMediaStream->numberOfCandidates);
-    if(iceMediaStream->numberOfCandidates > 0){
-        fprintf(stream, " Ufrag : '%s'\n", iceMediaStream->ufrag);
-        fprintf(stream, " Passwd: '%s'\n", iceMediaStream->passwd);
-    }
-    for(i=0; i<iceMediaStream->numberOfCandidates; i++) {
-        fprintf(stream, " Candidate[%i]\n", i);
-        ICELIBTYPES_ICE_CANDIDATE_dump(stream, &iceMediaStream->candidate[i]);
-    }
+    if (componentid == ICELIB_RTP_COMPONENT_ID)
+        return "RTP";
+    else if (componentid == ICELIB_RTCP_COMPONENT_ID)
+        return "RTCP";
+
+    return "UNKNOWN Component";
 
 }
 
-
-void ICELIBTYPES_ICE_MEDIA_dump(FILE *stream, const ICE_MEDIA *iceMedia)
+void ICELIBTYPES_ICE_CANDIDATE_reset(ICE_CANDIDATE *candidate)
 {
-    uint32_t i;
-    uint32_t printed =0;
-
-    fprintf(stream, "Number of Media Lines: %i\n",iceMedia->numberOfICEMediaLines);
-
-    for (i=0; i< ICE_MAX_MEDIALINES; i++) {
-        if ( ICELIBTYPES_ICE_MEDIA_STREAM_isEmpty( &iceMedia->mediaStream[i] ) == false ){
-            if ( printed <= iceMedia->numberOfICEMediaLines) {
-                fprintf(stream, "---  ICEMediaLine[%i] ---\n", i);
-                ICELIBTYPES_ICE_MEDIA_STREAM_dump(stream, &iceMedia->mediaStream[i]);
-                printed++;
-            }
-        }
-        else {
-            fprintf(stream, "---  ICEMediaLine[%i] ---\n", i);
-            fprintf(stream, "[empty]\n");
-        }
-    }
+	memset(candidate, 0, sizeof(*candidate));
 }
 
 bool ICELIBTYPES_ICE_MEDIA_STREAM_isEmpty(const ICE_MEDIA_STREAM *iceMediaStream)

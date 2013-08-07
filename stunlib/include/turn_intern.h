@@ -29,13 +29,6 @@ or implied, of Cisco.
 #ifndef TURN_INTERN_H
 #define TURN_INTERN_H
 
-//#ifndef  __WINDOWS__
-//#include "ttos_semaphore.h"
-//#endif
-
-#include "stun_os.h"
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -56,17 +49,14 @@ typedef enum {
     TURN_SIGNAL_AllocateReq,
     TURN_SIGNAL_AllocateResp,
     TURN_SIGNAL_AllocateRespError,
-    TURN_SIGNAL_CreatePermissionReq,      
-    TURN_SIGNAL_CreatePermissionResp,      
-    TURN_SIGNAL_CreatePermissionRespError, 
+    TURN_SIGNAL_CreatePermissionReq,
+    TURN_SIGNAL_CreatePermissionResp,
+    TURN_SIGNAL_CreatePermissionRespError,
     TURN_SIGNAL_ChannelBindReq,
     TURN_SIGNAL_ChannelBindResp,
     TURN_SIGNAL_ChannelBindRespError,
     TURN_SIGNAL_RefreshResp,
     TURN_SIGNAL_RefreshRespError,
-    TURN_SIGNAL_SetActiveDestReq,
-    TURN_SIGNAL_SetActiveDestResp,
-    TURN_SIGNAL_SetActiveDestRespError,
     TURN_SIGNAL_TimerTick,
     TURN_SIGNAL_TimerRetransmit,
     TURN_SIGNAL_TimerRefreshAlloc,
@@ -83,15 +73,11 @@ typedef struct {
     struct sockaddr_storage  serverAddr;
     char                     username[STUN_MSG_MAX_USERNAME_LENGTH];
     char                     password[STUN_MSG_MAX_PASSWORD_LENGTH];
-    uint32_t                 sockhandle;
-    uint16_t                 addrFamily;
-    uint32_t                 stunTimeoutList[STUNCLIENT_MAX_RETRANSMITS];
-    STUN_SENDFUNC            sendFunc;
+    int                      ai_family; /* AF_INET/AF_INET6 */
+    TURN_SEND_FUNC           sendFunc;
     void                    *userCtx;
-    TURNCB                   turnCbFunc;
-    TurnCallBackData_T      *turnCbData;
+    TURN_CB_FUNC             turnCbFunc;
     uint32_t                 threadCtx;
-    bool                     isMsStun;
     bool                     evenPortAndReserve;
     uint64_t                 reservationToken;
 } TurnAllocateReqStuct;
@@ -106,7 +92,6 @@ typedef enum {
     TURN_STATE_WaitAllocRefreshResp,
     TURN_STATE_WaitChanBindResp,
     TURN_STATE_WaitCreatePermResp,
-    TURN_STATE_WaitSetActiveDestResp,
     TURN_STATE_WaitReleaseResp,
     TURN_STATE_End  /* must be last */
 } TURN_STATE;
@@ -117,10 +102,10 @@ typedef enum {
 /******  instance data ********  (internal) */
 /********************************************/
 
- 
+
 typedef struct
 {
-    uint32_t                 channelNumber;
+    uint16_t                 channelNumber;
     struct sockaddr_storage  peerTrnspAddr;
     bool                     createPermission;
 }
@@ -134,16 +119,18 @@ typedef struct
 TurnCreatePermissionInfo_T;
 
 
-typedef struct 
+struct TURN_INSTANCE_DATA
 {
+    char                   softwareVersionStr[100];
+    unsigned long          id;
+    TURN_INFO_FUNC         infoFunc;
+
     TURN_STATE             state;
     bool                   inUse;
-    int                    inst;
     TurnAllocateReqStuct   turnAllocateReq;
-    uint32_t               threadCtx;                  /* identified which thread is using this instance */
     StunMsgId              StunReqTransId;                       /* transaction id of request */
-    StunMsgId              PrevRespTransId;                      /* transaction id of last recevied */
-    uint8_t                stunReqMsgBuf[STUN_MAX_PACKET_SIZE]; /* encoded STUN request    */
+    StunMsgId              PrevRespTransId;                      /* transaction id of last received */
+    uint8_t                stunReqMsgBuf[STUN_MAX_PACKET_SIZE];  /* encoded STUN request    */
     int                    stunReqMsgBufLen;                     /* of encoded STUN request */
 
     STUN_USER_CREDENTIALS userCredentials;
@@ -152,34 +139,37 @@ typedef struct
     bool channelBound;
 
     /* returned in allocate resp */
-    
-    struct sockaddr_storage  rflxAddr;
+
+    struct sockaddr_storage  srflxAddr;
     struct sockaddr_storage  relAddr;
-    
+
     uint32_t lifetime;               /* Seconds */
-    uint32_t bandwidthKbps;          /* kbps */
-    bool   hasMsSeqNr;               /* MS2: Sequence number must be used */
-    StunAttrSequenceNum MsSeqNum;    /* MS2 only */
     TurnChannelBindInfo_T      channelBindInfo;
     TurnCreatePermissionInfo_T createPermInfo;
     /* timers */
-    int32_t TimerRetransmit;      
-    int32_t TimerRefreshAlloc;    
+    uint32_t  timerResMsec;
+    int32_t TimerRetransmit;
+    int32_t TimerRefreshAlloc;
     int32_t TimerRefreshChannel;
     int32_t TimerRefreshPermission;
     int32_t TimerStunKeepAlive;
     int     retransmits;
+    int     failures;
     uint64_t token;
 
+    bool doStunKeepAlive;
+
+    TurnCallBackData_T turnCbData;
+
     void *userData;
-} TURN_INSTANCE_DATA;
+};
 
 
 /* state function */
 typedef void (*TURN_STATE_FUNC)(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig, uint8_t *payload, uint8_t *origMsgBuf);
 
 /* entry in state table */
-typedef struct 
+typedef struct
 {
     TURN_STATE_FUNC Statefunc;
     const char *StateStr;
@@ -187,7 +177,7 @@ typedef struct
 TURN_STATE_TABLE;
 
 
-int  TurnClientSimulateSig(uint32_t threadCtx, int ctx, TURN_SIGNAL sig);
+void TurnClientSimulateSig(void *instance, TURN_SIGNAL sig);
 
 
 #ifdef __cplusplus

@@ -29,6 +29,7 @@ or implied, of Cisco.
 #include <openssl/md5.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
+#include <zlib.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -52,32 +53,28 @@ or implied, of Cisco.
    '---------------------'
    </pre>
 
-   (ASCII art from Alfred E. Heggestad (libre) Alsso BSD license)
+   (ASCII art from Alfred E. Heggestad (libre)  (BSD license)
 */
 
-
-static STUN_ERR_FUNC errFunc;
 static  const uint8_t StunCookie[]      = STUN_MAGIC_COOKIE_ARRAY;
-static  const uint8_t StunCookieMs2[]   = STUN_MS2_MAGIC_COOKIE_ARRAY;
 static  const size_t  StunCookieSize = sizeof(StunCookie)/sizeof(StunCookie[0]);
 
 uint32_t stunlib_calculateFingerprint(const uint8_t *buf, size_t len);
+
+
 /********************************
  * Local helper funcs
  ********************************/
+
 
 static void printError(FILE *stream, const char *fmt, ...)
 {
     va_list ap;
     va_start(ap,fmt);
 
-    if (errFunc)
-        (errFunc)(fmt, ap);
-    else
-    {
-        vfprintf(stream, fmt, ap);
-        fflush(stderr);
-    }
+    vfprintf(stream, fmt, ap);
+    fflush(stream);
+
     va_end(ap);
 }
 
@@ -165,19 +162,19 @@ static void write_32_xor(uint8_t **bufPtr, const uint32_t v, uint8_t *xorId)
 }
 
 
-static void read_8(uint8_t **bufPtr, uint8_t *v)
+static void read_8(const uint8_t **bufPtr, uint8_t *v)
 {
     *v = **bufPtr;
     (*bufPtr)++;
 }
 
-static void read_8n(uint8_t **bufPtr, uint8_t *v, uint32_t len)
+static void read_8n(const uint8_t **bufPtr, uint8_t *v, uint32_t len)
 {
     memcpy(v, *bufPtr, len);
     *bufPtr += len;
 }
 
-static void read_16(uint8_t **bufPtr, uint16_t *v)
+static void read_16(const uint8_t **bufPtr, uint16_t *v)
 {
     *v = ((**bufPtr << 8) & 0xFF00);
     (*bufPtr)++;
@@ -185,7 +182,7 @@ static void read_16(uint8_t **bufPtr, uint16_t *v)
     (*bufPtr)++;
 }
 
-static void read_32(uint8_t **bufPtr, uint32_t *v)
+static void read_32(const uint8_t **bufPtr, uint32_t *v)
 {
     *v = ((**bufPtr << 24)  & 0xFF000000);
     (*bufPtr)++;
@@ -197,7 +194,7 @@ static void read_32(uint8_t **bufPtr, uint32_t *v)
     (*bufPtr)++;
 }
 
-static void read_64(uint8_t **bufPtr, uint64_t *v)
+static void read_64(const uint8_t **bufPtr, uint64_t *v)
 {
     *v = (((uint64_t)**bufPtr  << 56) & 0xFF00000000000000ll);
     (*bufPtr)++;
@@ -218,7 +215,7 @@ static void read_64(uint8_t **bufPtr, uint64_t *v)
 }
 
 
-static void read_8_xor(uint8_t **bufPtr, uint8_t *v, uint8_t *xorId)
+static void read_8_xor(const uint8_t **bufPtr, uint8_t *v, uint8_t *xorId)
 {
     *v = **bufPtr ^ xorId[0];
     (*bufPtr)++;
@@ -226,7 +223,7 @@ static void read_8_xor(uint8_t **bufPtr, uint8_t *v, uint8_t *xorId)
 }
 
 
-static void read_16_xor(uint8_t **bufPtr, uint16_t *v, uint8_t *xorId)
+static void read_16_xor(const uint8_t **bufPtr, uint16_t *v, uint8_t *xorId)
 {
     *v = (((uint16_t)(**bufPtr ^ xorId[0])) << 8) & 0xFF00;
     (*bufPtr)++;
@@ -234,7 +231,7 @@ static void read_16_xor(uint8_t **bufPtr, uint16_t *v, uint8_t *xorId)
     (*bufPtr)++;
 }
 
-static void read_32_xor(uint8_t **bufPtr, uint32_t *v, uint8_t *xorId)
+static void read_32_xor(const uint8_t **bufPtr, uint32_t *v, uint8_t *xorId)
 {
     *v =  (((uint32_t)(**bufPtr ^ xorId[0])) << 24) & 0xFF000000;
     (*bufPtr)++;
@@ -283,12 +280,9 @@ char const *stunlib_getMessageName(uint16_t msgType)
         case STUN_MSG_RefreshErrorResponseMsg:          return "RefreshErrorResponse";
         case STUN_MSG_DataIndicationMsg:                return "DataIndication";
         case STUN_MSG_SendIndicationMsg:                return "STUN_MSG_SendInd";
-
-        /* msice2 only */
-        case STUN_MSG_MS2_DataIndicationMsg:            return "DataIndication";
-        case STUN_MSG_MS2_SetActiveDestReqMsg:          return "SetActiveDestReq";
-        case STUN_MSG_MS2_SetActiveDestResponseMsg:     return "SetActiveDestResp";
-        case STUN_MSG_MS2_SetActiveDestErrorResponseMsg:return "SetActiveDestErrorResp";
+        case STUN_PathDiscoveryRequestMsg:              return "PathDiscReq";
+        case STUN_PathDiscoveryResponseMsg:             return "PathDiscResp";
+        case STUN_PathDiscoveryErrorResponseMsg:        return "PathDiscErrorResp";
 
         default:  return "???";
     }
@@ -318,20 +312,6 @@ stunEncodeHeader(StunMsgHdr *pMsgHdr, uint8_t **pBuf, int *nBufLen)
     write_8n(pBuf, pMsgHdr->id.octet, STUN_MSG_ID_SIZE);
 
     *nBufLen -= 20;
-    return true;
-}
-
-/* MSICE2 */
-static bool
-stunEncodeMagicCookieAtr(uint8_t **pBuf, int *nBufLen)
-{
-    write_16(pBuf, STUN_ATTR_MS2_MagicCookie);   /* Attr type */
-    write_16(pBuf, 4);                           /* Length    */
-
-    /* cookie */
-    write_8n(pBuf, StunCookieMs2, StunCookieSize);
-
-    *nBufLen -= 8;
     return true;
 }
 
@@ -502,6 +482,7 @@ stunEncodeDoubleValueAtr(StunAtrDoubleValue *pChReq, uint16_t attrtype, uint8_t 
     return true;
 }
 
+
 static bool stunEncodeStringAtrAlligned(StunAtrString *pString, uint16_t attrtype, uint8_t **pBuf, int *nBufLen, uint32_t allignment)
 {
     uint32_t padLen = calcPadLen(pString->sizeValue, allignment);
@@ -515,15 +496,14 @@ static bool stunEncodeStringAtrAlligned(StunAtrString *pString, uint16_t attrtyp
 }
 
 
-static bool stunEncodeStringAtr(StunAtrString *pString, uint16_t attrtype, uint8_t **pBuf, int *nBufLen, bool isMsStun)
+static bool stunEncodeStringAtr(StunAtrString *pString, uint16_t attrtype, uint8_t **pBuf, int *nBufLen)
 {
         return stunEncodeStringAtrAlligned(pString,
                                            attrtype,
                                            pBuf,
                                            nBufLen,
-                                           isMsStun ? STUN_MS2_STRING_ALLIGNMENT : STUN_STRING_ALLIGNMENT);
+                                           STUN_STRING_ALLIGNMENT);
 }
-
 
 
 static bool
@@ -546,7 +526,8 @@ stunEncodeIntegrityAtr(StunAtrIntegrity *pIntg, uint8_t **pBuf, int *nBufLen, in
 }
 
 static bool
-stunEncodeFingerprintAtr(uint32_t fingerprint, uint8_t **pBuf, int *nBufLen, int packetLen){
+stunEncodeFingerprintAtr(uint32_t fingerprint, uint8_t **pBuf, int *nBufLen)
+{
     if (*nBufLen < 8) return false;
     write_16(pBuf, STUN_ATTR_FingerPrint);   /* Attr type */
     write_16(pBuf, 4);               /* Length */
@@ -572,14 +553,17 @@ stunEncodeErrorAtrAlligned(StunAtrError *pError, uint8_t **pBuf, int *nBufLen, u
     return true;
 }
 
-static bool stunEncodeErrorAtr(StunAtrError *pError, uint8_t **pBuf, int *nBufLen, bool isMsStun)
+
+
+static bool stunEncodeErrorAtr(StunAtrError *pError, uint8_t **pBuf, int *nBufLen)
 {
     return stunEncodeErrorAtrAlligned(pError,
                                       pBuf,
                                       nBufLen,
-                                      isMsStun ? STUN_MS2_STRING_ALLIGNMENT : STUN_STRING_ALLIGNMENT,
+                                      STUN_STRING_ALLIGNMENT,
                                       pError->padChar);
 }
+
 
 static bool
 stunEncodeUnknownAtr(StunAtrUnknown *pUnk, uint8_t **pBuf, int *nBufLen)
@@ -598,25 +582,22 @@ stunEncodeUnknownAtr(StunAtrUnknown *pUnk, uint8_t **pBuf, int *nBufLen)
 
 
 static bool
-stunEncodeDataAtr(StunData *pData, uint8_t **pBuf, int *nBufLen, bool isMsStun)
+stunEncodeDataAtr(StunData *pData, uint8_t **pBuf, int *nBufLen)
 {
     uint32_t residue;
     uint32_t padding;
 
     residue = padding = 0;
 
-    /* MSSTUN has non padding/alignment */
-    if (!isMsStun)
-    {
-        residue = pData->dataLen % 4;
-        if (residue > 0)
-            padding = 4 - residue;
-    }
-
+    /* padding/alignment */
+    residue = pData->dataLen % 4;
+    if (residue > 0)
+        padding = 4 - residue;
 
     if ((uint32_t)(*nBufLen) < 4+pData->dataLen+padding)
     {
-        printError(stderr, "<stunEncodeDataAtr> Unable to encode data attr!!\n");
+        printError(stderr, "<stunEncodeDataAtr> Unable to encode data attr %d < 4 + %d + %d\n",
+                (uint32_t)(*nBufLen), pData->dataLen,padding);
         return false;
     }
     write_16(pBuf, STUN_ATTR_Data);     /* Attr type */
@@ -682,7 +663,7 @@ static bool
 stunEncodeEvenPort(StunAtrEvenPort *pEvenPort, uint8_t **pBuf, int *nBufLen)
 {
     if (*nBufLen < 8) return false;
-    write_16(pBuf, STUN_ATTR_EvenPort); /* Attr type with R bit set */ 
+    write_16(pBuf, STUN_ATTR_EvenPort); /* Attr type with R bit set */
     write_16(pBuf, 1);                  /* Length */
     write_8(pBuf, pEvenPort->evenPort);
 
@@ -691,173 +672,95 @@ stunEncodeEvenPort(StunAtrEvenPort *pEvenPort, uint8_t **pBuf, int *nBufLen)
     return true;
 }
 
-
-static bool stunEncodeSequenceAtr(StunAttrSequenceNum *pSeq, uint16_t attrtype, uint8_t **pBuf, int *nBufLen)
+static uint32_t stunlib_EncodeIndication(
+    uint8_t    msgType,
+    uint8_t   *stunBuf,
+    uint8_t   *dataBuf,
+    uint32_t   maxBufSize,
+    uint32_t   payloadLength,
+    const struct sockaddr *dstAddr)
 {
-    write_16(pBuf, attrtype);   /* Attr type */
-    write_16(pBuf, 24);          /* Length */
-    write_8n(pBuf, pSeq->connectionId, sizeof(pSeq->connectionId));  /* connection id */
-    write_32(pBuf, pSeq->sequenceNumber);
-    *nBufLen -= 28;
-    return true;
-}
+    StunMessage stunMsg;
+    StunIPAddress activeDstAddr;
+    int length = 0;
 
-static bool stunEncodeServiceQualityAtr(StunAtrServiceQuality *pServiceQuality, uint16_t attrtype, uint8_t **pBuf, int *nBufLen)
-{
-    write_16(pBuf, attrtype);   /* Attr type */
-    write_16(pBuf, 4);          /* Length */
-    write_16(pBuf, pServiceQuality->streamType);
-    write_16(pBuf, pServiceQuality->serviceQuality);
-    *nBufLen -= 8;
-    return true;
-}
+    memset(&stunMsg, 0, sizeof(StunMessage));
+    stunlib_createId(&stunMsg.msgHdr.id, rand(), 0);
 
-static bool stunEncodeCandidateIdAtr(StunAtrCandidateId *pCandId, uint16_t attrtype, uint8_t **pBuf, int *nBufLen)
-{
-    pCandId->padChar = '\0';
-    return stunEncodeStringAtrAlligned(pCandId,
-                                       attrtype,
-                                       pBuf,
-                                       nBufLen,
-                                       STUN_STRING_ALLIGNMENT);  /* note: only ms2 but always 4-byte aligned */
-}
+    if (dstAddr->sa_family == AF_INET){
 
-/****************************************************************************************************************/
-/********************************* start MALICE specific encoding ***********************************************/
-/****************************************************************************************************************/
+        activeDstAddr.familyType =  STUN_ADDR_IPv4Family;
+        activeDstAddr.addr.v4.port = ntohs(((struct sockaddr_in *)dstAddr)->sin_port);
+        activeDstAddr.addr.v4.addr = ntohl(((struct sockaddr_in *)dstAddr)->sin_addr.s_addr);
 
-static void maliceEncodeFlowdataDLJT(MaliceFlowdata *pFlowdata, uint8_t **pBuf, int *nBufLen)
-{
-    // DT, LT and JT. 3 bits each.
-    **pBuf = pFlowdata->DT << 5;
-    **pBuf |= pFlowdata->LT << 2;
-    **pBuf |= pFlowdata->JT >> 1;
-    (*pBuf)++;
-    **pBuf = pFlowdata->JT << 7;
-    (*pBuf)++;
+    }else if (dstAddr->sa_family == AF_INET6){
+        activeDstAddr.familyType =  STUN_ADDR_IPv6Family;
+        activeDstAddr.addr.v6.port = ntohs(((struct sockaddr_in6 *)dstAddr)->sin6_port);
+        memcpy( activeDstAddr.addr.v6.addr ,
+                ((struct sockaddr_in6 *)dstAddr)->sin6_addr.s6_addr,
+                sizeof(activeDstAddr.addr.v6.addr) );
 
-    *nBufLen -= 2;
-}
-
-static bool maliceEncodeFlowdataReq(MaliceFlowdataReq *pFlowdataReq, uint8_t **pBuf, int *nBufLen)
-{
-    write_8(pBuf, MALICE_IE_FLOWDATA_REQ);
-    write_8(pBuf, 0); // Reserved
-    write_16(pBuf, 8 * 4);
-    *nBufLen -= 4;
-
-    // TODO: Implement instance identifier. Temporary solution: set bits to 0.
-    memset(*pBuf, 0, 3 * 4);
-    *pBuf += 3 * 4;
-    *nBufLen -= 3 * 4;
-
-    // DT, LT and JT.
-    maliceEncodeFlowdataDLJT(&pFlowdataReq->flowdataUP, pBuf, nBufLen);
-    maliceEncodeFlowdataDLJT(&pFlowdataReq->flowdataDN, pBuf, nBufLen);
-
-    // Min and max BW for UP and DN stream.
-    write_32(pBuf, pFlowdataReq->flowdataUP.minBW);
-    write_32(pBuf, pFlowdataReq->flowdataDN.minBW);
-    write_32(pBuf, pFlowdataReq->flowdataUP.maxBW);
-    write_32(pBuf, pFlowdataReq->flowdataDN.maxBW);    
-    *nBufLen -= 4 * 4;
-
-    return true;
-}
-
-static bool maliceEncodeFlowdataResp(MaliceFlowdata *pFlowdataResp, uint8_t **pBuf, int *nBufLen)
-{
-    // header
-    write_8(pBuf, MALICE_IE_FLOWDATA_RESP); // type 
-    write_8(pBuf, 0); // Reserved
-    write_16(pBuf, 6 * 4); // length
-    *nBufLen -= 4;
-
-    // Set 96 reserved bits to 0.
-    memset(*pBuf, 0, 3 * 4);
-    *pBuf += 3 * 4;
-    *nBufLen -= 3 * 4;
-
-    // DT, LT and JT.
-    maliceEncodeFlowdataDLJT(pFlowdataResp, pBuf, nBufLen);
-
-    // set reserved bits to 0.
-    memset(*pBuf, 0, 2);
-    *pBuf += 2;
-    *nBufLen -= 2;
-
-    // Min and max BW.
-    write_32(pBuf, pFlowdataResp->minBW);
-    write_32(pBuf, pFlowdataResp->maxBW);
-    *nBufLen -= 2 * 4;
-
-    return true;
-}
-
-static bool maliceEncodeAgent(MaliceAttrAgent *pAgent, uint8_t **pBuf, int *nBufLen)
-{
-    uint16_t length;
-    uint8_t *pCurrPtr = *pBuf + 4; // Make room for header.
-
-    // Encode IE's
-    if (pAgent->hasFlowdataReq && !maliceEncodeFlowdataReq(&pAgent->flowdataReq, &pCurrPtr, nBufLen))
-    {
-        printf("maliceEncodeAgent: Failed to encode flowdata request.\n");
-        return false;
-    }
-
-    // Write header
-    length = pCurrPtr - *pBuf - 4;
-
-    write_16(pBuf, MALICE_ATTR_MD_AGENT);
-    write_16(pBuf, length);
-    *nBufLen -= 4;
-
-    *pBuf += length; // Add length of attributes written with pCurrPtr to pBuf.
-
-    return true;
-}
-
-static int maliceEncodeResp(MaliceAttrResp *pResp, uint8_t **pBuf, int *nBufLen, bool UP)
-{
-    uint16_t length;
-    uint8_t *pCurrPtr = *pBuf + 4; // Make room for header.
-
-    // Encode IE's
-    if (pResp->hasFlowdataResp && !maliceEncodeFlowdataResp(&pResp->flowdataResp, &pCurrPtr, nBufLen))
-    {
-        printf("maliceEncodeAgent: Failed to encode flowdata request.\n");
+    }else{
         return 0;
     }
 
-    // Write header
-    length = pCurrPtr - *pBuf - 4;
+    /* STD TURN: sendInd(XorPeerAddr, Data)   no integrity */
+    stunMsg.msgHdr.msgType = msgType;
+    stunMsg.xorPeerAddrEntries = 1;
+    memcpy(&stunMsg.xorPeerAddress[0], &activeDstAddr, sizeof(StunIPAddress));
+    stunMsg.hasData      = true;
+    stunMsg.data.dataLen = payloadLength;
+    stunMsg.data.pData   = dataBuf;             /*The data (RTP packet) follows anyway..*/
 
-    if (UP)
-        write_16(pBuf, MALICE_ATTR_MD_RESP_UP);
-    else
-        write_16(pBuf, MALICE_ATTR_MD_RESP_DN);
-    write_16(pBuf, length);
-    *nBufLen -= 4;
+    length = stunlib_encodeMessage(&stunMsg,
+                               stunBuf,
+                               maxBufSize,
+                               NULL,   /* no message integrity */
+                               0,      /* no message integrity */
+                               NULL);  /* stream */
 
-    *pBuf += length; // Add length of attributes written with pCurrPtr to pBuf.
-
-    return length + 4;
+    return length;
 }
 
-static bool maliceEncodePeerCheck(MaliceAttrPeerCheck *pPeerCheck, uint8_t **pBuf, int *nBufLen)
+
+uint32_t stunlib_EncodeSendIndication(
+    uint8_t   *stunBuf,
+    uint8_t   *dataBuf,
+    uint32_t   maxBufSize,
+    uint32_t   payloadLength,
+    const struct sockaddr *dstAddr)
 {
-    return true;
+    return stunlib_EncodeIndication(
+        STUN_MSG_SendIndicationMsg,
+        stunBuf,
+        dataBuf,
+        maxBufSize,
+        payloadLength,
+        dstAddr);
 }
 
-/****************************************************************************************************************/
-/********************************* end MALICE specific decoding ***********************************************/
-/****************************************************************************************************************/
+uint32_t stunlib_EncodeDataIndication(
+    uint8_t   *stunBuf,
+    uint8_t   *dataBuf,
+    uint32_t   maxBufSize,
+    uint32_t   payloadLength,
+    const struct sockaddr *dstAddr)
+{
+    return stunlib_EncodeIndication(
+        STUN_MSG_DataIndicationMsg,
+        stunBuf,
+        dataBuf,
+        maxBufSize,
+        payloadLength,
+        dstAddr);
+}
+
+
 
 /**** DECODING *****/
 
 static bool
-stunDecodeHeader(StunMsgHdr *pMsgHdr, uint8_t **pBuf, int *nBufLen)
+stunDecodeHeader(StunMsgHdr *pMsgHdr, const uint8_t **pBuf, int *nBufLen)
 {
     memset(pMsgHdr, 0, sizeof(StunMsgHdr));
 
@@ -875,7 +778,7 @@ stunDecodeHeader(StunMsgHdr *pMsgHdr, uint8_t **pBuf, int *nBufLen)
 
 
 static bool
-stunDecodeAttributeHead(StunAtrHdr *pAtrHdr, uint8_t **pBuf, int *nBufLen)
+stunDecodeAttributeHead(StunAtrHdr *pAtrHdr, const uint8_t **pBuf, int *nBufLen)
 {
     if (*nBufLen < 4) return false;
 
@@ -885,7 +788,7 @@ stunDecodeAttributeHead(StunAtrHdr *pAtrHdr, uint8_t **pBuf, int *nBufLen)
     return true;
 }
 
-static bool stunDecodeStringAtrAlligned(StunAtrString *pStr, uint8_t **pBuf, int *nBufLen, int atrLen, uint32_t allignment)
+static bool stunDecodeStringAtrAlligned(StunAtrString *pStr, const uint8_t **pBuf, int *nBufLen, int atrLen, uint32_t allignment)
 {
     int len;
     uint32_t padLen = calcPadLen(atrLen, allignment);
@@ -905,33 +808,17 @@ static bool stunDecodeStringAtrAlligned(StunAtrString *pStr, uint8_t **pBuf, int
 }
 
 
-static bool stunDecodeStringAtr(StunAtrString *pStr, uint8_t **pBuf, int *nBufLen, int atrLen, bool isMsStun)
+static bool stunDecodeStringAtr(StunAtrString *pStr, const uint8_t **pBuf, int *nBufLen, int atrLen)
 {
     return stunDecodeStringAtrAlligned(pStr,
                                        pBuf,
                                        nBufLen,
                                        atrLen,
-                                       isMsStun ? STUN_MS2_STRING_ALLIGNMENT : STUN_STRING_ALLIGNMENT);
+                                       STUN_STRING_ALLIGNMENT);
 }
 
-/* MS-ICE2 specific */
 static bool
-stunDecodeMagicCookieAtr(uint8_t *cookieDest, uint8_t **pBuf, int *nBufLen, int atrLen)
-{
-    if (atrLen != 4)
-    {
-        printError(stderr, "stunDecodeMagicCookieAtr() failed len %d, should be 4\n", atrLen);
-        return false;
-    }
-    read_8n(pBuf, cookieDest, atrLen);
-    *nBufLen -= atrLen;
-    return true;
-}
-
-
-
-static bool
-stunDecodeValueAtr(StunAtrValue *pVal, uint8_t **pBuf, int *nBufLen)
+stunDecodeValueAtr(StunAtrValue *pVal, const uint8_t **pBuf, int *nBufLen)
 {
     if (*nBufLen < 4) return false;
 
@@ -941,7 +828,7 @@ stunDecodeValueAtr(StunAtrValue *pVal, uint8_t **pBuf, int *nBufLen)
 }
 
 static bool
-stunDecodeChannelAtr(StunAtrChannelNumber *channelAtr, uint8_t **pBuf, int *nBufLen)
+stunDecodeChannelAtr(StunAtrChannelNumber *channelAtr, const uint8_t **pBuf, int *nBufLen)
 {
     if (*nBufLen < 4) return false;
 
@@ -952,7 +839,7 @@ stunDecodeChannelAtr(StunAtrChannelNumber *channelAtr, uint8_t **pBuf, int *nBuf
 }
 
 static bool
-stunDecodeEvenPortAtr(StunAtrEvenPort *evenPortAtr, uint8_t **pBuf, int *nBufLen)
+stunDecodeEvenPortAtr(StunAtrEvenPort *evenPortAtr, const uint8_t **pBuf, int *nBufLen)
 {
     if (*nBufLen < 4) return false;
 
@@ -964,7 +851,7 @@ stunDecodeEvenPortAtr(StunAtrEvenPort *evenPortAtr, uint8_t **pBuf, int *nBufLen
 
 
 static bool
-stunDecodeRequestedTransportAtr(StunAtrRequestedTransport *reqTransAtr, uint8_t **pBuf, int *nBufLen)
+stunDecodeRequestedTransportAtr(StunAtrRequestedTransport *reqTransAtr, const uint8_t **pBuf, int *nBufLen)
 {
     if (*nBufLen < 4) return false;
 
@@ -975,7 +862,7 @@ stunDecodeRequestedTransportAtr(StunAtrRequestedTransport *reqTransAtr, uint8_t 
 }
 
 static bool
-stunDecodeRequestedAddrFamilyAtr(StunAttrRequestedAddrFamily *reqAddrFamily, uint8_t **pBuf, int *nBufLen)
+stunDecodeRequestedAddrFamilyAtr(StunAttrRequestedAddrFamily *reqAddrFamily, const uint8_t **pBuf, int *nBufLen)
 {
     if (*nBufLen < 4) return false;
 
@@ -989,7 +876,7 @@ stunDecodeRequestedAddrFamilyAtr(StunAttrRequestedAddrFamily *reqAddrFamily, uin
 
 
 static bool
-stunDecodeDoubleValueAtr(StunAtrDoubleValue *pVal, uint8_t **pBuf, int *nBufLen)
+stunDecodeDoubleValueAtr(StunAtrDoubleValue *pVal, const uint8_t **pBuf, int *nBufLen)
 {
     if (*nBufLen < 8) return false;
 
@@ -1000,7 +887,7 @@ stunDecodeDoubleValueAtr(StunAtrDoubleValue *pVal, uint8_t **pBuf, int *nBufLen)
 }
 
 static bool
-stunDecodeIPAddrAtr(StunIPAddress *pAddr, uint8_t **pBuf, int *nBufLen)
+stunDecodeIPAddrAtr(StunIPAddress *pAddr, const uint8_t **pBuf, int *nBufLen)
 {
     uint16_t flagtype;
     if (*nBufLen < 2) return false;
@@ -1051,7 +938,7 @@ stunDecodeIPAddrAtr(StunIPAddress *pAddr, uint8_t **pBuf, int *nBufLen)
 }
 
 static bool
-stunDecodeIPAddrAtrXOR(StunIPAddress *pAddr, uint8_t **pBuf, int *nBufLen, StunMsgId *pMsgId)
+stunDecodeIPAddrAtrXOR(StunIPAddress *pAddr, const uint8_t **pBuf, int *nBufLen, StunMsgId *pMsgId)
 {
     uint16_t flagtype;
     uint8_t xorId[16];
@@ -1094,6 +981,7 @@ stunDecodeIPAddrAtrXOR(StunIPAddress *pAddr, uint8_t **pBuf, int *nBufLen, StunM
         read_8_xor(pBuf, &pAddr->addr.v6.addr[14], xorId +14);
         read_8_xor(pBuf, &pAddr->addr.v6.addr[15], xorId +15);
         *nBufLen -= 20;
+
     }
     else
     {
@@ -1104,7 +992,7 @@ stunDecodeIPAddrAtrXOR(StunIPAddress *pAddr, uint8_t **pBuf, int *nBufLen, StunM
 }
 
 static bool
-stunDecodeIntegrityAtr(StunAtrIntegrity *pIntg, uint8_t **pBuf, int *nBufLen, int packetLen)
+stunDecodeIntegrityAtr(StunAtrIntegrity *pIntg, const uint8_t **pBuf, int *nBufLen, int packetLen)
 {
     if (*nBufLen < 20) return false;
     // Message Integrity is located offset bytes from the start of the packet.
@@ -1117,7 +1005,7 @@ stunDecodeIntegrityAtr(StunAtrIntegrity *pIntg, uint8_t **pBuf, int *nBufLen, in
     return true;
 }
 
-static bool stunDecodeErrorAtrAlligned(StunAtrError *pError, uint8_t **pBuf, int *nBufLen, int atrLen, uint32_t allignment)
+static bool stunDecodeErrorAtrAlligned(StunAtrError *pError, const uint8_t **pBuf, int *nBufLen, int atrLen, uint32_t allignment)
 {
     uint32_t padLen = calcPadLen(atrLen, allignment);
 
@@ -1137,18 +1025,18 @@ static bool stunDecodeErrorAtrAlligned(StunAtrError *pError, uint8_t **pBuf, int
 }
 
 
-static bool stunDecodeErrorAtr(StunAtrError *pError, uint8_t **pBuf, int *nBufLen, int atrLen, bool isMsStun)
+static bool stunDecodeErrorAtr(StunAtrError *pError, const uint8_t **pBuf, int *nBufLen, int atrLen)
 {
     return stunDecodeErrorAtrAlligned(pError,
                                       pBuf,
                                       nBufLen,
                                       atrLen,
-                                      isMsStun ? STUN_MS2_STRING_ALLIGNMENT : STUN_STRING_ALLIGNMENT);
+                                      STUN_STRING_ALLIGNMENT);
 
 }
 
 
-static bool stunDecodeUnknownAtr(StunAtrUnknown *pUnk, uint8_t **pBuf, int *nBufLen, int atrLen)
+static bool stunDecodeUnknownAtr(StunAtrUnknown *pUnk, const uint8_t **pBuf, int *nBufLen, int atrLen)
 {
     int i;
     if (*nBufLen < atrLen) return false;
@@ -1160,17 +1048,18 @@ static bool stunDecodeUnknownAtr(StunAtrUnknown *pUnk, uint8_t **pBuf, int *nBuf
     return true;
 }
 
+
 static bool
-stunDecodeDataAtr(StunData *pData, uint8_t **pBuf, int *nBufLen,
-                  int atrLen, int stunBufLen, bool isMsStun)
+stunDecodeDataAtr(StunData *pData, const uint8_t **pBuf, int *nBufLen,
+                  int atrLen, int stunBufLen)
 {
     if (*nBufLen < atrLen) return false;
 
     pData->offset=stunBufLen-*nBufLen;
     pData->dataLen = atrLen;
-    pData->pData = *pBuf;
+    pData->pData = (uint8_t *)*pBuf;
     *pBuf += atrLen;
-    if ((atrLen%4 == 0) || (isMsStun))  /* MS-STUN has no alignment */
+    if ((atrLen%4 == 0))
     {
         *nBufLen -= atrLen;
     }
@@ -1182,194 +1071,11 @@ stunDecodeDataAtr(StunData *pData, uint8_t **pBuf, int *nBufLen,
     return true;
 }
 
-static bool StunDecodeSequenceNum(StunAttrSequenceNum *pSeq, uint8_t **pBuf, int *nBufLen)
-{
-    /* 20 byte connection id */
-    read_8n(pBuf, pSeq->connectionId, sizeof(pSeq->connectionId));
-    *nBufLen -= 20;
 
-    /* 32 bit sequence number */
-    read_32(pBuf, &pSeq->sequenceNumber);
-    *nBufLen -= 4;
-    return true;
-}
-
-/****************************************************************************************************************/
-/********************************* start MALICE specific decoding ***********************************************/
-/****************************************************************************************************************/
-
-static bool
-maliceDecodeIEHead(MaliceIEHdr *pIE, uint8_t **pBuf, int *nBufLen)
-{
-    if (*nBufLen < 4) return false;
-
-    read_8(pBuf, &pIE->type);
-    (*pBuf)++; // Ignore reserved byte.
-    read_16(pBuf, &pIE->length);
-
-    *nBufLen -= 4;
-
-    return true;
-}
+/**** DEBUGGING ****/
 
 static void
-maliceDecodeFlowdataDLJT(MaliceFlowdata *flowdata, uint8_t **pBuf, int *nBufLen)
-{
-    // DT, LT and JT. 3 bits each.
-    flowdata->DT = (**pBuf >> 5) & 0x07;
-    flowdata->LT = (**pBuf >> 2) & 0x07;
-    flowdata->JT = (**pBuf) & 0x03;
-    flowdata->JT <<= 1;
-    (*pBuf)++;
-    flowdata->JT |= (**pBuf >> 7);
-    (*pBuf)++;
-
-    *nBufLen-= 2;
-}
-
-static bool
-maliceDecodeFlowdataReq(MaliceFlowdataReq *pFlowdataReq, uint8_t **pBuf, int *nBufLen)
-{
-    // TODO: decode Instance Identifier. Dont know what this looks like yet.
-    *pBuf += 3 * 4;
-    *nBufLen -= 3 * 4;
-
-    // uDT, uLT, uJT, dDT, dLT and dJT.
-    maliceDecodeFlowdataDLJT(&pFlowdataReq->flowdataUP, pBuf, nBufLen);
-    maliceDecodeFlowdataDLJT(&pFlowdataReq->flowdataDN, pBuf, nBufLen);
-
-    // Min and Max BW for up- and downstream
-    read_32(pBuf, &pFlowdataReq->flowdataUP.minBW);
-    read_32(pBuf, &pFlowdataReq->flowdataDN.minBW);
-    read_32(pBuf, &pFlowdataReq->flowdataUP.maxBW);
-    read_32(pBuf, &pFlowdataReq->flowdataDN.maxBW);
-    *nBufLen -= 4 * 4;
-
-    return true;
-}
-
-static bool
-maliceDecodeFlowdataResp(MaliceFlowdata *pFlowdataResp, uint8_t **pBuf, int *nBufLen)
-{
-    // 96 reserved bits (12 reserved bytes)
-    *pBuf += 3 * 4;
-    *nBufLen -= 3 * 4;
-
-    // DT, LT and JT
-    maliceDecodeFlowdataDLJT(pFlowdataResp, pBuf, nBufLen);
-
-    // 16 reserved bits (2 reserved bytes)
-    *pBuf += 2;
-    *nBufLen -= 2;
-
-    // Min and max BW.
-    read_32(pBuf, &pFlowdataResp->minBW);
-    read_32(pBuf, &pFlowdataResp->maxBW);
-    *nBufLen -= 2 * 4;
-
-    return true;
-}
-
-static bool
-maliceDecodeAgent(MaliceAttrAgent *pAgent, uint8_t **pBuf, int *nBufLen, int atrLen)
-{
-    MaliceIEHdr ie;
-    int nBufLenEnd = (*nBufLen) - atrLen;
-
-    if (*nBufLen < atrLen)
-    {
-        printf("maliceDecodeAgent: failed nBufLen %d atrLen %d\n", *nBufLen, atrLen);
-        return false;
-    }
-
-    while (nBufLenEnd < (*nBufLen))
-    {
-        if (!maliceDecodeIEHead(&ie, pBuf, nBufLen))
-        {
-            printf("maliceDecodeAgent: Failed to parse IE head (%d)\n", nBufLenEnd - (*nBufLen));
-            return false;
-        }
-        switch (ie.type)
-        {
-            case MALICE_IE_FLOWDATA_REQ:
-                if (!maliceDecodeFlowdataReq(&pAgent->flowdataReq, pBuf, nBufLen))
-                    return false;
-                pAgent->hasFlowdataReq = true;
-                break;
-            default:
-                printf("maliceDecodeAgent: Unrecognized type\n");
-                break;
-        }
-    }
-
-    if(nBufLenEnd != (*nBufLen))
-    {
-        printf("maliceDecodeAgent: Attribute length error with difference %d\n", nBufLenEnd - (*nBufLen));
-        return false;
-    }
-
-    return true;
-}
-
-static bool
-maliceDecodeResp(MaliceAttrResp *pResp, uint8_t **pBuf, int *nBufLen, int atrLen)
-{
-    MaliceIEHdr ie;
-    int nBufLenEnd = (*nBufLen) - atrLen;
-
-    if (*nBufLen < atrLen)
-    {
-        printf("maliceDecodeResp: failed nBufLen %d atrLen %d\n", *nBufLen, atrLen);
-        return false;
-    }
-
-    while (nBufLenEnd < (*nBufLen))
-    {
-        if (!maliceDecodeIEHead(&ie, pBuf, nBufLen))
-        {
-            printf("maliceDecodeResp: Failed to parse IE head (%d)\n", nBufLenEnd - (*nBufLen));
-            return false;
-        }
-        switch (ie.type)
-        {
-            case MALICE_IE_FLOWDATA_RESP:
-                if (!maliceDecodeFlowdataResp(&pResp->flowdataResp, pBuf, nBufLen))
-                    return false;
-                pResp->hasFlowdataResp = true;
-                break;
-            default:
-                printf("maliceDecodeResp: Unrecognized type\n");
-                break;
-        }
-    }
-
-    if(nBufLenEnd != (*nBufLen))
-    {
-        printf("maliceDecodeResp: Attribute length error\n");
-        return false;
-    }
-
-    return true;
-}
-
-static bool
-maliceDecodeMDPeerCheck(MaliceAttrPeerCheck *pPeerCheck, uint8_t **pBuf, int *nBufLen, int length)
-{
-    *pBuf += 2;
-    read_16(pBuf, &pPeerCheck->peerMaliceCheckResult);
-
-    *nBufLen -= 4;
-
-    return true;
-}
-
-/****************************************************************************************************************/
-/********************************* end MALICE specific decoding  ************************************************/
-/****************************************************************************************************************/
-
-/**** DEBUGING ****/
-static void
-stun_printIP4Address(FILE *stream, char const * szHead, StunAddress4 * pAdr)
+stun_printIP4Address(FILE *stream, char const * szHead, const StunAddress4 * pAdr)
 {
     printError(stream, "  %s \t= {%d.%d.%d.%d:%d}\n", szHead,
            pAdr->addr >> 24 & 0xff,
@@ -1381,7 +1087,7 @@ stun_printIP4Address(FILE *stream, char const * szHead, StunAddress4 * pAdr)
 
 
 static void
-stun_printIP6Address(FILE *stream, char const * szHead, StunAddress6 *pAdr)
+stun_printIP6Address(FILE *stream, char const * szHead, const StunAddress6 *pAdr)
 {
   if (stream)
     printError(stream, "  %s \t= { %02x%02x : %02x%02x : %02x%02x : %02x%02x : %02x%02x : %02x%02x : %02x%02x : %02x%02x - %d}\n", szHead,
@@ -1406,7 +1112,7 @@ stun_printIP6Address(FILE *stream, char const * szHead, StunAddress6 *pAdr)
 
 
 static void
-stun_printIPAddress(FILE *stream, char const * szHead, StunIPAddress *pAdr)
+stun_printIPAddress(FILE *stream, char const * szHead, const StunIPAddress *pAdr)
 {
     if (pAdr->familyType == STUN_ADDR_IPv4Family)
         stun_printIP4Address(stream,szHead, &pAdr->addr.v4);
@@ -1418,7 +1124,7 @@ stun_printIPAddress(FILE *stream, char const * szHead, StunIPAddress *pAdr)
 
 
 static void
-stun_printString(FILE *stream, char const * szHead, StunAtrString *pStr)
+stun_printString(FILE *stream, char const * szHead, const StunAtrString *pStr)
 {
     char buf[1512];
     memcpy(buf, pStr->value, pStr->sizeValue);
@@ -1428,20 +1134,20 @@ stun_printString(FILE *stream, char const * szHead, StunAtrString *pStr)
 
 
 static void
-stun_printValue(FILE *stream, char const * szHead, StunAtrValue *pVal)
+stun_printValue(FILE *stream, char const * szHead, const StunAtrValue *pVal)
 {
     printError(stream, "  %s \t= 0x%04x\n", szHead, pVal->value);
 }
 
 static void
-stun_printByteValue(FILE *stream, char const * szHead, uint8_t *pVal)
+stun_printByteValue(FILE *stream, char const * szHead, const uint8_t *pVal)
 {
     printError(stream, "  %s \t= 0x%02x\n", szHead, *pVal);
 }
 
 
 static void
-stun_printDoubleValue(FILE *stream, char const * szHead, StunAtrDoubleValue *pVal)
+stun_printDoubleValue(FILE *stream, char const * szHead, const StunAtrDoubleValue *pVal)
 {
 
     printError(stream, "  %s \t= ", szHead);
@@ -1459,7 +1165,7 @@ stun_printFlag(FILE *stream,char const * szHead, bool bIsSet)
 
 
 static void
-stun_printErrorCode(FILE *stream, StunAtrError *pErr)
+stun_printErrorCode(FILE *stream, const StunAtrError *pErr)
 {
     char buf[1512];
     memcpy(buf, pErr->reason, pErr->sizeReason);
@@ -1469,7 +1175,7 @@ stun_printErrorCode(FILE *stream, StunAtrError *pErr)
 }
 
 static void
-stun_printUnknown(FILE *stream, StunAtrUnknown *pUnk)
+stun_printUnknown(FILE *stream, const StunAtrUnknown *pUnk)
 {
     int i;
     printError(stream, "  unknownAttribute = [%d]{", pUnk->numAttributes);
@@ -1480,18 +1186,18 @@ stun_printUnknown(FILE *stream, StunAtrUnknown *pUnk)
 
 
 static void
-stun_printData(FILE *stream, char const * szHead, StunData *pData)
+stun_printData(FILE *stream, char const * szHead, const StunData *pData)
 {
     if (!szHead || !pData) return;
     printError(stream, "  %s \t= %p (%d)\n", szHead, pData->pData, pData->dataLen);
 }
 
 
-static void
-stun_printMessage(FILE *stream, StunMessage *pMsg)
+void
+stun_printMessage(FILE *stream, const StunMessage *pMsg)
 {
     uint32_t i;
-    StunMessage *message = pMsg;
+    const StunMessage *message = pMsg;
     if (!pMsg)
     {
         printError(stream, "NULL\n");
@@ -1582,7 +1288,7 @@ stun_printMessage(FILE *stream, StunMessage *pMsg)
 }
 
 void
-stunlib_printBuffer(FILE *stream, uint8_t *pBuf, int len, char const * szHead)
+stunlib_printBuffer(FILE *stream, const uint8_t *pBuf, int len, char const * szHead)
 {
     int i;
     int linecnt = 0;
@@ -1632,8 +1338,7 @@ stunlib_getErrorReason(uint16_t errorClass, uint16_t errorNumber)
 
 
 /*
- *  There are 2 formats supported.  One is standard stun. The other is
- *  Microsofts earlier implemntation of stun.
+ *  There is 1 format supported, which is standard stun.
  *
  *   RFC5389
  *   -------
@@ -1651,49 +1356,17 @@ stunlib_getErrorReason(uint16_t errorClass, uint16_t errorNumber)
  *      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *
  *
- *  Stun-bis-02 (as used by Microsoft ice)
- *  -----------
- *
- *       0                   1                   2                   3
- *       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
- *      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- *      |0 0|     STUN Message Type     |         Message Length        |
- *      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- *      |                RFC5389  Magic Cookie                          |
- *      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- *      |                     Transaction ID (96 bits)                  |
- *      |                                                               |
- *      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- *      |   Attribute Type=MagicCookie  |   Attribute Length=4          |
- *      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- *      |                stun-02  Magic Cookie                          |
- *      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- *
  */
-uint16_t 
-stunlib_isStunMsg(uint8_t *payload, uint16_t length, bool *isMsStun)
+bool stunlib_isStunMsg(const uint8_t *payload, uint16_t length)
 {
-    *isMsStun = false;
-
     /* first 2 bits must be 00, STUN header and magic cookie */
-    if (((*payload & STUN_PACKET_MASK) == STUN_PACKET) && (length >= 20))
-    {
-        if (memcmp(payload+4, (void *)StunCookie, StunCookieSize) == 0)
-        {
-            /* ok got the cookie, but could still be stun-02 as microsoft
-             * puts the std cookie in the 1st 4 bytes of its transaction id
-             * and the stun-02 cookie as the 1st attribute.
-             */
-            if ((length >= 28) && (memcmp(payload+24, (void *)StunCookieMs2, StunCookieSize) == 0))
-                *isMsStun = true;
-            return true;
-        }
-    }
-    return false;
+    return (((*payload & STUN_PACKET_MASK) == STUN_PACKET)
+        &&  (length >= 20)
+        &&  (memcmp(payload+4, (void *)StunCookie, StunCookieSize) == 0));
 }
 
 uint16_t
-stunlib_StunMsgLen (uint8_t *payload)
+stunlib_StunMsgLen(const uint8_t *payload)
 {
     uint16_t length = *(payload+2);
     length = length << 8;
@@ -1708,54 +1381,46 @@ bool stunlib_isTurnChannelData(uint8_t *payload)
     return ((*payload & STUN_PACKET_MASK) == TURN_CHANNEL_PACKET);
 }
 
-bool stunlib_isRequest(StunMessage *msg)
+bool stunlib_isRequest(const StunMessage *msg)
 {
     return (msg->msgHdr.msgType & STUN_CLASS_MASK) == STUN_CLASS_REQUEST;
 }
 
-bool stunlib_isSuccessResponse(StunMessage *msg)
+bool stunlib_isSuccessResponse(const StunMessage *msg)
 {
     return (msg->msgHdr.msgType & STUN_CLASS_MASK) == STUN_CLASS_SUCCESS_RESP;
 }
 
-bool stunlib_isErrorResponse(StunMessage *msg)
+bool stunlib_isErrorResponse(const StunMessage *msg)
 {
     return (msg->msgHdr.msgType & STUN_CLASS_MASK) == STUN_CLASS_ERROR_RESP;
 }
 
-bool stunlib_isResponse(StunMessage *msg)
+bool stunlib_isResponse(const StunMessage *msg)
 {
     return (stunlib_isSuccessResponse(msg) || stunlib_isErrorResponse(msg));
 }
 
-bool stunlib_isIndication(StunMessage *msg)
+bool stunlib_isIndication(const StunMessage *msg)
 {
     return (msg->msgHdr.msgType & STUN_CLASS_MASK) == STUN_CLASS_INDICATION;
 }
 
 
 bool
-stunlib_DecodeMessage(unsigned char* buf,
-                      unsigned int bufLen,
+stunlib_DecodeMessage(const uint8_t* buf,
+                      size_t bufLen,
                       StunMessage* message,
                       StunAtrUnknown* unknowns,
-                      FILE *stream,
-                      bool isMsStun)
+                      FILE *stream)
 {
-    uint8_t *pCurrPtr;
+    const uint8_t *pCurrPtr;
     int restlen = bufLen;
     StunAtrHdr sAtr;
 
-    if (!buf)
+    if (!buf || !message)
     {
-        if (stream != NULL) printError(stderr, "No buffer recieved\n");
-        return false;
-    }
-
-
-    if (!message)
-    {
-        if (stream != NULL) printError(stderr, "No message recieved\n");
+        if (stream != NULL) printError(stderr, "No buffer or no message recieved\n");
         return false;
     }
 
@@ -1807,30 +1472,18 @@ stunlib_DecodeMessage(unsigned char* buf,
                 break;
 
             case STUN_ATTR_MappedAddress:
-                if (!isMsStun)
-                {
-                    if (!stunDecodeIPAddrAtr(&message->mappedAddress, &pCurrPtr, &restlen)) return false;
-                    message->hasMappedAddress = true;
-                }
-                else
-                {
-                    /* in MSICE2 this is the relay */
-                    if (!stunDecodeIPAddrAtrXOR(&message->xorRelayAddress,
-                                                &pCurrPtr,
-                                                &restlen,
-                                                &message->msgHdr.id)) return false;
-                    message->hasXorRelayAddress = true;
-                    break;
-                }
+                if (!stunDecodeIPAddrAtr(&message->mappedAddress, &pCurrPtr, &restlen)) return false;
+                message->hasMappedAddress = true;
                 break;
+
             case STUN_ATTR_Username:
                 if (!stunDecodeStringAtr(&message->username,
                                          &pCurrPtr,
                                          &restlen,
-                                         sAtr.length,
-                                         isMsStun)) return false;
+                                         sAtr.length)) return false;
                 message->hasUsername = true;
                 break;
+
             case STUN_ATTR_MessageIntegrity:
                 if (!stunDecodeIntegrityAtr(&message->messageIntegrity,
                                             &pCurrPtr,
@@ -1838,12 +1491,12 @@ stunlib_DecodeMessage(unsigned char* buf,
                                             message->msgHdr.msgLength+20 )) return false;
                 message->hasMessageIntegrity = true;
                 break;
+
             case STUN_ATTR_ErrorCode:
                 if (!stunDecodeErrorAtr(&message->errorCode,
                                         &pCurrPtr,
                                         &restlen,
-                                        sAtr.length,
-                                        isMsStun)) return false;
+                                        sAtr.length)) return false;
                 message->hasErrorCode = true;
                 break;
             case STUN_ATTR_UnknownAttribute:
@@ -1864,8 +1517,7 @@ stunlib_DecodeMessage(unsigned char* buf,
                 if (!stunDecodeStringAtr(&message->software,
                                          &pCurrPtr,
                                          &restlen,
-                                         sAtr.length,
-                                         isMsStun)) return false;
+                                         sAtr.length)) return false;
                 message->hasSoftware = true;
                 break;
             case STUN_ATTR_Lifetime:
@@ -1881,22 +1533,11 @@ stunlib_DecodeMessage(unsigned char* buf,
                 message->hasAlternateServer = true;
                 break;
 
-            /* std TURN and  MS-ICE2 have used same values for attributes. STUN_ATTR_XorPeerAddress and STUN_ATTR_MS2_RemoteAddr */
             case STUN_ATTR_XorPeerAddress:
-                if (!isMsStun)
-                {
-                    if (!stunDecodeIPAddrAtrXOR(&message->xorPeerAddress[message->xorPeerAddrEntries],
-                                                &pCurrPtr,
-                                                &restlen,
-                                                &message->msgHdr.id)) return false;
-                }
-                else
-                {
-                    /* almost the same, without the xor map encoding */
-                    if (!stunDecodeIPAddrAtr(&message->xorPeerAddress[message->xorPeerAddrEntries],
-                                             &pCurrPtr,
-                                             &restlen)) return false;
-                }
+                if (!stunDecodeIPAddrAtrXOR(&message->xorPeerAddress[message->xorPeerAddrEntries],
+                                            &pCurrPtr,
+                                            &restlen,
+                                            &message->msgHdr.id)) return false;
                 message->xorPeerAddrEntries++;
                 break;
             case STUN_ATTR_Data:
@@ -1904,24 +1545,21 @@ stunlib_DecodeMessage(unsigned char* buf,
                                        &pCurrPtr,
                                        &restlen,
                                        sAtr.length,
-                                       bufLen,
-                                       isMsStun)) return false;
+                                       bufLen)) return false;
                 message->hasData = true;
                 break;
             case STUN_ATTR_Nonce:
                 if (!stunDecodeStringAtr(&message->nonce,
                                          &pCurrPtr,
                                          &restlen,
-                                         sAtr.length,
-                                         isMsStun)) return false;
+                                         sAtr.length)) return false;
                 message->hasNonce = true;
                 break;
             case STUN_ATTR_Realm:
                 if (!stunDecodeStringAtr(&message->realm,
                                          &pCurrPtr,
                                          &restlen,
-                                         sAtr.length,
-                                         isMsStun)) return false;
+                                         sAtr.length)) return false;
                 message->hasRealm = true;
                 break;
             case STUN_ATTR_XorRelayAddress:
@@ -1994,136 +1632,6 @@ stunlib_DecodeMessage(unsigned char* buf,
                 message->hasChannelNumber = true;
                 break;
 
-
-            /******************************/
-            /*** start MS-ICE2 specific ***/
-            /******************************/
-
-            /* in std TURN this is in the header, so put it there */
-            case STUN_ATTR_MS2_MagicCookie:
-                if (!stunDecodeMagicCookieAtr(message->magicCookie,
-                                              &pCurrPtr,
-                                              &restlen,
-                                              sAtr.length)) return false;
-                message->hasMagicCookie = true;
-                break;
-
-            /* coded same as STUN_ATTR_alternate_Server */
-            case STUN_ATTR_MS2_AlternateServer:
-                if (!stunDecodeIPAddrAtr(&message->alternateServer,
-                                         &pCurrPtr,
-                                         &restlen)) return false;
-                message->hasAlternateServer = true;
-                break;
-
-            /* no equiv in std TURN */
-            case STUN_ATTR_MS2_Bandwidth:
-                if (!stunDecodeValueAtr(&message->bandwidth,
-                                        &pCurrPtr,
-                                        &restlen)) return false;
-                message->hasBandwidth = true;
-                break;
-
-            /* no equiv in std TURN */
-            case STUN_ATTR_MS2_MsVersion:
-                if (!stunDecodeValueAtr(&message->msVersion,
-                                        &pCurrPtr,
-                                        &restlen)) return false;
-                message->hasMsVersion = true;
-                break;
-
-            /* equivalent to std TURN XorMappedAddress (=reflexive) */
-            case STUN_ATTR_MS2_XorMappedAddress:
-                if (!stunDecodeIPAddrAtrXOR(&message->xorMappedAddress,
-                                            &pCurrPtr,
-                                            &restlen,
-                                            &message->msgHdr.id)) return false;
-                message->hasXorMappedAddress = true;
-                break;
-
-
-            /* no equiv in std TURN */
-            case STUN_ATTR_MS2_SequenceNumber:
-                if (!StunDecodeSequenceNum(&message->SequenceNum,
-                                           &pCurrPtr,
-                                           &restlen)) return false;
-                message->hasSequenceNumber = true;
-
-            /* no equiv in std TURN */
-            case STUN_ATTR_MS2_CandidateId:
-                if (!stunDecodeStringAtr(&message->candidateId,
-                                         &pCurrPtr,
-                                         &restlen,
-                                         sAtr.length,
-                                         false))  /* note  -always 4 byte aligned even with MSICE, so force this */
-                    return false;
-                message->hasCandidateId = true;
-                break;
-
-            /* equiv to STUN_ATTR_XorPeerAddress, but not xor'd */
-            case STUN_ATTR_MS2_DestAddr:
-                if (!stunDecodeIPAddrAtr(&message->xorPeerAddress[message->xorPeerAddrEntries],
-                                         &pCurrPtr,
-                                         &restlen)) return false;
-                message->xorPeerAddrEntries++;
-                break;
-
-            /******************************/
-            /*** end   MS-ICE2 specific ***/
-            /******************************/
-
-            /******************************/
-            /*** start MALICE specific  ***/
-            /******************************/
-
-            case MALICE_ATTR_MD_AGENT:
-                if(!maliceDecodeAgent(&message->maliceMetadata.mdAgent,
-                                      &pCurrPtr,
-                                      &restlen,
-                                      sAtr.length))
-                    printf("failed to decode MD-AGENT\n"); //dont return false because of malice decode failure
-                else 
-                    message->hasMaliceMetadata = true;
-                    message->maliceMetadata.hasMDAgent = true;
-                break;
-
-            case MALICE_ATTR_MD_RESP_UP:
-                if(!maliceDecodeResp(&message->maliceMetadata.mdRespUP,
-                                     &pCurrPtr,
-                                     &restlen,
-                                     sAtr.length)) 
-                    printf("failed to decode MD-RESP_UP\n"); //dont return false because of malice decode failure
-                else 
-                    message->hasMaliceMetadata = true;
-                    message->maliceMetadata.hasMDRespUP = true;
-                break;
-
-            case MALICE_ATTR_MD_RESP_DN:
-                if(!maliceDecodeResp(&message->maliceMetadata.mdRespDN,
-                                     &pCurrPtr,
-                                     &restlen,
-                                     sAtr.length)) 
-                    printf("failed to decode MD-RESP-DN\n"); //dont return false because of malice decode failure
-                else 
-                    message->hasMaliceMetadata = true;
-                    message->maliceMetadata.hasMDRespDN = true;
-                break;
-
-            case MALICE_ATTR_MD_PEER_CHECK:
-                if(!maliceDecodeMDPeerCheck(&message->maliceMetadata.mdPeerCheck,
-                                            &pCurrPtr,
-                                            &restlen,
-                                            sAtr.length))
-                    printf("failed to decode MD-PEER-CHECK\n"); //dont return false because of malice decode failure
-                else
-                    message->hasMaliceMetadata = true;
-                    message->maliceMetadata.hasMDPeerCheck = true;
-                break;
-
-            /******************************/
-            /*** end MALICE specific  *****/
-            /******************************/
-
             default:
                 if (! (sAtr.type & 0x8000) )
                 {
@@ -2131,10 +1639,7 @@ stunlib_DecodeMessage(unsigned char* buf,
                     if (unknowns && unknowns->numAttributes < STUN_MAX_UNKNOWN_ATTRIBUTES)
                         unknowns->attrType[unknowns->numAttributes++] = sAtr.type;
                 }
-                if(!isMsStun)
-                {
-                    sAtr.length += calcPadLen(sAtr.length, STUN_STRING_ALLIGNMENT);
-                }
+                sAtr.length += calcPadLen(sAtr.length, STUN_STRING_ALLIGNMENT);
                 restlen -= sAtr.length;
                 pCurrPtr += sAtr.length;
                 break;
@@ -2146,6 +1651,8 @@ stunlib_DecodeMessage(unsigned char* buf,
           fprintf(stream, "<stunmsg> Message length or attribute length error.\n");
         return false;
     }
+
+
 
     if (stream != NULL)
     {
@@ -2161,8 +1668,8 @@ stunlib_DecodeMessage(unsigned char* buf,
 }
 
 
-bool stunlib_checkIntegrity(unsigned char* buf,
-                            unsigned int bufLen,
+bool stunlib_checkIntegrity(const uint8_t* buf,
+                            size_t bufLen,
                             StunMessage* message,
                             unsigned char *integrityKey,
                             int integrityKeyLen)
@@ -2251,7 +1758,7 @@ stunlib_encodeTurnChannelNumber(uint16_t channelNumber,
 unsigned int
 stunlib_decodeTurnChannelNumber(uint16_t *channelNumber,
                                 uint16_t *length,
-                                unsigned char* buf)
+                                const uint8_t* buf)
 {
     read_16(&buf, channelNumber);
     read_16(&buf, length);
@@ -2305,17 +1812,28 @@ uint32_t stunlib_encodeStunKeepAliveResp(StunMsgId     *transId,
     return STUN_MIN_PACKET_SIZE+h.msgLength;
 }
 
+static bool
+addFingerPrint (StunMessage* message)
+{
+    uint16_t type = message->msgHdr.msgType;
+    if ((type == STUN_MSG_SendIndicationMsg)
+    ||  (type == STUN_MSG_DataIndicationMsg)
+    ||  (type == STUN_PathDiscoveryRequestMsg)
+        ||  (type == STUN_PathDiscoveryResponseMsg))
+    {
+        return false;
+    }
+    return true;
+}
 
 
-
-unsigned int
+uint32_t
 stunlib_encodeMessage(StunMessage* message,
-                      unsigned char* buf,
-                      unsigned int bufLen,
-                      unsigned char *md5key,
-                      unsigned int keyLen,
-                      FILE *stream,
-                      bool isMsStun)
+                  unsigned char* buf,
+                  unsigned int bufLen,
+                  unsigned char *md5key,
+                  unsigned int keyLen,
+                  FILE *stream)
 {
     bool addFingerprint;
     int msglen;
@@ -2328,35 +1846,14 @@ stunlib_encodeMessage(StunMessage* message,
         return 0;
     }
 
-    /* fingerprint is added to all messages except  Send/Data indications and  MS-STUN */
-    if ((message->msgHdr.msgType == STUN_MSG_SendIndicationMsg)
-    ||  (message->msgHdr.msgType == STUN_MSG_DataIndicationMsg)
-    ||   isMsStun)
-        addFingerprint = false;
-    else
-        addFingerprint = true;
+    addFingerprint = addFingerPrint(message);
 
     /* First write all attributes to calculate total length.... */
-
-    /* In MS2 mode, magic cookie Must be 1st attribute */
-    if (isMsStun  && message->hasMagicCookie)
-        stunEncodeMagicCookieAtr(&pCurrPtr, &restlen);
-
-
-    if (isMsStun && message->hasMsVersion && !stunEncodeValueAtr(&message->msVersion,
-                                              STUN_ATTR_MS2_MsVersion,
-                                              &pCurrPtr,
-                                              &restlen))
-    {
-        if (stream != NULL) printError(stream,"Invalid STUN_ATTR_MS2_MsVersion\n");
-        return 0;
-    }
 
     if (message->hasSoftware && !stunEncodeStringAtr(&message->software,
                                                      STUN_ATTR_Software,
                                                      &pCurrPtr,
-                                                     &restlen,
-                                                     isMsStun))
+                                                     &restlen))
     {
         if (stream != NULL) printError(stream, "Invalid Software (Name)\n");
         return 0;
@@ -2382,8 +1879,7 @@ stunlib_encodeMessage(StunMessage* message,
     if (message->hasUsername && !stunEncodeStringAtr(&message->username,
                                                      STUN_ATTR_Username,
                                                      &pCurrPtr,
-                                                     &restlen,
-                                                     isMsStun))
+                                                     &restlen))
     {
         if (stream != NULL) printError(stream, "Invalid Username\n");
         return 0;
@@ -2392,8 +1888,7 @@ stunlib_encodeMessage(StunMessage* message,
     if (message->hasNonce && !stunEncodeStringAtr(&message->nonce,
                                                   STUN_ATTR_Nonce,
                                                   &pCurrPtr,
-                                                  &restlen,
-                                                  isMsStun))
+                                                  &restlen))
     {
         if (stream != NULL) printError(stream, "Invalid Nonce attribute\n");
         return 0;
@@ -2403,8 +1898,7 @@ stunlib_encodeMessage(StunMessage* message,
     if (message->hasRealm && !stunEncodeStringAtr(&message->realm,
                                                   STUN_ATTR_Realm,
                                                   &pCurrPtr,
-                                                  &restlen,
-                                                  isMsStun))
+                                                  &restlen))
     {
         if (stream != NULL) printError(stream, "Invalid Realm attribute\n");
         return 0;
@@ -2416,26 +1910,6 @@ stunlib_encodeMessage(StunMessage* message,
                                                     &restlen))
     {
         if (stream != NULL) printError(stream, "Invalid Lifetime attribute\n");
-        return 0;
-    }
-
-    /* ms-stun only */
-    if (isMsStun && message->hasBandwidth && !stunEncodeValueAtr(&message->bandwidth,
-                                              STUN_ATTR_MS2_Bandwidth,
-                                              &pCurrPtr,
-                                              &restlen))
-    {
-        if (stream != NULL) printError(stream, "Invalid Bandwidth attribute\n");
-        return 0;
-    }
-
-    /* ms-stun only */
-    if (isMsStun && message->hasDestinationAddress && !stunEncodeIPAddrAtr(&message->destinationAddress,
-                                                       STUN_ATTR_MS2_DestAddr,
-                                                       &pCurrPtr,
-                                                       &restlen))
-    {
-        if (stream != NULL) printError(stream, "Invalid Destination Address\n");
         return 0;
     }
 
@@ -2474,8 +1948,7 @@ stunlib_encodeMessage(StunMessage* message,
 
     if (message->hasErrorCode && !stunEncodeErrorAtr(&message->errorCode,
                                                      &pCurrPtr,
-                                                     &restlen,
-                                                     isMsStun))
+                                                     &restlen))
     {
         if (stream != NULL) printError(stream, "Invalid Error attribute\n");
         return 0;
@@ -2572,96 +2045,15 @@ stunlib_encodeMessage(StunMessage* message,
         return 0;
     }
 
-    /* ms-stun only */
-    if (isMsStun && message->hasSequenceNumber && !stunEncodeSequenceAtr(&message->SequenceNum,
-                                              STUN_ATTR_MS2_SequenceNumber,
-                                              &pCurrPtr,
-                                              &restlen))
-    {
-        if (stream != NULL) printError(stream, "Invalid Sequence attribute\n");
-        return 0;
-    }
-
-    /* ms-stun only */
-    if (isMsStun && message->hasServiceQuality && !stunEncodeServiceQualityAtr(&message->ServiceQuality,
-                                              STUN_ATTR_MS2_ServiceQuality,
-                                              &pCurrPtr,
-                                              &restlen))
-    {
-        if (stream != NULL) printError(stream, "Invalid ServiceQuality attribute\n");
-        return 0;
-    }
-
-    /* ms-stun only */
-    if (isMsStun && message->hasCandidateId && !stunEncodeCandidateIdAtr(&message->candidateId,
-                                              STUN_ATTR_MS2_CandidateId,
-                                              &pCurrPtr,
-                                              &restlen))
-    {
-        if (stream != NULL) printError(stream, "Invalid ServiceQuality attribute\n");
-        return 0;
-    }
-
     /* note: DATA should be the last attribute */
     if (message->hasData && !stunEncodeDataAtr(&message->data,
                                                &pCurrPtr,
-                                               &restlen,
-                                               isMsStun))
+                                               &restlen))
     {
         if (stream != NULL) printError(stream, "Invalid Data attribute\n");
         return 0;
     }
 
-    /****************************************************************************************************************/
-    /********************************* start MALICE specific encoding ***********************************************/
-    /****************************************************************************************************************/
-
-    if(message->hasMaliceMetadata)
-    {
-        if (message->maliceMetadata.hasMDAgent && !maliceEncodeAgent(&message->maliceMetadata.mdAgent,
-                                                      &pCurrPtr,
-                                                      &restlen))
-        {
-            printf("Failed to encode MD-AGENT\n");
-            // Dont return 0 just because of malice.
-        }
-
-        if (message->msgHdr.msgType == STUN_MSG_BindRequestMsg || message->msgHdr.msgType == STUN_MSG_RefreshRequestMsg)
-        {
-            if (message->maliceMetadata.hasMDRespDN && !maliceEncodeResp(&message->maliceMetadata.mdRespDN,
-                                                          &pCurrPtr,
-                                                          &restlen,
-                                                          false))
-            {
-                printf("Failed to encode MD-RESP-DN before integrity\n");
-                // Dont return 0 just because of malice.
-            }
-        }
-        else if (message->msgHdr.msgType == STUN_MSG_BindResponseMsg || message->msgHdr.msgType == STUN_MSG_RefreshResponseMsg
-                 || message->msgHdr.msgType == STUN_MSG_BindErrorResponseMsg || message->msgHdr.msgType == STUN_MSG_RefreshErrorResponseMsg)
-        {
-            if (message->maliceMetadata.hasMDRespUP && !maliceEncodeResp(&message->maliceMetadata.mdRespUP,
-                                                          &pCurrPtr,
-                                                          &restlen,
-                                                          true))
-            {
-                printf("Failed to encode MD-RESP-UP before integrity\n");
-                // Dont return 0 just because of malice.
-            }
-        }
-        
-        if (message->maliceMetadata.hasMDPeerCheck && !maliceEncodePeerCheck(&message->maliceMetadata.mdPeerCheck,
-                                                              &pCurrPtr,
-                                                              &restlen))
-        {
-            printf("Failed to encode MD-PEER-CHECK\n");
-            // Dont return 0 just because of malice.
-        }
-    }
-
-    /****************************************************************************************************************/
-    /*********************************** end MALICE specific encoding ***********************************************/
-    /****************************************************************************************************************/
 
     if (md5key)
     {
@@ -2671,7 +2063,7 @@ stunlib_encodeMessage(StunMessage* message,
                                     &restlen,
                                     bufLen))
         {
-            if (stream != NULL) printError(stream, "Faild to encode integrity!\n");
+            if (stream) printError(stream, "Faild to encode integrity!\n");
             return 0;
         }
 
@@ -2697,81 +2089,34 @@ stunlib_encodeMessage(StunMessage* message,
         pCurrPtr = (uint8_t*)buf + message->messageIntegrity.offset;
         if (!stunEncodeIntegrityAtr(&message->messageIntegrity, &pCurrPtr, &restlen, bufLen))
         {
-            printError(stream, "Failed to write Integrity hash\n");
+            if (stream) printError(stream, "Failed to write Integrity hash\n");
         }
 
     }
-
-    /****************************************************************************************************************/
-    /********************************* start MALICE specific encoding ***********************************************/
-    /****************************************************************************************************************/
-
-    if(message->hasMaliceMetadata)
-    {
-        if (message->msgHdr.msgType == STUN_MSG_BindRequestMsg || message->msgHdr.msgType == STUN_MSG_RefreshRequestMsg)
-        {
-            if (message->maliceMetadata.hasMDRespUP)
-            {
-                int length = maliceEncodeResp(&message->maliceMetadata.mdRespUP,
-                                              &pCurrPtr,
-                                              &restlen,
-                                              true);
-                printf("Encoding mdRespUP after integrity\n");
-                if (length == 0) printf("Failed to encode MD-RESP-UP after integrity\n"); // Dont return 0 just because of malice.
-                else
-                {
-                    message->msgHdr.msgLength += length;
-                    msglen += length;
-                }
-            }
-        }
-        else if (message->msgHdr.msgType == STUN_MSG_BindResponseMsg || message->msgHdr.msgType == STUN_MSG_RefreshResponseMsg
-                 || message->msgHdr.msgType == STUN_MSG_BindErrorResponseMsg || message->msgHdr.msgType == STUN_MSG_RefreshErrorResponseMsg)
-        {
-            if (message->maliceMetadata.hasMDRespDN)
-            {
-                int length = maliceEncodeResp(&message->maliceMetadata.mdRespDN,
-                                              &pCurrPtr,
-                                              &restlen,
-                                              false);
-                printf("Encoding mdRespDN after integrity\n");
-                if (length == 0) printf("Failed to encode MD-RESP-DN after integrity\n"); // Dont return 0 just because of malice.
-                else
-                {
-                    message->msgHdr.msgLength += length;
-                    msglen += length;
-                }
-            }
-        }
-    }
-
-    /****************************************************************************************************************/
-    /*********************************** end MALICE specific encoding ***********************************************/
-    /****************************************************************************************************************/
 
     /* Add CRC Fingerprint */
     if (addFingerprint)
     {
         uint32_t crc;
 
-        message->msgHdr.msgLength +=8;
+        message->msgHdr.msgLength += 8;
 
         pCurrPtr = (uint8_t*)buf;
         restlen = bufLen;
 
         stunEncodeHeader(&message->msgHdr, &pCurrPtr, &restlen);
         crc = stunlib_calculateFingerprint((uint8_t*)buf, msglen);
-        pCurrPtr+=message->msgHdr.msgLength-8;
+        pCurrPtr += message->msgHdr.msgLength-8;
+
         if (!stunEncodeFingerprintAtr(crc,
                                       &pCurrPtr,
-                                      &restlen,
-                                      bufLen))
+                                      &restlen))
         {
             printError(stream, "Faild to add CRC Fingerprint\n");
         }
         else
         {
-            msglen+=8;
+            msglen += 8;
         }
 
     }
@@ -2785,6 +2130,8 @@ stunlib_encodeMessage(StunMessage* message,
 
     return message->msgHdr.msgLength+STUN_HEADER_SIZE;
 }
+
+
 
 static void stunSetString(StunAtrString * pStr, char const * szCStr, char padChar)
 {
@@ -2871,11 +2218,11 @@ stunlib_addError(StunMessage *stunMsg, const char *reasonStr, uint16_t classAndN
     stunMsg->errorCode.errorClass = classAndNumber/100;
     stunMsg->errorCode.number = classAndNumber%100;
     snprintf(stunMsg->errorCode.reason,sizeof (stunMsg->errorCode.reason), "%s", reasonStr);
+    stunMsg->errorCode.padChar = padChar;
     stunMsg->errorCode.sizeReason = strlen(reasonStr);
     stunMsg->hasErrorCode = true;
     return true;
 }
-
 
 
 bool
@@ -2887,24 +2234,6 @@ stunlib_addChannelNumber(StunMessage *stunMsg,  uint16_t channelNumber)
     return true;
 }
 
-
-
-void stunlib_addMsCookie(StunMessage *stunMsg)
-{
-    stunMsg->hasMagicCookie = true;
-}
-
-void stunlib_addMsVersion(StunMessage *stunMsg, uint32_t msVers)
-{
-    stunMsg->hasMsVersion = true;
-    stunMsg->msVersion.value = msVers;
-}
-
-void stunlib_addMsSeqNum(StunMessage *stunMsg, StunAttrSequenceNum *seqNr)
-{
-    stunMsg->hasSequenceNumber = true;
-    memcpy(&stunMsg->SequenceNum, seqNr, sizeof(stunMsg->SequenceNum));
-}
 
 /*****
  * Create our magic id....
@@ -2918,8 +2247,6 @@ void stunlib_createId(StunMsgId *pId, long randval, unsigned char retries)
     write_16(&pIdBuf, 0);
     write_32_xor(&pIdBuf, randval, (uint8_t*)xorval);
 }
-
-
 
 
 void stunlib_setIP4Address(StunIPAddress *pIpAddr, uint32_t addr, uint16_t port)
@@ -2944,46 +2271,44 @@ void stunlib_setIP6Address(StunIPAddress *pIpAddr, uint8_t addr[16], uint16_t po
     }
 }
 
-/*
-char* stunlib_transactionIdtoStr( char* s, StunMsgId tId)
+int stunlib_compareIPAddresses(const StunIPAddress *pS1, const StunIPAddress *pS2)
 {
-    unsigned int i;
+    int res;
+    if (!pS1 && !pS2) return 0;
+    if (!pS1) return -1;
+    if (!pS2) return 1;
 
-    sprintf( s, "0x");
-    for ( i=0;i < STUN_MSG_ID_SIZE; i++)
+    if (0 != (res = (pS1->familyType - pS2->familyType))) return res;
+    if (pS1->familyType == STUN_ADDR_IPv4Family)
     {
-        sprintf( &s[strlen(s)],"%02x", tId.octet[ i]);
+        if (0 != (res = (pS1->addr.v4.port - pS2->addr.v4.port))) return res;
+        if (0 != (res = (pS1->addr.v4.addr - pS2->addr.v4.addr))) return res;
     }
-    s[STUN_MSG_ID_SIZE] = '\0';
-    return s;
+    else
+    {
+        int i;
+        if (0 != (res = (pS1->addr.v6.port - pS2->addr.v6.port))) return res;
+        for (i = 0; i < 4; i++)
+            if (0 != (res = pS1->addr.v6.addr[i] - pS2->addr.v6.addr[i])) return res;
+    }
+    return 0;
 }
 
-void stunlib_transactionIdDump(FILE *stream,  StunMsgId tId)
-{
-    unsigned int i;
-
-    printError(stream, "0x");
-    for ( i=0;i < STUN_MSG_ID_SIZE; i++)
-    {
-        printError( stream, "%02x", tId.octet[ i]);
-    }
-}
-*/
 
 uint32_t stunlib_calculateFingerprint(const uint8_t *buf, size_t len)
 {
     return crc32(0L, buf, len) ^ 0x5354554e;
 }
 
-bool stunlib_checkFingerPrint(uint8_t *buf, uint32_t fpOffset){
+
+bool stunlib_checkFingerPrint(const uint8_t *buf, uint32_t fpOffset){
 
     uint32_t crc = stunlib_calculateFingerprint(buf, fpOffset-4);
     uint32_t val;
-    uint8_t *pos = buf+fpOffset;
+    const uint8_t *pos = buf+fpOffset;
     read_32(&pos, &val);
 
     if (crc == val) return true;
-
 
     return false;
 }

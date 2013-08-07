@@ -44,11 +44,14 @@ StunResult_T stunResult;
 
 struct sockaddr_storage stunServerAddr;
 
+STUN_CLIENT_DATA * stunInstance;
+#define STUN_TICK_INTERVAL_MS 50
+
+
 static void StunStatusCallBack(void *ctx, StunCallBackData_T *retData)
 {
     stunResult = retData->stunResult;
-    //printf("Got STUN status callback (Result (%i)\n", retData->stunResult);
-
+    //printf("Got STUN status callback\n");// (Result (%i)\n", retData->stunResult);
 }
 
 /* Callback for management info  */
@@ -75,7 +78,6 @@ static int SendRawStun(int sockfd,
                       
     //printf("Sendto: '%s'\n", addr_str);
 
-
     return 1;
 }
 
@@ -83,13 +85,15 @@ static int StartBindTransaction(int n)
 {
     //struct sockaddr_storage addr;
 
+    n = 0; // hardcoded for now...  TODO: fixme
+
     CurrAppCtx.a =  AppCtx[n].a = 100+n;
     CurrAppCtx.b =  AppCtx[n].b = 200+n;
     
 
     /* kick off stun */
-    return StunClient_startBindTransaction(TEST_THREAD_CTX,
-                                           &AppCtx[n],
+    return StunClient_startBindTransaction(stunInstance,
+                                           NULL,
                                            (struct sockaddr *)&stunServerAddr,
                                            NULL,
                                            false,
@@ -102,11 +106,7 @@ static int StartBindTransaction(int n)
                                            LastTransId,
                                            0,                       /* socket */
                                            SendRawStun,             /* send func */
-                                           StunDefaultTimeoutList,  /* timeout list */
-                                           StunStatusCallBack,
-                                           &StunCbData[n],
-                                           -1,
-                                           NULL);
+                                           StunStatusCallBack);
 }
 
 static void SimBindSuccessResp(int ctx, bool IPv6)
@@ -127,45 +127,43 @@ static void SimBindSuccessResp(int ctx, bool IPv6)
         m.xorMappedAddress.addr.v4.port = test_port_ipv4;
     }
 
-    StunClient_HandleIncResp(TEST_THREAD_CTX, &m, NULL);
+    StunClient_HandleIncResp(stunInstance, &m, NULL);
 
 }
 
+
 static void setup (void)
 {
+    stunResult = StunResult_Empty; 
     runningAsIPv6 = false;
-    StunClient_Init(TEST_THREAD_CTX, 50, 50, PrintStunInfo, false, "UnitTestSofware");
     sockaddr_initFromString((struct sockaddr*)&stunServerAddr, "193.200.93.152:3478");
+
+    StunClient_Alloc(&stunInstance);
+
 }
 
 static void teardown (void)
 {
     stunResult = StunResult_Empty; 
+    StunClient_free(stunInstance);
 }
 
 
 static void setupIPv6 (void)
 {
+    stunResult = StunResult_Empty; 
     runningAsIPv6 = true;
-    StunClient_Init(TEST_THREAD_CTX, 50, 50, PrintStunInfo, false, "UnitTestSofware");
     sockaddr_initFromString((struct sockaddr*)&stunServerAddr, "[2001:470:dc88:2:226:18ff:fe92:6d53]:3478");
+    StunClient_Alloc(&stunInstance);
 
 }
 
 static void teardownIPv6 (void)
 {
     stunResult = StunResult_Empty; 
+    StunClient_free(stunInstance);
 }
 
-START_TEST (stunclient_init)
-{
-
-    int ret;
-    ret = StunClient_Init(TEST_THREAD_CTX, 50, 50, PrintStunInfo, false, "UnitTestSofware");
-    fail_unless(ret);
-
-}
-END_TEST
 
 START_TEST (WaitBindRespNotAut_Timeout)
 {
@@ -174,56 +172,49 @@ START_TEST (WaitBindRespNotAut_Timeout)
 
     ctx = StartBindTransaction(0);
     /* 1 Tick */
-    StunClient_HandleTick(TEST_THREAD_CTX);
+    StunClient_HandleTick(stunInstance, STUN_TICK_INTERVAL_MS);
     fail_unless (stunResult == StunResult_Empty);
     fail_unless (sockaddr_alike((struct sockaddr *)&LastAddress, 
                                 (struct sockaddr *)&stunServerAddr));
     /* 2 Tick */
-    StunClient_HandleTick(TEST_THREAD_CTX);
+    StunClient_HandleTick(stunInstance, STUN_TICK_INTERVAL_MS);
     fail_unless (stunResult == StunResult_Empty);
 
     /* 3 Tick */
-    StunClient_HandleTick(TEST_THREAD_CTX);
+    StunClient_HandleTick(stunInstance, STUN_TICK_INTERVAL_MS);
     fail_unless (stunResult == StunResult_Empty);
 
     /* 4 Tick */
-    StunClient_HandleTick(TEST_THREAD_CTX);
+    {
+        int i = 0;
+        for (i = 0; i < 100; i++)
+            StunClient_HandleTick(stunInstance, STUN_TICK_INTERVAL_MS);
+    }
     fail_unless (stunResult == StunResult_BindFailNoAnswer);
-
-    StunClient_Deallocate(TEST_THREAD_CTX, ctx);
-
 }
 END_TEST
+
 
 
 START_TEST (WaitBindRespNotAut_BindSuccess)
 {
     printf("IPv6: %s\n", runningAsIPv6? "True" : "False");
     int ctx;
-    ctx = StartBindTransaction(5);
-    StunClient_HandleTick(TEST_THREAD_CTX);
+    ctx = StartBindTransaction(0);
+    StunClient_HandleTick(stunInstance, STUN_TICK_INTERVAL_MS);
+
     SimBindSuccessResp(ctx, runningAsIPv6);
     fail_unless (stunResult == StunResult_BindOk);
 
-    StunClient_Deallocate(TEST_THREAD_CTX, ctx);
-
 }
 END_TEST
+
 
 Suite * stunclient_suite (void)
 {
   Suite *s = suite_create ("Stunclient");
 
 
-  {/* Init */
-
-      TCase *sc_init = tcase_create ("Stunclient Init");
-      
-      tcase_add_test (sc_init, stunclient_init);
-      
-      suite_add_tcase (s, sc_init);
-
-  }
 
 
   {/* bind */
@@ -257,12 +248,11 @@ Suite * stunclient_suite (void)
 
       TCase *sc_misc = tcase_create ("Stun Misc");
       
-      // tcase_add_test ( sc_misc, SendIndication );
+      //tcase_add_test ( sc_misc, SendIndication );
 
       suite_add_tcase (s, sc_misc);
 
   }
   
-
   return s;
 }

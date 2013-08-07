@@ -32,13 +32,11 @@ or implied, of Cisco.
 #include "icelib_defines.h"
 #include "stunlib.h"
 
-
 #include <stdbool.h>
 #include <stdint.h>
 #include <netinet/in.h>
-#include <stdio.h>
 
-
+struct console_output;
 
 #ifdef __cplusplus
 extern "C" {
@@ -96,7 +94,7 @@ typedef struct {
 
 
 typedef struct {
-    ICELIB_TRIGGERED_FIFO  *pFifo;
+    ICELIB_TRIGGERED_FIFO *fifo;
     unsigned int           index;
     bool                   atEnd;
 } ICELIB_TRIGGERED_FIFO_ITERATOR;
@@ -157,6 +155,7 @@ typedef enum {
     ICELIB_IDLE,
     ICELIB_RUNNING,
     ICELIB_COMPLETED,
+    ICELIB_MANGLED,
     ICELIB_FAILED
 } ICELIB_STATE;
 
@@ -312,11 +311,11 @@ typedef struct {
     ICELIB_TRIGGERED_FIFO   triggeredChecksFifo;
     ICE_MEDIA_STREAM        discoveredLocalCandidates;
     ICE_MEDIA_STREAM        discoveredRemoteCandidates;
-    //ICELIB_TIMER            stoppingTimer;
     ICE_REMOTE_CANDIDATES   remoteCandidates;   /*When ICE is complete, the remote
                                                   candidates will be stored here */
 } ICELIB_STREAM_CONTROLLER;
 
+void ICELIBTYPES_ICE_CANDIDATE_reset(ICE_CANDIDATE *candidate);
 
 void ICELIBTYPES_ICE_MEDIA_STREAM_reset(ICE_MEDIA_STREAM *iceMediaStream);
 bool ICELIBTYPES_ICE_MEDIA_STREAM_isEmpty(const ICE_MEDIA_STREAM *iceMediaStream);
@@ -325,10 +324,7 @@ void ICELIBTYPES_ICE_MEDIA_reset(ICE_MEDIA *iceMedia);
 bool ICELIBTYPES_ICE_MEDIA_isEmpty(const ICE_MEDIA *iceMedia);
 
 char const * ICELIBTYPES_ICE_CANDIDATE_TYPE_toString( const ICE_CANDIDATE_TYPE candidateType);
-void ICELIBTYPES_ICE_CANDIDATE_dump( FILE *stream, const ICE_CANDIDATE *candidate);
-void ICELIBTYPES_ICE_MEDIA_STREAM_dump( FILE *stream, const ICE_MEDIA_STREAM *iceMediaStream);
-void ICELIBTYPES_ICE_MEDIA_dump( FILE *stream, const ICE_MEDIA *iceMedia);
-
+char const * ICELIBTYPES_ICE_CANDIDATE_Component_toString (uint32_t componentid);
 
 #ifdef __cplusplus
 }

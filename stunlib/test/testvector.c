@@ -164,8 +164,7 @@ START_TEST (request_longauth_decode)
                                         sizeof(respv_longauth),
                                         &stunMsg,
                                         NULL,
-                                        false,
-                                        false ));
+                                        NULL));
 
     
     fail_unless(  stunlib_checkIntegrity(respv_longauth,
@@ -186,8 +185,7 @@ START_TEST (request_decode)
                                         108,
                                         &stunMsg,
                                         NULL,
-                                        false,
-                                        false ));
+                                        NULL ));
 
     fail_unless(  stunlib_checkIntegrity(req,
                                          108,
@@ -253,8 +251,7 @@ START_TEST (request_encode)
                                        120,
                                        (unsigned char*)password,
                                        strlen(password),
-                                       false, /*verbose */
-                                       false)  /* msice2 */);
+                                       NULL));
 
 
     fail_unless( memcmp(stunBuf, req, 108 ) == 0 );
@@ -271,8 +268,7 @@ START_TEST (response_decode)
                                         80,
                                         &stunMsg,
                                         NULL,
-                                        false,
-                                        false ));
+                                        NULL ));
 
     fail_unless(  stunlib_checkIntegrity(respv4,
                                          80,
@@ -333,8 +329,7 @@ START_TEST (response_encode)
                                        80,
                                        (unsigned char*)password,
                                        strlen(password),
-                                       false, /*verbose */
-                                       false)  /* msice2 */ );
+                                       NULL));
 
 
     fail_unless( memcmp(stunBuf, respv4, 80)==0 );
@@ -357,8 +352,7 @@ START_TEST (response_decode_IPv6)
                                         96,
                                         &stunMsg,
                                         NULL,
-                                        false,
-                                        false ));
+                                        NULL ));
     
     fail_unless(  stunlib_checkIntegrity(respv6,
                                          96,
@@ -431,8 +425,7 @@ START_TEST (response_encode_IPv6)
                                        96,
                                        (unsigned char*)password,
                                        strlen(password),
-                                       false, /*verbose */
-                                       false)  /* msice2 */ );
+                                       NULL));
 
 
     fail_unless( memcmp(stunBuf, respv6, 92) == 0 );
@@ -463,8 +456,7 @@ START_TEST (keepalive_resp_encode)
                           encLen, 
                           &stunMsg, 
                           0, 
-                          false, 
-                          false);
+                          NULL);
 
     fail_unless(   (encLen == 32)
                    && (stunMsg.hasXorMappedAddress) 
@@ -479,8 +471,7 @@ START_TEST (keepalive_resp_encode)
                           encLen, 
                           &stunMsg, 
                           0, 
-                          false, 
-                          false);
+                          NULL);
 
     fail_unless(   (encLen == 44)
                    && (stunMsg.hasXorMappedAddress) 
@@ -537,15 +528,13 @@ START_TEST (string_software_encode_decode)
                                        sizeof(stunBuf), 
                                        (unsigned char*)password, 
                                        strlen(password), 
-                                       false, 
-                                       false);
+                                       NULL);
         
         fail_unless (stunlib_DecodeMessage(stunBuf, 
                                            encLen, 
                                            &stunMsg,
                                            NULL,
-                                           false, 
-                                           false) );
+                                           NULL) );
         
         fail_unless(  stunlib_checkIntegrity(stunBuf,
                                              encLen,
@@ -581,15 +570,13 @@ START_TEST (string_nounce_encode_decode)
                                        sizeof(stunBuf), 
                                        (unsigned char*)password, 
                                        strlen(password), 
-                                       false, 
-                                       false);
+                                       NULL);
         
         fail_unless(stunlib_DecodeMessage(stunBuf, 
                                           encLen, 
                                           &stunMsg, 
                                           NULL, 
-                                          false, 
-                                          false));
+                                          NULL));
         
         fail_unless(  stunlib_checkIntegrity(stunBuf,
                                              encLen,
@@ -626,15 +613,13 @@ START_TEST (string_realm_encode_decode)
                                        sizeof(stunBuf), 
                                        (unsigned char*)password, 
                                        strlen(password), 
-                                       false, 
-                                       false);
+                                       NULL);
 
         fail_unless( stunlib_DecodeMessage(stunBuf, 
                                            encLen, 
                                            &stunMsg, 
                                            NULL,
-                                           false,
-                                           false) );
+                                           NULL) );
 
         fail_unless(  stunlib_checkIntegrity(stunBuf,
                                              encLen,
@@ -670,15 +655,13 @@ START_TEST (string_username_encode_decode)
                                        sizeof(stunBuf), 
                                        (unsigned char*)password, 
                                        strlen(password), 
-                                       false, 
-                                       false);
+                                       NULL);
         
         fail_unless( stunlib_DecodeMessage(stunBuf, 
                                            encLen, 
                                            &stunMsg, 
                                            NULL, 
-                                           false, 
-                                           false) );
+                                           NULL) );
 
         fail_unless(  stunlib_checkIntegrity(stunBuf,
                                              encLen,
@@ -715,15 +698,13 @@ START_TEST( error_encode_decode )
                                        STUN_MAX_PACKET_SIZE, 
                                        (unsigned char*)password, 
                                        strlen(password), 
-                                       false, 
-                                       false);
+                                       NULL);
 
         fail_unless( stunlib_DecodeMessage(stunBuf, 
                                            encLen, 
                                            &stunMsg, 
                                            NULL, 
-                                           false, 
-                                           false));
+                                           NULL));
 
         fail_unless(  stunlib_checkIntegrity(stunBuf,
                                              encLen,
@@ -761,15 +742,13 @@ START_TEST( xor_encode_decode )
                                    sizeof(stunBuf), 
                                    (unsigned char*)password, 
                                    strlen(password), 
-                                   false, 
-                                   false);
+                                   NULL);
 
     fail_unless( stunlib_DecodeMessage(stunBuf, 
                                        encLen, 
                                        &stunMsg, 
                                        NULL, 
-                                       false, 
-                                       false) );
+                                       NULL) );
 
     fail_unless(  stunlib_checkIntegrity(stunBuf,
                                          encLen,
@@ -790,15 +769,13 @@ START_TEST( xor_encode_decode )
                                    sizeof(stunBuf), 
                                    (unsigned char*)password, 
                                    strlen(password), 
-                                   false, 
-                                   false);
+                                   NULL);
 
     fail_unless( stunlib_DecodeMessage(stunBuf, 
                                        encLen, 
                                        &stunMsg, 
                                        NULL, 
-                                       false, 
-                                       false) );
+                                       NULL));
 
     fail_unless(  stunlib_checkIntegrity(stunBuf,
                                              encLen,
@@ -828,15 +805,13 @@ START_TEST (transport_encode_decode)
                           sizeof(stunBuf), 
                           (unsigned char*)password, 
                           strlen(password), 
-                          false, 
-                          false);
+                          NULL);
 
     fail_unless( stunlib_DecodeMessage(stunBuf, 
                                        sizeof(stunBuf), 
                                        &stunMsg, 
                                        NULL, 
-                                       false, 
-                                       false) );
+                                       NULL));
 
     fail_unless(  stunlib_checkIntegrity(stunBuf,
                                          sizeof(stunBuf), 
@@ -873,15 +848,13 @@ START_TEST( channel_encode_decode )
                               sizeof(stunBuf),
                               (unsigned char*)password,
                               strlen(password),
-                              false,
-                              false);
+                              NULL);
         
         fail_unless( stunlib_DecodeMessage(stunBuf, 
                                            sizeof(stunBuf), 
                                            &stunMsg, 
                                            NULL, 
-                                           false, 
-                                           false) );
+                                           NULL) );
         
         fail_unless(  stunlib_checkIntegrity(stunBuf,
                                              sizeof(stunBuf), 
@@ -906,8 +879,7 @@ START_TEST (print)
                                         108,
                                         &stunMsg,
                                         NULL,
-                                        stderr,
-                                        false ));
+                                        NULL));
 
 }
 END_TEST

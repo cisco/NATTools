@@ -43,7 +43,7 @@ void StunFifo_Init(uint32_t threadCtx, uint32_t passLen)
     for (i=0; i < STUN_FIFO_SIZE; i++)
     {
         StunPassFifo[threadCtx].elem[i].sockPairId = -1;
-        StunPassFifo[threadCtx].elem[i].passwd = calloc(1, passLen); 
+        StunPassFifo[threadCtx].elem[i].passwd = calloc(1, passLen);
     }
     StunPassFifo[threadCtx].init = true;
 }

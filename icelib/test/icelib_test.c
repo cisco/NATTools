@@ -191,14 +191,16 @@ icelib_setup (void)
                               1,
                               (struct sockaddr *)&localHostRtp,
                               NULL,
-                              ICE_CAND_TYPE_HOST );
+                              ICE_CAND_TYPE_HOST,
+                              0xffff );
     
     ICELIB_addLocalCandidate( icelib,
                               0,
                               2,
                               (struct sockaddr *)&localHostRtcp,
                               NULL,
-                              ICE_CAND_TYPE_HOST );
+                              ICE_CAND_TYPE_HOST,
+                              0xffff );
     
     
     //add rflx candidates
@@ -209,14 +211,16 @@ icelib_setup (void)
                               1,
                               (struct sockaddr *)&localRflxRtp,
                               (struct sockaddr *)&localHostRtp,
-                              ICE_CAND_TYPE_SRFLX );
+                              ICE_CAND_TYPE_SRFLX ,
+                              0xffff);
         
     ICELIB_addLocalCandidate( icelib,
                               0,
                               2,
                               (struct sockaddr *)&localRflxRtcp,
                               (struct sockaddr *)&localHostRtp,
-                              ICE_CAND_TYPE_SRFLX );
+                              ICE_CAND_TYPE_SRFLX,
+                              0xffff );
     
         
     
@@ -227,14 +231,16 @@ icelib_setup (void)
                               1,
                               (struct sockaddr *)&localRelayRtp,
                               (struct sockaddr *)&localRflxRtp,
-                              ICE_CAND_TYPE_RELAY );
+                              ICE_CAND_TYPE_RELAY,
+                              0xffff );
     
     ICELIB_addLocalCandidate( icelib,
                               0,
                               2,
                               (struct sockaddr *)&localRelayRtcp,
                               (struct sockaddr *)&localRflxRtcp,
-                              ICE_CAND_TYPE_RELAY );
+                              ICE_CAND_TYPE_RELAY,
+                              0xffff );
     
         
     ICELIB_setTurnState(icelib, 0, ICE_TURN_ALLOCATED);
@@ -434,14 +440,14 @@ START_TEST (calculate_priority)
     uint32_t priority7;
     uint32_t priority8;
 
-    priority1 = ICELIB_calculatePriority( ICE_CAND_TYPE_HOST,  1);
-    priority2 = ICELIB_calculatePriority( ICE_CAND_TYPE_HOST,  2);
-    priority3 = ICELIB_calculatePriority( ICE_CAND_TYPE_SRFLX, 1);
-    priority4 = ICELIB_calculatePriority( ICE_CAND_TYPE_SRFLX, 2);
-    priority5 = ICELIB_calculatePriority( ICE_CAND_TYPE_RELAY, 1);
-    priority6 = ICELIB_calculatePriority( ICE_CAND_TYPE_RELAY, 2);
-    priority7 = ICELIB_calculatePriority( ICE_CAND_TYPE_PRFLX, 1);
-    priority8 = ICELIB_calculatePriority( ICE_CAND_TYPE_PRFLX, 2);
+    priority1 = ICELIB_calculatePriority( ICE_CAND_TYPE_HOST,  1, 0xffff);
+    priority2 = ICELIB_calculatePriority( ICE_CAND_TYPE_HOST,  2, 0xffff);
+    priority3 = ICELIB_calculatePriority( ICE_CAND_TYPE_SRFLX, 1, 0xffff);
+    priority4 = ICELIB_calculatePriority( ICE_CAND_TYPE_SRFLX, 2, 0xffff);
+    priority5 = ICELIB_calculatePriority( ICE_CAND_TYPE_RELAY, 1, 0xffff);
+    priority6 = ICELIB_calculatePriority( ICE_CAND_TYPE_RELAY, 2, 0xffff);
+    priority7 = ICELIB_calculatePriority( ICE_CAND_TYPE_PRFLX, 1, 0xffff);
+    priority8 = ICELIB_calculatePriority( ICE_CAND_TYPE_PRFLX, 2, 0xffff);
 
     fail_unless( priority1 == PRIORITY_HOST_1);
     fail_unless( priority2 == PRIORITY_HOST_2);
@@ -865,7 +871,6 @@ START_TEST (ice_timer)
     config.maxCheckListPairs    = ICELIB_MAX_PAIRS;
     config.aggressiveNomination = false;
     config.iceLite              = false;
-    config.stoppingTimeoutS     = 5;
     //config.logLevel             = 3;
     config.logLevel = ICELIB_logDebug;
     
@@ -1320,7 +1325,8 @@ START_TEST (conncheck_withIncomming)
     sockaddr_initFromString( (struct sockaddr *)&dstAddr,  "192.168.2.10:3456");
     ICELIB_getCheckListRemoteUsernamePair(ufragPair,
                                           ICE_MAX_UFRAG_PAIR_LENGTH,
-                                          &icelib->streamControllers[0].checkList);
+                                          &icelib->streamControllers[0].checkList,
+                                          false);
     ICELIB_incommingBindingRequest(icelib,
                                    1,
                                    2,
@@ -1342,7 +1348,7 @@ START_TEST (conncheck_withIncomming)
     /* 4. Tick */
     memset(&connChkCB, 0, sizeof(ConncheckCB));
     ICELIB_Tick( icelib );
-    
+        
     fail_unless( strncmp(srcAddrStr, 
                          sockaddr_toString((const struct sockaddr *)connChkCB.destination, 
                                            ipaddr, 
@@ -1819,7 +1825,8 @@ START_TEST( formPairs_IPv4 )
                               1,
                               (struct sockaddr *)&localHost,
                               NULL,
-                              ICE_CAND_TYPE_HOST);
+                              ICE_CAND_TYPE_HOST,
+                              0);
     LocalMediaStream.numberOfCandidates++;
     
     cand = &LocalMediaStream.candidate[1];
@@ -1830,7 +1837,8 @@ START_TEST( formPairs_IPv4 )
                               1,
                               (struct sockaddr *)&localRelay,
                               NULL,
-                              ICE_CAND_TYPE_RELAY);
+                              ICE_CAND_TYPE_RELAY,
+                              0);
     LocalMediaStream.numberOfCandidates++;
     
     
@@ -1973,7 +1981,8 @@ START_TEST( formPairs_IPv6 )
                               1,
                               (struct sockaddr *)&localHost_6,
                               NULL,
-                              ICE_CAND_TYPE_HOST);
+                              ICE_CAND_TYPE_HOST,
+                              0);
     LocalMediaStream.numberOfCandidates++;
     
     cand = &LocalMediaStream.candidate[1];
@@ -1982,7 +1991,8 @@ START_TEST( formPairs_IPv6 )
                               1,
                               (struct sockaddr *)&localRelay_6,
                               NULL,
-                              ICE_CAND_TYPE_RELAY);
+                              ICE_CAND_TYPE_RELAY,
+                              0);
     LocalMediaStream.numberOfCandidates++;
     
 

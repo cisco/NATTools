@@ -10,13 +10,13 @@ AM_CPPFLAGS = $(MY_AM_CPPFLAGS) -I../include -O2 -g -Wall -Wextra -Wno-unknown-p
 
 
 
-include_HEADERS = ../include/stunclient.h ../include/stun_intern.h ../include/stunlib.h ../include/turnclient.h ../include/stunfifo.h ../include/stunlibapi.h ../include/stun_os.h ../include/turn_intern.h
+include_HEADERS = ../include/stunclient.h ../include/stun_intern.h ../include/stunlib.h ../include/turnclient.h ../include/stunfifo.h ../include/stunlibapi.h ../include/turn_intern.h
 
 
 
 
 
 lib_LTLIBRARIES = libstun.la
-libstun_la_SOURCES = stunclient.c stunfifo.c stunlib.c stun_os.c turnclient.c
+libstun_la_SOURCES = stunclient.c stunfifo.c stunlib.c turnclient.c
 libstun_la_LDFLAGS = -version-info 1:0:0
 

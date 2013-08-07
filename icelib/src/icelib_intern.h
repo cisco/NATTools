@@ -38,6 +38,23 @@ or implied, of Cisco.
 extern "C" {
 #endif
 
+
+#define ICELIB_log1(pCallbacks, level, message, arg1) ICELIB_log_(pCallbacks, \
+                                                                  level, \
+                                                                  __FUNCTION__, \
+                                                                  __FILE__, \
+                                                                  __LINE__, \
+                                                                  message, \
+                                                                  arg1)
+
+#define ICELIB_log(pCallbacks, level, message) ICELIB_log_(pCallbacks,  \
+                                                           level,       \
+                                                           __FUNCTION__, \
+                                                           __FILE__,    \
+                                                           __LINE__,    \
+                                                           message)
+
+
     char *ICELIB_strncpy(char *dst, const char *src, int maxlength);
     char *ICELIB_strncat(char *dst, const char *src, int maxlength);
 
@@ -47,10 +64,10 @@ extern "C" {
     int ICELIB_compareTransactionId(const StunMsgId *pid1,
                                     const StunMsgId *pid2);
 
-    bool ICELIB_veryfyICESupportOnStream(ICELIB_INSTANCE *pInstance,
+    bool ICELIB_veryfyICESupportOnStream(const ICELIB_INSTANCE *pInstance,
                                          const ICE_MEDIA_STREAM *stream);
 
-    bool ICELIB_verifyICESupport(ICELIB_INSTANCE *pInstance,
+    bool ICELIB_verifyICESupport(const ICELIB_INSTANCE *pInstance,
                                  const ICE_MEDIA *iceRemoteMedia);
 
     const char *pICELIB_splitUfragPair(const char *pUfragPair, size_t *pColonIndex);
@@ -70,7 +87,6 @@ extern "C" {
                      unsigned int line,
                      const char *fmt, ...);
 
-    void ICELIB_timerStop(ICELIB_TIMER *pTimer);
     void ICELIB_startAllStoppingTimers(ICELIB_INSTANCE *pInstance);
     void ICELIB_tickAllStoppingTimers(ICELIB_INSTANCE *pInstance);
 
@@ -78,7 +94,7 @@ extern "C" {
     void ICELIB_createRandomString(char *dst, int maxlength);
 
     uint32_t ICELIB_calculatePriority(ICE_CANDIDATE_TYPE type,
-                                      uint16_t compid);
+                                      uint16_t compid, uint16_t local_pref);
 
     bool ICELIB_isEmptyCandidate(const ICE_CANDIDATE *pCandidate);
     bool ICELIB_isNonValidCandidate(const ICE_CANDIDATE *pCandidate);
@@ -87,17 +103,26 @@ extern "C" {
     void ICELIB_clearRedundantCandidates(ICE_CANDIDATE candidates[]);
     void ICELIB_compactTable(ICE_CANDIDATE candidates[]);
     int ICELIB_countCandidates(ICE_CANDIDATE candidates[]);
-    
+
     int ICELIB_eliminateRedundantCandidates(ICE_CANDIDATE candidates[]);
 
     void ICELIB_EliminateRedundantCandidates(ICELIB_INSTANCE *pInstance);
 
     void ICELIB_fillLocalCandidate(ICE_CANDIDATE *cand,
                                    uint32_t componentId,
-                                   struct sockaddr *connectionAddr,
-                                   struct sockaddr *relAddr,
-                                   ICE_CANDIDATE_TYPE candType);
-    
+                                   const struct sockaddr *connectionAddr,
+                                   const struct sockaddr *relAddr,
+                                   ICE_CANDIDATE_TYPE candType,
+                                   uint16_t local_pref);
+
+    void ICELIB_fillRemoteCandidate(ICE_CANDIDATE *cand,
+                                    uint32_t componentId,
+                                    const char* foundation,
+                                    uint32_t foundationLen,
+                                    uint32_t priority,
+                                    struct sockaddr *connectionAddr,
+                                    ICE_CANDIDATE_TYPE candType);
+
     int ICELIB_candidateSort(const void *x, const void *y);
 
     const char *ICELIB_toString_CheckListState(ICELIB_CHECKLIST_STATE state);
@@ -419,10 +444,6 @@ extern "C" {
 
     unsigned int ICELIB_numberOfMediaStreams(ICELIB_INSTANCE *pInstance);
 
-    ICE_CANDIDATE const *ICELIB_getActiveCandidate(ICELIB_INSTANCE *pInstance,
-                                                   int mediaLineId,
-                                                   uint32_t componentId);
-
     void ICELIB_doKeepAlive(ICELIB_INSTANCE *pInstance);
 
     StunMsgId ICELIB_generateTransactionId(void);
@@ -436,9 +457,6 @@ extern "C" {
 
     void ICELIB_createUfrag (char *dst, int maxLength);
     void ICELIB_createPasswd(char *dst, int maxLength);
-
-    uint32_t ICELIB_calculatePriority(ICE_CANDIDATE_TYPE type,
-                                      uint16_t compid);
 
     void ICELIB_createFoundation(char *dst,
                                  ICE_CANDIDATE_TYPE type,
@@ -537,7 +555,8 @@ extern "C" {
 
     char *ICELIB_getCheckListRemoteUsernamePair(char                   *dst,
                                                 int                     maxlength,
-                                                const ICELIB_CHECKLIST *pCheckList);
+                                                const ICELIB_CHECKLIST *pCheckList,
+                                                bool                    outgoing);
 
     const char *ICELIB_getCheckListRemotePasswd(const ICELIB_CHECKLIST *pCheckList);
     const char *ICELIB_getCheckListLocalPasswd(const ICELIB_CHECKLIST *pCheckList);
