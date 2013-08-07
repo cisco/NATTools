@@ -52,7 +52,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = stunclient$(EXEEXT) stunserver$(EXEEXT) \
-	turnclient$(EXEEXT) malicenode$(EXEEXT)
+	turnclient$(EXEEXT) malicenode$(EXEEXT) iceclient$(EXEEXT)
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -68,18 +68,21 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
+am_iceclient_OBJECTS = iceclient.$(OBJEXT) utils.$(OBJEXT)
+iceclient_OBJECTS = $(am_iceclient_OBJECTS)
+iceclient_DEPENDENCIES = $(LDADD_3) $(LDADD_2) $(LDADD_1)
 am_malicenode_OBJECTS = malicenode.$(OBJEXT)
 malicenode_OBJECTS = $(am_malicenode_OBJECTS)
-malicenode_DEPENDENCIES = $(LDADD_2) $(LDADD_1)
+malicenode_DEPENDENCIES = $(LDADD_3) $(LDADD_2) $(LDADD_1)
 am_stunclient_OBJECTS = stunclient.$(OBJEXT) utils.$(OBJEXT)
 stunclient_OBJECTS = $(am_stunclient_OBJECTS)
-stunclient_DEPENDENCIES = $(LDADD_2) $(LDADD_1)
+stunclient_DEPENDENCIES = $(LDADD_3) $(LDADD_2) $(LDADD_1)
 am_stunserver_OBJECTS = stunserver.$(OBJEXT) utils.$(OBJEXT)
 stunserver_OBJECTS = $(am_stunserver_OBJECTS)
-stunserver_DEPENDENCIES = $(LDADD_2) $(LDADD_1)
+stunserver_DEPENDENCIES = $(LDADD_3) $(LDADD_2) $(LDADD_1)
 am_turnclient_OBJECTS = turnclient.$(OBJEXT) utils.$(OBJEXT)
 turnclient_OBJECTS = $(am_turnclient_OBJECTS)
-turnclient_DEPENDENCIES = $(LDADD_2) $(LDADD_1)
+turnclient_DEPENDENCIES = $(LDADD_3) $(LDADD_2) $(LDADD_1)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
@@ -102,10 +105,12 @@ CXXLD = $(CXX)
 CXXLINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(malicenode_SOURCES) $(stunclient_SOURCES) \
-	$(stunserver_SOURCES) $(turnclient_SOURCES)
-DIST_SOURCES = $(malicenode_SOURCES) $(stunclient_SOURCES) \
-	$(stunserver_SOURCES) $(turnclient_SOURCES)
+SOURCES = $(iceclient_SOURCES) $(malicenode_SOURCES) \
+	$(stunclient_SOURCES) $(stunserver_SOURCES) \
+	$(turnclient_SOURCES)
+DIST_SOURCES = $(iceclient_SOURCES) $(malicenode_SOURCES) \
+	$(stunclient_SOURCES) $(stunserver_SOURCES) \
+	$(turnclient_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -237,14 +242,17 @@ top_srcdir = @top_srcdir@
 @LOCAL_STUNLIB_TRUE@AM_CPPFLAGS_2 = -I../../stunlib/include
 @LOCAL_STUNLIB_TRUE@LDADD_2 = ../../stunlib/src/libstun.la
 @LOCAL_ICELIB_TRUE@AM_CPPFLAGS_3 = -I../../icelib/include
+@LOCAL_ICELIB_TRUE@LDADD_3 = ../../icelib/src/libice.la
 AM_CPPFLAGS = -I../include $(AM_CPPFLAGS_1) $(AM_CPPFLAGS_2) $(AM_CPPFLAGS_3)		
 stunclient_LDADD = $(LDADD_3) $(LDADD_2) $(LDADD_1)
 stunserver_LDADD = $(LDADD_3) $(LDADD_2) $(LDADD_1)
 turnclient_LDADD = $(LDADD_3) $(LDADD_2) $(LDADD_1)
+iceclient_LDADD = $(LDADD_3) $(LDADD_2) $(LDADD_1)
 malicenode_LDADD = $(LDADD_3) $(LDADD_2) $(LDADD_1)
 stunclient_SOURCES = stunclient.c utils.c
 stunserver_SOURCES = stunserver.c utils.c
 turnclient_SOURCES = turnclient.c utils.c
+iceclient_SOURCES = iceclient.c utils.c
 malicenode_SOURCES = malicenode.cc
 all: all-am
 
@@ -326,6 +334,9 @@ clean-binPROGRAMS:
 	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
 	echo " rm -f" $$list; \
 	rm -f $$list
+iceclient$(EXEEXT): $(iceclient_OBJECTS) $(iceclient_DEPENDENCIES) $(EXTRA_iceclient_DEPENDENCIES) 
+	@rm -f iceclient$(EXEEXT)
+	$(LINK) $(iceclient_OBJECTS) $(iceclient_LDADD) $(LIBS)
 malicenode$(EXEEXT): $(malicenode_OBJECTS) $(malicenode_DEPENDENCIES) $(EXTRA_malicenode_DEPENDENCIES) 
 	@rm -f malicenode$(EXEEXT)
 	$(CXXLINK) $(malicenode_OBJECTS) $(malicenode_LDADD) $(LIBS)
@@ -345,6 +356,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/iceclient.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/malicenode.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stunclient.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stunserver.Po@am__quote@

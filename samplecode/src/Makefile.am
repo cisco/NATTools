@@ -1,4 +1,4 @@
-bin_PROGRAMS = stunclient stunserver turnclient malicenode
+bin_PROGRAMS = stunclient stunserver turnclient malicenode iceclient
 
 if LOCAL_SOCKADDR
   AM_CPPFLAGS_1 = -I../../sockaddrutil/include
@@ -12,7 +12,7 @@ endif
 
 if LOCAL_ICELIB
   AM_CPPFLAGS_3 = -I../../icelib/include
-  LDADD_3 = -I../../icelib/src/libice.la
+  LDADD_3 = ../../icelib/src/libice.la
 endif
 
 AM_CPPFLAGS = -I../include $(AM_CPPFLAGS_1) $(AM_CPPFLAGS_2) $(AM_CPPFLAGS_3)		
