@@ -30,9 +30,9 @@
 
 #define SOFTWARE "ICE test client\0"
 
-struct sockaddr_storage
-    lRflxAddr,
-    lRelAddr;
+void startIce(void);
+
+struct sockaddr_storage lRflxAddr, lRelAddr;
 
 int sockfd;
 int turnInst;
@@ -47,23 +47,6 @@ ICELIB_INSTANCE iceInstance;
 void StunStatusCallBack(void *ctx, StunCallBackData_T *retData)
 {
     if (retData->stunResult == StunResult_BindOk) {
-        struct sockaddr_storage rflxAddr;
-        struct sockaddr *pRflxAddr = &rflxAddr;
-
-        char addr[SOCKADDR_MAX_STRLEN];
-
-        sockaddr_initFromString(pRflxAddr, retData->bindResp.rflxAddr);
-
-        printf("\n\nmappedAddress: %s actual: %s\n\n",
-            sockaddr_toString(pRflxAddr, addr, sizeof(addr), true),
-            retData->bindResp.rflxAddr
-        );
-
-        if (pRflxAddr->sa_family == AF_INET)
-            ((struct sockaddr_in *) pRflxAddr)->sin_port = retData->bindResp.rflxPort;
-        else if (pRflxAddr->sa_family == AF_INET6)
-            ((struct sockaddr_in6 *) pRflxAddr)->sin6_port = retData->bindResp.rflxPort;
-
         ICELIB_incommingBindingResponse(&iceInstance,
                                         200,
                                         retData->msgId,
@@ -150,7 +133,7 @@ static void *recieveMsgs(void *ptr){
             switch (stunMsg.msgHdr.msgType) {
                 case STUN_MSG_BindResponseMsg:
                     printf("STUN bind response rcvd.\n");
-                    StunClient_HandleIncResp(TEST_THREAD_CTX, &stunMsg, &their_addr);
+                    StunClient_HandleIncResp(TEST_THREAD_CTX, &stunMsg, (struct sockaddr *)&their_addr);
                     break;
                 case STUN_MSG_BindErrorResponseMsg:
                     printf("STUN error response msg rcvd.\n");
@@ -165,8 +148,8 @@ static void *recieveMsgs(void *ptr){
                             stunMsg.hasControlled ? stunMsg.controlled.value : 0;
 
                         bool fromRelay =
-                            sockaddr_sameAddr(&their_addr, &turnservinfo->ai_addr) &&
-                            sockaddr_samePort(&their_addr, &turnservinfo->ai_addr);
+                            sockaddr_sameAddr((struct sockaddr *)&their_addr, turnservinfo->ai_addr) &&
+                            sockaddr_samePort((struct sockaddr *)&their_addr, turnservinfo->ai_addr);
 
                         ICELIB_incommingBindingRequest(&iceInstance,
                             0, // userValue1
@@ -178,7 +161,7 @@ static void *recieveMsgs(void *ptr){
                             stunMsg.hasControlled,
                             tieBreaker,
                             stunMsg.msgHdr.id,
-                            &their_addr,
+                            (struct sockaddr *)&their_addr,
                             ICELIB_getLocalConnectionAddr(&iceInstance, 0, 0),
                             fromRelay,
                             turnservinfo->ai_addr,
@@ -229,7 +212,7 @@ void turnSetup() {
 
     if ((rv = getaddrinfo(TURN_SERVER, TURN_PORT, &hints, &turnservinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        return -1;
+        exit(1);
     }
 
     turnInst = TurnClient_startAllocateTransaction(TEST_THREAD_CTX,
@@ -265,7 +248,7 @@ static void createSocketAndStartRecieving() {
 
     if ((rv = getaddrinfo(NULL, MY_PORT, &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        return -1;
+        exit(1);
     }
 
     // loop through all the results and bind to the first we can
@@ -281,31 +264,29 @@ static void createSocketAndStartRecieving() {
     }
 
     if (servinfo == NULL) {
-        fprintf(stderr, "%s: failed to bind socket\n");
-        return -2;
-    } else {
-        fprintf(stderr, "%s: created socket\n");
+        fprintf(stderr, "failed to bind socket\n");
+        exit(1);
     }
 
     pthread_create(&recieverThread, NULL, recieveMsgs, (void*) &TEST_THREAD_CTX);
 }
 
 
-ICELIB_Result callbackRequest(void                    *pUserData,
-                              const struct sockaddr *destination,
-                              const struct sockaddr *source,
-                              uint32_t              userValue1,
-                              uint32_t              userValue2,
-                              uint32_t              componentId,
-                              bool                  useRelay,
-                              const char            *pUfragPair,
-                              const char            *pPasswd,
-                              uint32_t              peerPriority,
-                              bool                  useCandidate,
-                              bool                  iceControlling,
-                              bool                  iceControlled,
-                              uint64_t              tieBreaker,
-                              StunMsgId             transactionId)
+ICELIB_Result callbackRequest(void             *pUserData,
+                              struct sockaddr  *destination,
+                              struct sockaddr  *source,
+                              uint32_t         userValue1,
+                              uint32_t         userValue2,
+                              uint32_t         componentId,
+                              bool             useRelay,
+                              char             *pUfragPair,
+                              char             *pPasswd,
+                              uint32_t         peerPriority,
+                              bool             useCandidate,
+                              bool             iceControlling,
+                              bool             iceControlled,
+                              uint64_t         tieBreaker,
+                              StunMsgId        transactionId)
 {
 
     StunCallBackData_T StunCbData;
@@ -355,17 +336,17 @@ ICELIB_Result callbackRequest(void                    *pUserData,
 }
 
 ICELIB_Result callbackResponse(void *pUserData,
-                            uint32_t userValue1,
-                            uint32_t userValue2,
-                            uint32_t componentId,
-                            const struct sockaddr *source,
-                            const struct sockaddr *destination,
-                            const struct sockaddr *mappedAddress,
-                            uint16_t errorResponse,
-                            StunMsgId transactionId,
-                            bool useRelay,
-                            const char *pUfragPair,
-                            const char *pPasswd)
+                              uint32_t userValue1,
+                              uint32_t userValue2,
+                              uint32_t componentId,
+                              const struct sockaddr *source,
+                              struct sockaddr *destination,
+                              struct sockaddr *mappedAddress,
+                              uint16_t errorResponse,
+                              StunMsgId transactionId,
+                              bool useRelay,
+                              char *pUfragPair,
+                              char *pPasswd)
 {
     char addr[SOCKADDR_MAX_STRLEN];
 
@@ -416,7 +397,7 @@ ICELIB_Result callbackKeepAlive(void
     ICE_REMOTE_CANDIDATES const * candidates = ICELIB_getActiveRemoteCandidates(&iceInstance, mediaIdx);
     if (candidates)
     {
-        const struct sockaddr * conn = (const struct sockaddr *) &candidates->remoteCandidate[0].connectionAddr;
+        struct sockaddr *conn = (struct sockaddr *) &candidates->remoteCandidate[0].connectionAddr;
         if (sockaddr_isSet(conn))
             sendRawStun(sockfd, buf, encLen, conn, sizeof(*conn), NULL);
 
@@ -445,8 +426,6 @@ ICELIB_Result callbackComplete(void *pUserData,
     }
     else {
         printf("Ice succeded.");
-
-
     }
 
     return ICELIB_Result_OK;
@@ -478,12 +457,9 @@ static void *tickIce(void *ptr)
     }
 }
 
-void startIce () {
-
+void startIce(void) {
     int controlling;
-
     struct sockaddr_in rHostAddr;
-
     struct ifaddrs *hostAddrs;
 
     char
@@ -519,7 +495,10 @@ void startIce () {
     };
 
     printf(">>> controlling\n");
-    scanf("%d", &controlling);
+    if (scanf("%d", &controlling) <= 0) {
+        perror("scanf");
+        exit(1);
+    }
 
     //if (controlling)
     //    ufrag[9] = '2';
@@ -530,13 +509,13 @@ void startIce () {
 
     ICELIB_setCallbackOutgoingBindingRequest(
         &iceInstance,
-        callbackRequest,
+        (ICELIB_outgoingBindingRequest)callbackRequest,
         NULL
     );
 
     ICELIB_setCallbackOutgoingBindingResponse(
         &iceInstance,
-        callbackResponse,
+        (ICELIB_outgoingBindingResponse)callbackResponse,
         NULL
     );
 
@@ -555,7 +534,7 @@ void startIce () {
 
     ICELIB_setCallbackLog(
         &iceInstance,
-        callbackLog,
+        (ICELIB_logCallback)callbackLog,
         NULL,
         0 // ICELIB_logDebug
     );
@@ -590,7 +569,7 @@ void startIce () {
         &iceInstance,
         0,
         ICELIB_RTP_COMPONENT_ID,
-        &lRflxAddr,
+        (struct sockaddr *)&lRflxAddr,
         NULL,
         ICE_CAND_TYPE_SRFLX
     );
@@ -599,7 +578,7 @@ void startIce () {
         &iceInstance,
         0,
         ICELIB_RTP_COMPONENT_ID,
-        &lRelAddr,
+        (struct sockaddr *)&lRelAddr,
         NULL,
         ICE_CAND_TYPE_RELAY
     );
@@ -624,15 +603,18 @@ void startIce () {
 
     // Listen for host candidate...
     printf(">>> hostAddr\n");
-    scanf("%s", &rHostAddrStr);
+    if (scanf("%s", (char *)&rHostAddrStr) <= 0) {
+        perror("scanf");
+        exit(1);
+    }
 
-    sockaddr_initFromString(&rHostAddr, rHostAddrStr);
+    sockaddr_initFromString((struct sockaddr *)&rHostAddr, rHostAddrStr);
 
     ICELIB_addRemoteMediaStream(
         &iceInstance,
         ufrag,
         pwd,
-        &rHostAddr
+        (struct sockaddr *)&rHostAddr
     );
 
     ICELIB_addRemoteCandidate(
@@ -649,7 +631,10 @@ void startIce () {
 
     // Listen for rflx candidate.
     printf(">>> rlfxAddr : rlfxPort\n");
-    scanf("%s : %hu", &rRflxAddrStr, &rRflxPort);
+    if (scanf("%s : %hu", (char *)&rRflxAddrStr, &rRflxPort) <= 0) {
+        perror("scanf");
+        exit(1);
+    }
 
     ICELIB_addRemoteCandidate(
         &iceInstance,
@@ -665,7 +650,10 @@ void startIce () {
 
     // Listen for rel candidate
     printf(">>> relAddr : relPort\n");
-    scanf("%s : %hu", &rRelAddrStr, &rRelPort);
+    if (scanf("%s : %hu", (char *)&rRelAddrStr, &rRelPort) <= 0) {
+        perror("scanf");
+        exit(1);
+    }
 
     ICELIB_addRemoteCandidate(
         &iceInstance,
