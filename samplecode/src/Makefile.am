@@ -13,6 +13,7 @@ endif
 
 if LOCAL_ICELIB
   AM_CPPFLAGS_3 = -I../../icelib/include
+  LDADD_3 = -I../../icelib/src/libice.la
 endif
 
 AM_CPPFLAGS = -I../include $(AM_CPPFLAGS_1) $(AM_CPPFLAGS_2) $(AM_CPPFLAGS_3)		
@@ -21,8 +22,10 @@ AM_CPPFLAGS = -I../include $(AM_CPPFLAGS_1) $(AM_CPPFLAGS_2) $(AM_CPPFLAGS_3)
 stunclient_LDADD =  $(LDADD_3) $(LDADD_2) $(LDADD_1)
 stunserver_LDADD =  $(LDADD_3) $(LDADD_2) $(LDADD_1)
 turnclient_LDADD =  $(LDADD_3) $(LDADD_2) $(LDADD_1)
+iceclient_LDADD = $(LDADD_3) $(LDADD_2) $(LDADD_1)
 
 
 stunclient_SOURCES = stunclient.c utils.c
 stunserver_SOURCES = stunserver.c utils.c
 turnclient_SOURCES = turnclient.c utils.c
+iceclient_SOURCES = iceclient.c utils.c
