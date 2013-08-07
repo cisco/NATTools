@@ -21,7 +21,7 @@
 #include "utils.h"
 
 #define MY_PORT "33333"
-#define MY_PORT_INT 33333 
+#define MY_PORT_INT 33333
 
 #define TURN_SERVER "turn.qa.rd.tandberg.com"
 #define TURN_PORT "3478"
@@ -49,9 +49,9 @@ void StunStatusCallBack(void *ctx, StunCallBackData_T *retData)
     if (retData->stunResult == StunResult_BindOk) {
         struct sockaddr_storage rflxAddr;
         struct sockaddr *pRflxAddr = &rflxAddr;
-        
+
         char addr[SOCKADDR_MAX_STRLEN];
-        
+
         sockaddr_initFromString(pRflxAddr, retData->bindResp.rflxAddr);
 
         printf("\n\nmappedAddress: %s actual: %s\n\n",
@@ -70,7 +70,7 @@ void StunStatusCallBack(void *ctx, StunCallBackData_T *retData)
                                         (struct sockaddr *) &retData->srcAddrStr,
                                         (struct sockaddr *) &retData->dstBaseAddrStr,
                                         (struct sockaddr *) &retData->bindResp.rflxAddr);
-        
+
         printf("StunResult OK\n");
     }
     else {
@@ -123,7 +123,7 @@ static void *recieveMsgs(void *ptr){
     char realm[STUN_MAX_STRING];
 
     while (1) {
-        if((numbytes = recvStunMsg(sockfd, &their_addr, &stunMsg, buf)) != -1) { 
+        if((numbytes = recvStunMsg(sockfd, &their_addr, &stunMsg, buf)) != -1) {
             if (stunMsg.msgHdr.msgType == STUN_MSG_DataIndicationMsg) {
                 if (stunMsg.hasData) {
                     //Decode and do something with the data?
@@ -134,7 +134,7 @@ static void *recieveMsgs(void *ptr){
                memcpy(realm, stunMsg.realm.value, STUN_MAX_STRING);
             }
 
-            
+
             if (stunMsg.hasMessageIntegrity) {
                 printf("   Integrity attribute present.\n");
                 stunlib_createMD5Key((unsigned char *)md5, TURN_USER, realm, TURN_PASS);
@@ -145,7 +145,7 @@ static void *recieveMsgs(void *ptr){
                     printf("     - Integrity check NOT OK\n");
                 }
             }
-            
+
 
             switch (stunMsg.msgHdr.msgType) {
                 case STUN_MSG_BindResponseMsg:
@@ -164,8 +164,8 @@ static void *recieveMsgs(void *ptr){
                         uint64_t tieBreaker = stunMsg.hasControlling ? stunMsg.controlling.value :
                             stunMsg.hasControlled ? stunMsg.controlled.value : 0;
 
-                        bool fromRelay = 
-                            sockaddr_sameAddr(&their_addr, &turnservinfo->ai_addr) && 
+                        bool fromRelay =
+                            sockaddr_sameAddr(&their_addr, &turnservinfo->ai_addr) &&
                             sockaddr_samePort(&their_addr, &turnservinfo->ai_addr);
 
                         ICELIB_incommingBindingRequest(&iceInstance,
@@ -226,7 +226,7 @@ void turnSetup() {
 
     TurnClient_Init(TEST_THREAD_CTX, 50, 50, NULL, false, "TestTurn");
     pthread_create(&turnTickThread, NULL, tickTurn, (void*) &TEST_THREAD_CTX);
-    
+
     if ((rv = getaddrinfo(TURN_SERVER, TURN_PORT, &hints, &turnservinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         return -1;
@@ -254,7 +254,7 @@ static void createSocketAndStartRecieving() {
     struct addrinfo *servinfo;
     pthread_t recieverThread;
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    
+
     printf("starting turn...");
     struct addrinfo hints;
     int rv;
@@ -310,7 +310,7 @@ ICELIB_Result callbackRequest(void                    *pUserData,
 
     StunCallBackData_T StunCbData;
     char addr[SOCKADDR_MAX_STRLEN];
-    
+
     printf("\nRequest callback...\n");
 
     StunClient_startBindTransaction (TEST_THREAD_CTX,
@@ -341,7 +341,7 @@ ICELIB_Result callbackRequest(void                    *pUserData,
             true
         )
     );
-    
+
     printf("destination: %s\n",
         sockaddr_toString(
             destination,
@@ -350,7 +350,7 @@ ICELIB_Result callbackRequest(void                    *pUserData,
             true
         )
     );
-    
+
     return ICELIB_Result_OK;
 }
 
@@ -395,7 +395,7 @@ ICELIB_Result callbackKeepAlive(void
                                 uint32_t    userValue2,
                                 uint32_t    mediaIdx)
 {
-    
+
     printf("\nKeep alive callback...\n");
 
     uint8_t buf [STUN_MAX_PACKET_SIZE];
@@ -428,7 +428,7 @@ ICELIB_Result callbackKeepAlive(void
         }
         */
     }
-    
+
     return ICELIB_Result_OK;
 }
 
@@ -437,7 +437,7 @@ ICELIB_Result callbackComplete(void *pUserData,
                                 bool isControlling,
                                 bool iceFailed)
 {
-    
+
     printf("\nCheck complete callback...\n");
 
     if (iceFailed){
@@ -446,7 +446,7 @@ ICELIB_Result callbackComplete(void *pUserData,
     else {
         printf("Ice succeded.");
 
-        
+
     }
 
     return ICELIB_Result_OK;
@@ -456,7 +456,7 @@ ICELIB_Result callbackLog(void     *pUserData,
                         ICELIB_logLevel logLevel,
                         const char         *str)
 {
-    
+
     printf("Log callback: %s\n", str);
     return ICELIB_Result_OK;
 }
@@ -472,21 +472,21 @@ static void *tickIce(void *ptr)
 
     for(;;) {
         nanosleep(&timer, &remaining);
-        
+
         StunClient_HandleTick(TEST_THREAD_CTX);
         ICELIB_Tick(iceInstance);
     }
 }
 
 void startIce () {
-    
+
     int controlling;
-    
+
     struct sockaddr_in rHostAddr;
 
     struct ifaddrs *hostAddrs;
 
-    char 
+    char
         ufrag[] = "evtj:h6vY",
         pwd[] = "VOkJxbRl1RmTxUk";
 
@@ -494,20 +494,20 @@ void startIce () {
         rHostFoundation[ICELIB_FOUNDATION_LENGTH],
         rRflxFoundation[ICELIB_FOUNDATION_LENGTH],
         rRelFoundation[ICELIB_FOUNDATION_LENGTH];
-    char 
+    char
         rHostAddrStr[INET_ADDRSTRLEN],
         rRflxAddrStr[INET_ADDRSTRLEN],
         rRelAddrStr[INET_ADDRSTRLEN];
-    
+
     unsigned short
         rHostPort,
         rRflxPort,
         rRelPort;
 
     char addr[SOCKADDR_MAX_STRLEN];
-    
+
     pthread_t iceTickThread;
-    ICELIB_CONFIGURATION iceConfig = 
+    ICELIB_CONFIGURATION iceConfig =
     {
         30,
         1,
@@ -517,16 +517,16 @@ void startIce () {
         20,
         0 //ICELIB_logDebug
     };
-    
+
     printf(">>> controlling\n");
     scanf("%d", &controlling);
-    
+
     //if (controlling)
     //    ufrag[9] = '2';
 
     ICELIB_Constructor(&iceInstance, &iceConfig);
 
-    StunClient_Init(TEST_THREAD_CTX, 50, 50, NULL, false, SOFTWARE); 
+    StunClient_Init(TEST_THREAD_CTX, 50, 50, NULL, false, SOFTWARE);
 
     ICELIB_setCallbackOutgoingBindingRequest(
         &iceInstance,
@@ -539,7 +539,7 @@ void startIce () {
         callbackResponse,
         NULL
     );
-    
+
 
     ICELIB_setCallbackConnecitivityChecksComplete(
         &iceInstance,
@@ -567,7 +567,7 @@ void startIce () {
         37, // random value
         ICE_CAND_TYPE_HOST
     );
-    
+
     // Get local host addr and add the candidates...
     getifaddrs(&hostAddrs);
 
@@ -620,9 +620,9 @@ void startIce () {
             iceInstance.localIceMedia.mediaStream[0].candidate[i].foundation
         );
     }
-    
 
-    // Listen for host candidate...    
+
+    // Listen for host candidate...
     printf(">>> hostAddr\n");
     scanf("%s", &rHostAddrStr);
 
@@ -634,7 +634,7 @@ void startIce () {
         pwd,
         &rHostAddr
     );
-    
+
     ICELIB_addRemoteCandidate(
         &iceInstance,
         0,
@@ -706,7 +706,6 @@ void startIce () {
 
 int main(int argc, char *argv[])
 {
-    printf("%d\n", sockfd);
     createSocketAndStartRecieving();
 
     turnSetup();
