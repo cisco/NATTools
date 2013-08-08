@@ -302,17 +302,17 @@ void ICELIB_setCallbackLog(ICELIB_INSTANCE                *pInstance,
                            void                           *pLogUserData,
                            ICELIB_logLevel                 logLevel);
 
-void ICELIB_incommingBindingResponse(ICELIB_INSTANCE         *pInstance,
+void ICELIB_incomingBindingResponse(ICELIB_INSTANCE         *pInstance,
                                      uint16_t                errorResponse,
                                      StunMsgId               transactionId,
                                      const struct sockaddr   *source,         // From response
                                      const struct sockaddr   *destination,    // From response
                                      const struct sockaddr   *mappedAddress);
 
-void ICELIB_incommingTimeout(ICELIB_INSTANCE   *pInstance,
+void ICELIB_incomingTimeout(ICELIB_INSTANCE   *pInstance,
                              StunMsgId          Transactionid);
 
-void ICELIB_incommingBindingRequest(ICELIB_INSTANCE       *pInstance,
+void ICELIB_incomingBindingRequest(ICELIB_INSTANCE       *pInstance,
                                     uint32_t              userValue1,
                                     uint32_t              userValue2,
                                     const char            *pUfragPair,
