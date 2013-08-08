@@ -20,14 +20,19 @@
 #include <stunclient.h>
 #include <stun_intern.h>
 
-#include "utils.h"
-
 #define SERVERPORT "4950"    // the port users will be connecting to
 #define USERNAME "evtj:h6vY"
 #define PASSWORD "VOkJxbRl1RmTxUk/WvJxBt"
 
+#define MAXBUFLEN 500
+
 int sockfd;
 
+void sendRawStun(int sockHandle,
+                uint8_t *buf,
+                int bufLen,
+                struct sockaddr *dstAddr,
+                bool useRelay);
 
 void StunStatusCallBack(void *userCtx, StunCallBackData_T *stunCbData)
 {

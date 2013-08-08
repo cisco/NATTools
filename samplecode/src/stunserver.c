@@ -19,13 +19,17 @@
 #include <stunlib.h>
 #include <stunclient.h>
 
-#include "utils.h"
-
 #define MYPORT "4950"    // the port users will be connecting to
 #define PASSWORD "VOkJxbRl1RmTxUk/WvJxBt"
 #define MAXBUFLEN 500
 
 int sockfd;
+
+void sendRawStun(int sockHandle,
+                uint8_t *buf,
+                int bufLen,
+                struct sockaddr *dstAddr,
+                bool useRelay);
 
 void teardown()
 {
