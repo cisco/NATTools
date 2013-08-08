@@ -2696,7 +2696,7 @@ void ICELIB_processSuccessResponse(ICELIB_INSTANCE         *pInstance,
 }
 
 
-void ICELIB_incommingBindingResponse(ICELIB_INSTANCE  *pInstance,
+void ICELIB_incomingBindingResponse(ICELIB_INSTANCE  *pInstance,
                                      uint16_t          errorResponse,
                                      StunMsgId         transactionId,
                                      const struct sockaddr   *source,
@@ -2893,7 +2893,7 @@ void ICELIB_incommingBindingResponse(ICELIB_INSTANCE  *pInstance,
 //
 //----- Timeout occurred on the connectivity check response!
 //
-void ICELIB_incommingTimeout(ICELIB_INSTANCE  *pInstance,
+void ICELIB_incomingTimeout(ICELIB_INSTANCE  *pInstance,
                              StunMsgId         transactionId)
 {
     unsigned int         streamIndex;
@@ -3513,7 +3513,7 @@ void ICELIB_processIncommingFull(ICELIB_INSTANCE  *pInstance,
 }
 
 
-void ICELIB_incommingBindingRequest(ICELIB_INSTANCE   *pInstance,
+void ICELIB_incomingBindingRequest(ICELIB_INSTANCE   *pInstance,
                                     uint32_t           userValue1,
                                     uint32_t           userValue2,
                                     const char        *pUfragPair,

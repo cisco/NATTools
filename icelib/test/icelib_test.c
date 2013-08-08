@@ -1327,7 +1327,7 @@ START_TEST (conncheck_withIncomming)
                                           ICE_MAX_UFRAG_PAIR_LENGTH,
                                           &icelib->streamControllers[0].checkList,
                                           false);
-    ICELIB_incommingBindingRequest(icelib,
+    ICELIB_incomingBindingRequest(icelib,
                                    1,
                                    2,
                                    ufragPair,
@@ -1437,7 +1437,7 @@ START_TEST (conncheck_withIncomming)
     fail_if( connChkCB.useRelay );
     sockaddr_initFromString( (struct sockaddr *)&respRflxAddr,  respRflxAddrStr);
 
-    ICELIB_incommingBindingResponse(icelib,
+    ICELIB_incomingBindingResponse(icelib,
                                     200,
                                     connChkCB.transactionId,
                                     connChkCB.destination,

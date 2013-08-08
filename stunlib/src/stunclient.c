@@ -585,7 +585,7 @@ static void StartTimer(STUN_TRANSACTION_DATA *trans, STUN_SIGNAL sig, uint32_t d
             trans->TimerRetransmit = durationMsec;
             break;
 
-	default:
+	      default:
             StunPrint(client->logUserData, client->Log_cb, StunInfoCategory_Error,
                     "<STUNCLIENT:%02d> illegal StartTimer %d, duration %d",
                     trans->inst,  sig, durationMsec);

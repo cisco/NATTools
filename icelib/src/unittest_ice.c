@@ -1740,7 +1740,7 @@ void unittest_iceResponseError( void)
     unittest_assert( pCheckList1->checkListPairs[ 10].pairId == 17);
     unittest_assert( pCheckList1->checkListPairs[ 11].pairId == 18);
 //
-//- Simulate an incomming Binding Response with 487 (Role Confict) error response
+//- Simulate an incoming Binding Response with 487 (Role Confict) error response
 //
     TransactionId = pCheckList0->checkListPairs[ 0].transactionIdTable[0];  // TBD PTM
     pPair = pICELIB_correlateToRequest( &StreamIndex, &Instance, &TransactionId);
@@ -1755,7 +1755,7 @@ void unittest_iceResponseError( void)
 
 //    TransactionId.octet[ 1] = 0;
 
-    ICELIB_incommingBindingResponse( &Instance,
+    ICELIB_incomingBindingResponse( &Instance,
                                      487,
                                      TransactionId,
                                      &sourceAddr,
@@ -1801,9 +1801,9 @@ void unittest_iceResponseError( void)
     ICELIB_triggeredFifoClear( pFifo);
 
 //
-//- Simulate an incomming Binding Response address error
+//- Simulate an incoming Binding Response address error
 //
-    ICELIB_incommingBindingResponse( &Instance,
+    ICELIB_incomingBindingResponse( &Instance,
                                      200,
                                      TransactionId,
                                      &sourceAddr,
@@ -1870,7 +1870,7 @@ void unittest_iceResponseOK( void)
     NetAddr_initFromIPv4StringWithPort( &mappedAddr, "10.47.5.58:5678", NET_PROTO_UDP);
 
 //
-//- Simulate an incomming Binding Response with success response.
+//- Simulate an incoming Binding Response with success response.
 //  The mapped address should result in a new peer reflexive candidate 
 //  which should:
 // 
@@ -1895,7 +1895,7 @@ void unittest_iceResponseOK( void)
 //    ICELIB_checkListDumpPair( pPair);
 //    printf( "\n");
 
-    ICELIB_incommingBindingResponse( &Instance,
+    ICELIB_incomingBindingResponse( &Instance,
                                      200,
                                      TransactionId,
                                      &pPair->pRemoteCandidate->connectionAddr,
@@ -1934,7 +1934,7 @@ void unittest_iceResponseOK( void)
     unittest_assert( &pCheckList0->checkListPairs[ 1] == pPair);
 
 //
-//- Simulate an incomming Binding Response to this pair (pair 1).
+//- Simulate an incoming Binding Response to this pair (pair 1).
 //  The mapped address is now set equal to the HOST address.
 //  This should result in this pair going from IN PROGRESS to SUCCEEDED and also
 //  going into the Valid List.
@@ -1943,7 +1943,7 @@ void unittest_iceResponseOK( void)
 //  check list for the other media stream will also change.
 // 
 
-    ICELIB_incommingBindingResponse( &Instance,
+    ICELIB_incomingBindingResponse( &Instance,
                                      200,
                                      TransactionId,
                                      &pPair->pRemoteCandidate->connectionAddr,
@@ -2007,9 +2007,9 @@ void unittest_iceResponseTimeout( void)
 
     TransactionId = pCheckList0->checkListPairs[ 0].transactionIdTable[0];  // TBD PTM 
 //
-//- Simulate an incomming Binding Response timeout.
+//- Simulate an incoming Binding Response timeout.
 // 
-    ICELIB_incommingTimeout( &Instance, TransactionId);
+    ICELIB_incomingTimeout( &Instance, TransactionId);
 
     unittest_assert( pCheckList0->checkListPairs[ 0].pairState == ICELIB_PAIR_FAILED);
 }
@@ -2071,7 +2071,7 @@ void unittest_iceRequestError1( void)
     brData.transactionId  = transactionId;
     brData.callbackCalled = false;
 
-    ICELIB_incommingBindingRequest( &Instance,
+    ICELIB_incomingBindingRequest( &Instance,
                                     1234,                       // userValue1
                                     5678,                       // userValue2
                                     "aaaa:bbbb",                // pUfragPair
@@ -2092,7 +2092,7 @@ void unittest_iceRequestError1( void)
     Instance.iceControlling = true;
     brData.callbackCalled   = false;
 
-    ICELIB_incommingBindingRequest( &Instance,
+    ICELIB_incomingBindingRequest( &Instance,
                                     1234,                       // userValue1
                                     5678,                       // userValue2
                                     "aaaa:bbbb",                // pUfragPair
@@ -2200,7 +2200,7 @@ void unittest_iceRequestError2( void)
 
     uFragPair[ 4] = '*';    // Force a username error to stop processing early
 
-    ICELIB_incommingBindingRequest( &Instance,
+    ICELIB_incomingBindingRequest( &Instance,
                                     1234,                       // userValue1
                                     5678,                       // userValue2
                                     uFragPair,                  // pUfragPair
@@ -2310,7 +2310,7 @@ void unittest_iceRequestOK( void)
 
     destinationAddr = pCheckList0->checkListPairs[ 1].pLocalCandidate->connectionAddr;
 
-    //- Remember to switch LFRAG and RFRAG for incomming request:
+    //- Remember to switch LFRAG and RFRAG for incoming request:
 
     ICELIB_makeUsernamePair( uFragPair,
                                    ICE_MAX_UFRAG_PAIR_LENGTH,
@@ -2318,7 +2318,7 @@ void unittest_iceRequestOK( void)
                                    pCheckList0->ufragRemote);
 
 
-    ICELIB_incommingBindingRequest( &Instance,
+    ICELIB_incomingBindingRequest( &Instance,
                                     1234,                       // userValue1
                                     5678,                       // userValue2
                                     uFragPair,                  // pUfragPair
