@@ -44,7 +44,7 @@ static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
   memcpy(payload, &pktData[udp_data_offset], (size_t)(udp_payload_length));
 
   bool isMsStun;
-  if (!stunlib_isStunMsg(payload, udp_payload_length, &isMsStun)) {
+  if (!stunlib_isStunMsg(payload, udp_payload_length)) {
     cout << "NOT a STUN packet." << endl;
     free(payload);
     return nfq_set_verdict(myQueue, id, NF_ACCEPT, 0, NULL);
@@ -53,13 +53,20 @@ static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
 
   StunMessage stunPkt;
 
-  if (!stunlib_DecodeMessage(payload, udp_payload_length, &stunPkt, NULL, NULL, isMsStun)) {
+  if (!stunlib_DecodeMessage(payload,
+                             udp_payload_length,
+                             &stunPkt,
+                             NULL,
+                             NULL)) 
+  {
     cout << "Something went wrong in decoding..." << endl;
     free(payload);
     return nfq_set_verdict(myQueue, id, NF_ACCEPT, 0, NULL);
   }
+
   cout << "Message decoded fine." << endl;
 
+  /*
   if ((stunPkt.msgHdr.msgType == STUN_MSG_BindRequestMsg
       || stunPkt.msgHdr.msgType == STUN_MSG_RefreshRequestMsg)
       && stunPkt.hasMaliceMetadata && stunPkt.maliceMetadata.hasMDRespUP) {
@@ -84,9 +91,16 @@ static int Callback(nfq_q_handle *myQueue, struct nfgenmsg *msg,
       cout << "Changing MD-RESP-DN to some crappy bandwith and stuff." << endl;
     }
   }
+  */
 
   static const char password[] = "VOkJxbRl1RmTxUk/WvJxBt";
-  int msg_len = stunlib_encodeMessage(&stunPkt, payload, udp_payload_length, (unsigned char*)password, strlen(password), NULL, false);
+  int msg_len = stunlib_encodeMessage(&stunPkt,
+                                      payload,
+                                      udp_payload_length,
+                                      (unsigned char*)password,
+                                      strlen(password),
+                                      NULL);
+  
   cout << "Reencoded message, " << msg_len << " bytes. UDP data: " << udp_payload_length << endl;
   memcpy(&pktData[udp_data_offset], payload, (size_t)udp_payload_length);
 

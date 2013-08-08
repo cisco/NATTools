@@ -23,73 +23,74 @@
 #include <turnclient.h>
 #include <sockaddr_util.h>
 
-#include "utils.h"
-
 #define SERVERPORT "3478"    // the port users will be connecting to
+#define MAXBUFLEN 500
 
-static const uint32_t TEST_THREAD_CTX = 1;
+TURN_INSTANCE_DATA *instData;
 
-static void *tickTurn(void *ptr);
-int SendRawStun(int sockfd,
-                uint8_t *buf,
-                int len,
-                struct sockaddr *addr,
-                socklen_t t,
-                void *userdata);
-
-void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData);
-void handleInt();
-void listenAndHandleResponse();
-
-int ctx;
 int sockfd;
 char realm[STUN_MAX_STRING];
 
-int main(int argc, char *argv[])
+static void turnInfoFunc(void *userCtx, TurnInfoCategory_T category, char *ErrStr) {
+
+}
+
+static void turnSendFunc(const uint8_t         *buffer,
+                          size_t                bufLen,
+                          const struct sockaddr *dstAddr,
+                          void                  *userCtx) 
 {
-    struct addrinfo *servinfo, *p;
+    sendRawStun(sockfd, buffer, bufLen, dstAddr, false);
+}
 
-    signal(SIGINT, handleInt);
+void turnCbFunc(void *userCtx, TurnCallBackData_T *turnCbData)
+{
+    //ctx points to whatever you initialized the library with. (Not used in this simple example.)
 
-    pthread_t turnTickThread;
-    TurnCallBackData_T TurnCbData;
+    if ( turnCbData->turnResult == TurnResult_AllocOk ){
+        char addr[SOCKADDR_MAX_STRLEN];
 
-    sockfd = createSocket(argv[1], SERVERPORT, "turnclient", 0, servinfo, &p);
-    if(sockfd == -1) {
-      return 1;
-    } else if(sockfd == -2) {
-      return 2;
-    }
+        printf("Successfull Allocation: \n");
+        printf("   Active TURN server: '%s'\n",
+               sockaddr_toString((struct sockaddr *)&turnCbData->TurnResultData.AllocResp.activeTurnServerAddr,
+                                 addr,
+                                 sizeof(addr),
+                                 true));
 
-    //Turn setup
-    TurnClient_Init(TEST_THREAD_CTX, 50, 50, NULL, false, "TestTurn");
-    pthread_create( &turnTickThread, NULL, tickTurn, (void*) &TEST_THREAD_CTX);
+        printf("   RFLX addr: '%s'\n",
+               sockaddr_toString((struct sockaddr *)&turnCbData->TurnResultData.AllocResp.srflxAddr,
+                                 addr,
+                                 sizeof(addr),
+                                 true));
+
+        printf("   RELAY addr: '%s'\n",
+               sockaddr_toString((struct sockaddr *)&turnCbData->TurnResultData.AllocResp.relAddr,
+                                 addr,
+                                 sizeof(addr),
+                                 true));
 
 
-    ctx = TurnClient_startAllocateTransaction(TEST_THREAD_CTX,
-                                        NULL,
-                                        p->ai_addr,
-                                        argv[2],
-                                        argv[3],
-                                        sockfd,                       /* socket */
-                                        AF_INET,
-                                        sendRawStun,             /* send func */
-                                        NULL,  /* timeout list */
-                                        TurnStatusCallBack,
-                                        &TurnCbData,
-                                        false,
-                                        false,
-                                        0);
-
-    freeaddrinfo(servinfo);
-
-    while (1) {
-        //We listen on the socket for any response and feed it back to the library.
-        //In a real world example this would happen in a listen thread..
-
-        listenAndHandleResponse(argv[2], argv[3]);
+    } else if (turnCbData->turnResult == TurnResult_AllocUnauthorised) {
+        printf("Unable to authorize. Wrong user/pass?\n");
     }
 }
+
+
+static void *tickTurn(TURN_INSTANCE_DATA *instData)
+{
+    struct timespec timer;
+    struct timespec remaining;
+
+    timer.tv_sec = 0;
+    timer.tv_nsec = 50000000;
+
+    for(;;) {
+        nanosleep(&timer, &remaining);
+        TurnClient_HandleTick(instData);
+    }
+
+}
+
 
 void listenAndHandleResponse(char *user, char *password)
 {
@@ -122,65 +123,17 @@ void listenAndHandleResponse(char *user, char *password)
             }
          }
          printf("   Sending Response to TURN library\n");
-         TurnClient_HandleIncResp(TEST_THREAD_CTX,
-                                  TURNCLIENT_CTX_UNKNOWN,
+         TurnClient_HandleIncResp(instData,
                                   &stunResponse,
                                   buf);
     }
 }
 
-static void *tickTurn(void *ptr)
-{
-    struct timespec timer;
-    struct timespec remaining;
-    uint32_t  *ctx = (uint32_t *)ptr;
-
-    timer.tv_sec = 0;
-    timer.tv_nsec = 50000000;
-
-    for(;;) {
-        nanosleep(&timer, &remaining);
-        TurnClient_HandleTick(*ctx);
-    }
-
-}
-
-void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData)
-{
-    //ctx points to whatever you initialized the library with. (Not used in this simple example.)
-
-    if ( retData->turnResult == TurnResult_AllocOk ){
-        char addr[SOCKADDR_MAX_STRLEN];
-
-        printf("Successfull Allocation: \n");
-        printf("   Active TURN server: '%s'\n",
-               sockaddr_toString((struct sockaddr *)&retData->TurnResultData.AllocResp.activeTurnServerAddr,
-                                 addr,
-                                 sizeof(addr),
-                                 true));
-
-        printf("   RFLX addr: '%s'\n",
-               sockaddr_toString((struct sockaddr *)&retData->TurnResultData.AllocResp.rflxAddr,
-                                 addr,
-                                 sizeof(addr),
-                                 true));
-
-        printf("   RELAY addr: '%s'\n",
-               sockaddr_toString((struct sockaddr *)&retData->TurnResultData.AllocResp.relAddr,
-                                 addr,
-                                 sizeof(addr),
-                                 true));
-
-
-    } else if (retData->turnResult == TurnResult_AllocUnauthorised) {
-        printf("Unable to authorize. Wrong user/pass?\n");
-    }
-}
 
 void handleInt()
 {
   printf("\nDeallocating...\n");
-  TurnClient_Deallocate(TEST_THREAD_CTX, ctx);
+  TurnClient_Deallocate(instData);
   // If one wants to avoid the server getting a destination unreachable ICMP message,
   // handle the response before quitting.
   // listenAndHandleResponse();
@@ -188,3 +141,48 @@ void handleInt()
   printf("Quitting...\n");
   exit(0);
 }
+
+
+int main(int argc, char *argv[])
+{
+    struct addrinfo *servinfo, *p;
+    
+    signal(SIGINT, handleInt);
+
+    pthread_t turnTickThread;
+    TurnCallBackData_T TurnCbData;
+
+    sockfd = createSocket(argv[1], SERVERPORT, 0, servinfo, &p);
+    if(sockfd == -1) {
+      return 1;
+    } else if(sockfd == -2) {
+      return 2;
+    }
+
+    TurnClient_StartAllocateTransaction(&instData,
+                                        50,
+                                        turnInfoFunc,
+                                        "malice",
+                                        NULL, // *userCtx
+                                        p->ai_addr,
+                                        argv[2],
+                                        argv[3],
+                                        AF_INET,
+                                        turnSendFunc,
+                                        turnCbFunc,
+                                        false,
+                                        0);
+    
+    pthread_create(&turnTickThread, NULL, tickTurn, instData);
+
+    freeaddrinfo(servinfo);
+
+    while (1) {
+        //We listen on the socket for any response and feed it back to the library.
+        //In a real world example this would happen in a listen thread..
+
+        listenAndHandleResponse(argv[2], argv[3]);
+    }
+}
+
+

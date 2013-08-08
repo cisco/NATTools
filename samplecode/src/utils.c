@@ -6,35 +6,12 @@
 
 #define MAXBUFLEN 500 
 
-int recvStunMsg(int sockfd, struct sockaddr_storage *their_addr, StunMessage *stunResponse, unsigned char *buf)
-{
-    socklen_t addr_len = sizeof their_addr;
-    int numbytes;
-    bool isMsStun;
 
-    if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN-1 , 0, (struct sockaddr *)their_addr, &addr_len)) == -1) {
-          perror("recvfrom");
-          exit(1);
-    }
-
-    printf("Got a packet that is %d bytes long\n", numbytes);
-    if (stunlib_isStunMsg(buf, numbytes, &isMsStun)) {
-        printf("   Packet is STUN\n");
-
-        stunlib_DecodeMessage(buf, numbytes, stunResponse, NULL, false, false);
-
-        return numbytes;
-    }
-
-    return -1;
-}
-
-int createSocket(char host[], char port[], char outprintName[], int ai_flags, struct addrinfo *servinfo, struct addrinfo **p)
+int createSocket(char host[], char port[], int ai_flags, struct addrinfo *servinfo, struct addrinfo **p)
 {
     struct addrinfo hints;
     int rv, sockfd;
     memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC; // set to AF_INET to force IPv4
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_flags = ai_flags; // use my IP if not 0
@@ -48,13 +25,13 @@ int createSocket(char host[], char port[], char outprintName[], int ai_flags, st
     for((*p) = servinfo; (*p) != NULL; (*p) = (*p)->ai_next) {
         if ((sockfd = socket((*p)->ai_family, (*p)->ai_socktype,
                 (*p)->ai_protocol)) == -1) {
-            perror("createSocket: socket");
+            perror("socket");
             continue;
         }
 
         if (ai_flags != 0 && bind(sockfd, (*p)->ai_addr, (*p)->ai_addrlen) == -1) {
             close(sockfd);
-            perror("createSocket: bind");
+            perror("bind");
             continue;
         }
 
@@ -62,43 +39,57 @@ int createSocket(char host[], char port[], char outprintName[], int ai_flags, st
     }
 
     if ((*p) == NULL) {
-        fprintf(stderr, "%s: failed to bind socket\n", outprintName);
+        fprintf(stderr, "failed to bind socket\n");
         return -2;
-    } else {
-        fprintf(stderr, "%s: created socket\n", outprintName);
     }
 
     return sockfd;
 }
 
-int sendRawUDP(int sockfd,
-               const void *buf,
-               size_t len,
-               struct sockaddr * p,
-               socklen_t t)
+
+void sendRawStun(int sockHandle,
+                uint8_t *buf,
+                int bufLen,
+                struct sockaddr *dstAddr,
+                bool useRelay)
 {
     int numbytes;
-    char addr[256];
-    int rv;
+    char addrStr[SOCKADDR_MAX_STRLEN];
 
-    numbytes = sendto(sockfd, buf, len, 0, p, t);
+    if ((numbytes = sendto(sockHandle, buf, bufLen, 0, dstAddr, sizeof(*dstAddr))) == -1) {
+        perror("sendto");
+        exit(1);
+    }
 
-    sockaddr_toString(p, addr, 256, true);
-    printf("Sending Raw (To: '%s'(%i), Bytes:%i/%i  )\n", addr, sockfd, numbytes, (int)len);
+    sockaddr_toString(dstAddr, addrStr, SOCKADDR_MAX_STRLEN, true);
+    printf("Sending Raw (To: '%s'(%i), Bytes:%i/%i  )\n", addrStr, sockHandle, numbytes, bufLen);
 
     return numbytes;
 }
 
-int sendRawStun(int sockfd,
-                uint8_t *buf,
-                int len,
-                struct sockaddr *addr,
-                socklen_t t,
-                void *userdata)
+int recvStunMsg(int sockfd, struct sockaddr_storage *their_addr, StunMessage *stunResponse, unsigned char *buf)
 {
-    return sendRawUDP(sockfd, buf, len, addr, t);
+    socklen_t addr_len = sizeof their_addr;
+    int numbytes;
+
+    if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN-1 , 0, (struct sockaddr *)their_addr, &addr_len)) == -1) {
+          perror("recvfrom");
+          exit(1);
+    }
+
+    printf("Got a packet that is %d bytes long\n", numbytes);
+    if (stunlib_isStunMsg(buf, numbytes)) {
+        printf("   Packet is STUN\n");
+
+        stunlib_DecodeMessage(buf, numbytes, stunResponse, NULL, NULL);
+
+        return numbytes;
+    }
+
+    return -1;
 }
 
+/*
 void printMalice(StunMessage stunRequest)
 {
     if (stunRequest.maliceMetadata.hasMDAgent)
@@ -158,3 +149,4 @@ void printMalice(StunMessage stunRequest)
         printf("mdPeerCheck!\n");
     }
 }
+*/

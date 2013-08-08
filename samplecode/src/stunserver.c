@@ -22,22 +22,16 @@
 #include "utils.h"
 
 #define MYPORT "4950"    // the port users will be connecting to
+#define PASSWORD "VOkJxbRl1RmTxUk/WvJxBt"
 #define MAXBUFLEN 500
 
-static const uint32_t TEST_THREAD_CTX = 1;
-
 int sockfd;
-void teardown();
-void printMalice(StunMessage strunRequest);
 
-// get sockaddr, IPv4 or IPv6:
-void *get_in_addr(struct sockaddr *sa)
+void teardown()
 {
-    if (sa->sa_family == AF_INET) {
-        return &(((struct sockaddr_in*)sa)->sin_addr);
-    }
-
-    return &(((struct sockaddr_in6*)sa)->sin6_addr);
+  close(sockfd);
+  printf("Quitting...\n");
+  exit(0);
 }
 
 int main(void)
@@ -46,61 +40,48 @@ int main(void)
     int numbytes;
     struct sockaddr_storage their_addr;
     unsigned char buf[MAXBUFLEN];
-    char s[INET6_ADDRSTRLEN];
 
-    StunMessage stunRequest, stunResponse;
+    StunMessage stunRequest;
     STUN_INCOMING_REQ_DATA pReq;
-    char response_buffer[256];
-    int msg_len;
 
-    char username[] = "evtj:h6vY2";
-    char password[] = "VOkJxbRl1RmTxUk/WvJxBt";
-    char *software_resp= "STUN server\0";
+    STUN_CLIENT_DATA *clientData;
+
+    StunClient_Alloc(&clientData);
 
     signal(SIGINT, teardown);
 
-    sockfd = createSocket(NULL, MYPORT, "stunserver", AI_PASSIVE, servinfo, &p);
+    sockfd = createSocket(NULL, MYPORT, AI_PASSIVE, servinfo, &p);
     freeaddrinfo(servinfo);
 
     while(1) {
         printf("stunserver: waiting to recvfrom...\n");
         if((numbytes = recvStunMsg(sockfd, &their_addr, &stunRequest, buf)) != -1) {
 
-            if(stunlib_checkIntegrity(buf, numbytes, &stunRequest, password, sizeof(password)) ) {
+            if(stunlib_checkIntegrity(buf, numbytes, &stunRequest, PASSWORD, sizeof(PASSWORD)) ) {
                 printf("   Integrity OK\n");
 
-                printMalice(stunRequest);
+                // printMalice(stunRequest);
 
-                StunServer_HandleStunIncomingBindReqMsg(TEST_THREAD_CTX,
+                StunServer_HandleStunIncomingBindReqMsg(clientData,
                                                         &pReq,
                                                         &stunRequest,
                                                         false);
 
-                StunServer_SendConnectivityBindingResp(TEST_THREAD_CTX,
+                StunServer_SendConnectivityBindingResp(clientData,
                                                        sockfd,
                                                        stunRequest.msgHdr.id,
-                                                       username,
-                                                       password,
+                                                       PASSWORD,
                                                        &their_addr,
-                                                       sizeof(their_addr),
                                                        &their_addr,
-                                                       sizeof(their_addr),
                                                        NULL,
                                                        sendRawStun,
                                                        false,
-                                                       -1,
-                                                       &stunRequest.maliceMetadata);
+                                                       200);
+                                                       //&stunRequest.maliceMetadata);
 
 
                 printf("Sending response\n\n");
             }
         }
     }
-}
-
-void teardown()
-{
-  close(sockfd);
-  printf("Quitting...\n");
-  exit(0);
 }
