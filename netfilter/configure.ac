@@ -50,6 +50,11 @@ AM_COND_IF(LOCAL_ICELIB,
 #AC_CHECK_LIB([ice], [ICELIB_Constructor], [], [AC_MSG_FAILURE([could not find icelib])])
 
 
+AC_CHECK_LIB([pthread], [pthread_create], [], [AC_MSG_FAILURE([could not find pthread])])
+AC_CHECK_LIB([netfilter_queue], [nfq_open], [], [AC_MSG_FAILURE([could not find netfilter_queue])])
+AC_CHECK_LIB([nfnetlink], [nfnl_fd], [], [AC_MSG_FAILURE([could not find nfnetlink])])
+
+
 
 #AC_CHECK_LIB([curses], [getch], [], [AC_MSG_FAILURE([could not find curses ( sudo apt-get install libncurses5-dev?)])])
 #AC_CHECK_LIB([form], [new_form], [], [AC_MSG_FAILURE([could not find form])])

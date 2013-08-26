@@ -1,4 +1,4 @@
-bin_PROGRAMS = stunclient stunserver turnclient malicenode #iceclient
+bin_PROGRAMS = stunclient stunserver turnclient  #iceclient
 
 if LOCAL_SOCKADDR
   AM_CPPFLAGS_1 = -I../../sockaddrutil/include
@@ -21,10 +21,10 @@ stunclient_LDADD =  $(LDADD_3) $(LDADD_2) $(LDADD_1)
 stunserver_LDADD =  $(LDADD_3) $(LDADD_2) $(LDADD_1)
 turnclient_LDADD =  $(LDADD_3) $(LDADD_2) $(LDADD_1)
 #iceclient_LDADD = $(LDADD_3) $(LDADD_2) $(LDADD_1)
-malicenode_LDADD =  $(LDADD_3) $(LDADD_2) $(LDADD_1)
+
 
 stunclient_SOURCES = stunclient.c utils.c
 stunserver_SOURCES = stunserver.c utils.c
 turnclient_SOURCES = turnclient.c utils.c
 #iceclient_SOURCES = iceclient.c utils.c
-malicenode_SOURCES = malicenode.cc
+

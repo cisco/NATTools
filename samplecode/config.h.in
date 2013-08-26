@@ -12,16 +12,6 @@
 /* Define to 1 if you have the `ice' library (-lice). */
 #undef HAVE_LIBICE
 
-/* Define to 1 if you have the `netfilter_queue' library (-lnetfilter_queue).
-   */
-#undef HAVE_LIBNETFILTER_QUEUE
-
-/* Define to 1 if you have the `nfnetlink' library (-lnfnetlink). */
-#undef HAVE_LIBNFNETLINK
-
-/* Define to 1 if you have the `pthread' library (-lpthread). */
-#undef HAVE_LIBPTHREAD
-
 /* Define to 1 if you have the `sockaddrutil' library (-lsockaddrutil). */
 #undef HAVE_LIBSOCKADDRUTIL
 
