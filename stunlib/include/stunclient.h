@@ -171,7 +171,8 @@ int  StunClient_startBindTransaction(STUN_CLIENT_DATA      *clientData,
                                      StunMsgId              transactionId,
                                      uint32_t               sockhandle,
                                      STUN_SENDFUNC          sendFunc,
-                                     STUNCB                 stunCbFunc);
+                                     STUNCB                 stunCbFunc,
+                                     MaliceMetadata        *maliceMetadata); // nullptr if no malicedata should be sent.
 
 /*
  * This function must be called by the application every N msec. N must be same as in StunClientBind_Init(instances, N)
@@ -206,7 +207,8 @@ void StunServer_SendConnectivityBindingResp(STUN_CLIENT_DATA      *clientData,
                                             void                  *userData,
                                             STUN_SENDFUNC          sendFunc,
                                             bool                   useRelay,
-                                            uint32_t               responseCode);
+                                            uint32_t               responseCode,
+                                            MaliceMetadata        *maliceMetadata);
 
 /********** Server handling:  incoming STUN BIND REQ **********/
 bool StunServer_HandleStunIncomingBindReqMsg(STUN_CLIENT_DATA *clientData,

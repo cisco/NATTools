@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
         "\xfa\x87\xdf\xae";
     
     /*********************** start MALICE specific **************************/
-    /*
+    
     MaliceMetadata maliceMetadata;
     
     maliceMetadata.hasMDAgent = true;
@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
 
     maliceMetadata.hasMDPeerCheck = true;
 
-    */
+    
     /*********************** end MALICE specific **************************/
     
     STUN_CLIENT_DATA *clientData;
@@ -182,8 +182,8 @@ int main(int argc, char *argv[])
                                   stunMsgId,
                                   sockfd,
                                   sendRawStun,
-                                  StunStatusCallBack);
-                                  //&maliceMetadata);
+                                  StunStatusCallBack,
+                                  &maliceMetadata);
 
     while(1)
     {
@@ -197,7 +197,7 @@ int main(int argc, char *argv[])
 
                 StunClient_HandleIncResp(clientData, &stunResponse, p->ai_addr);
 
-                // printMalice(stunResponse);
+                printMalice(stunResponse);
 
                 break;
             }

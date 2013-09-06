@@ -89,7 +89,7 @@ int recvStunMsg(int sockfd, struct sockaddr_storage *their_addr, StunMessage *st
     return -1;
 }
 
-/*
+
 void printMalice(StunMessage stunRequest)
 {
     if (stunRequest.maliceMetadata.hasMDAgent)
@@ -149,4 +149,4 @@ void printMalice(StunMessage stunRequest)
         printf("mdPeerCheck!\n");
     }
 }
-*/
+

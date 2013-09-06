@@ -60,7 +60,7 @@ int main(void)
             if(stunlib_checkIntegrity(buf, numbytes, &stunRequest, PASSWORD, sizeof(PASSWORD)) ) {
                 printf("   Integrity OK\n");
 
-                // printMalice(stunRequest);
+                printMalice(stunRequest);
 
                 StunServer_HandleStunIncomingBindReqMsg(clientData,
                                                         &pReq,
@@ -76,8 +76,8 @@ int main(void)
                                                        NULL,
                                                        sendRawStun,
                                                        false,
-                                                       200);
-                                                       //&stunRequest.maliceMetadata);
+                                                       200,
+                                                       &stunRequest.maliceMetadata);
 
 
                 printf("Sending response\n\n");

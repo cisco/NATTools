@@ -106,7 +106,8 @@ static int StartBindTransaction(int n)
                                            LastTransId,
                                            0,                       /* socket */
                                            SendRawStun,             /* send func */
-                                           StunStatusCallBack);
+                                           StunStatusCallBack,
+                                           NULL);
 }
 
 static void SimBindSuccessResp(int ctx, bool IPv6)

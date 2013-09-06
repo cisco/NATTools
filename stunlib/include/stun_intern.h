@@ -86,6 +86,7 @@ typedef struct {
     uint32_t                 sockhandle;
     STUN_SENDFUNC            sendFunc;
     STUNCB                   stunCbFunc;
+    MaliceMetadata          *maliceMetadata; // nullptr if no malice attributes should be sent.
 } StunBindReqStuct;
 
 struct StunClientStats

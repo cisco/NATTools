@@ -210,7 +210,8 @@ int StunClient_startBindTransaction(STUN_CLIENT_DATA      *clientData,
                                     StunMsgId              transactionId,
                                     uint32_t               sockhandle,
                                     STUN_SENDFUNC          sendFunc,
-                                    STUNCB                 stunCbFunc)
+                                    STUNCB                 stunCbFunc,
+                                    MaliceMetadata     *maliceMetadata) // nullptr if no malicedata should be sent.
 {
     StunBindReqStuct m;
 
@@ -235,6 +236,13 @@ int StunClient_startBindTransaction(STUN_CLIENT_DATA      *clientData,
     m.transactionId = transactionId;
     m.sockhandle     = sockhandle;
     m.sendFunc       = sendFunc;
+
+    /******************************** start MALICE specific ******************************/
+
+    m.maliceMetadata = maliceMetadata;
+
+    /******************************** start MALICE specific ******************************/
+
 
     /* callback and data (owned by caller) */
     m.stunCbFunc = stunCbFunc;
@@ -303,7 +311,8 @@ int StunClient_cancelBindingTransaction(STUN_CLIENT_DATA *clientData,
 static bool CreateConnectivityBindingResp(StunMessage *stunMsg,
                                           StunMsgId transactionId,
                                           const struct sockaddr *mappedSockAddr,
-                                          uint16_t response)
+                                          uint16_t response,
+                                          MaliceMetadata *maliceMetadata)
 {
     StunIPAddress mappedAddr;
 
@@ -341,6 +350,13 @@ static bool CreateConnectivityBindingResp(StunMessage *stunMsg,
     /* The XOR address MUST be added according to the RFC */
     stunMsg->hasXorMappedAddress = true;
     stunMsg->xorMappedAddress = mappedAddr;
+
+    if (maliceMetadata != NULL)
+    {
+        stunMsg->hasMaliceMetadata = true;
+        stunMsg->maliceMetadata = *maliceMetadata;
+    }
+
 
     return true;
 }
@@ -389,7 +405,8 @@ void StunServer_SendConnectivityBindingResp(STUN_CLIENT_DATA      *clientData,
                                             void                  *userData,
                                             STUN_SENDFUNC          sendFunc,
                                             bool                   useRelay,
-                                            uint32_t               responseCode)
+                                            uint32_t               responseCode,
+                                            MaliceMetadata        *maliceMetadata)
 {
     StunMessage stunRespMsg;
 
@@ -397,7 +414,8 @@ void StunServer_SendConnectivityBindingResp(STUN_CLIENT_DATA      *clientData,
     if (CreateConnectivityBindingResp(&stunRespMsg,
                                       transactionId,
                                       mappedAddr,
-                                      responseCode == 200 ? STUN_MSG_BindResponseMsg:STUN_MSG_BindErrorResponseMsg))
+                                      responseCode == 200 ? STUN_MSG_BindResponseMsg:STUN_MSG_BindErrorResponseMsg,
+                                      maliceMetadata))
     {
         /* encode and send */
         SendConnectivityBindResponse(clientData,
@@ -698,6 +716,21 @@ static void BuildStunBindReq(STUN_TRANSACTION_DATA *trans, StunMessage  *stunReq
         stunReqMsg->hasControlled = true;
         stunReqMsg->controlled.value = trans->stunBindReq.tieBreaker;
     }
+    
+    /***************************************************************************************************/
+    /************************* start MALICE specific ***************************************************/
+    /***************************************************************************************************/
+
+    if (trans->stunBindReq.maliceMetadata != NULL)
+    {
+        stunReqMsg->hasMaliceMetadata = true;
+        stunReqMsg->maliceMetadata = *trans->stunBindReq.maliceMetadata;
+    }
+
+    /***************************************************************************************************/
+    /************************* end MALICE specific ***************************************************/
+    /***************************************************************************************************/
+
 
     stunlib_addSoftware(stunReqMsg, SoftwareVersionStr, STUN_DFLT_PAD);
 }

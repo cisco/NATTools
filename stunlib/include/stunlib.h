@@ -111,6 +111,23 @@ extern "C" {
 // Path Discovery test attribute
 #define STUN_ATTR_PD                 0x8041
 
+/****************************************************************************************************************/
+/****************************************** start MALICE specific ***********************************************/
+/****************************************************************************************************************/
+
+#define MALICE_ATTR_MD_AGENT        0x0C02
+#define MALICE_ATTR_MD_RESP_UP      0x0C03
+#define MALICE_ATTR_MD_RESP_DN      0x0C04
+#define MALICE_ATTR_MD_PEER_CHECK   0x0C05
+
+#define MALICE_IE_FLOWDATA_REQ      0x01
+#define MALICE_IE_FLOWDATA_RESP     0x02
+
+/****************************************************************************************************************/
+/****************************************** end MALICE specific ***********************************************/
+/****************************************************************************************************************/
+
+
 
 /* STUN attributes (TURN extensions) */
 #define STUN_ATTR_ChannelNumber       0x000c
@@ -357,6 +374,66 @@ typedef struct
                              /* for short term cred: key=password  */
 } STUN_USER_CREDENTIALS;
 
+/****************************************************************************************************************/
+/****************************************** start MALICE specific ***********************************************/
+/****************************************************************************************************************/
+
+typedef struct
+{
+    uint8_t type;
+    uint16_t length;
+} MaliceIEHdr;
+
+typedef struct
+{
+    uint8_t DT;
+    uint8_t LT;
+    uint8_t JT;
+
+    uint32_t minBW;
+    uint32_t maxBW;
+} MaliceFlowdata;
+
+typedef struct
+{
+    MaliceFlowdata flowdataUP;
+    MaliceFlowdata flowdataDN;
+} MaliceFlowdataReq;
+
+typedef struct
+{
+    bool hasFlowdataReq;
+    MaliceFlowdataReq flowdataReq;
+} MaliceAttrAgent;
+
+typedef struct
+{
+    bool hasFlowdataResp;
+    MaliceFlowdata flowdataResp;
+} MaliceAttrResp;
+
+typedef struct
+{
+    uint16_t peerMaliceCheckResult;
+} MaliceAttrPeerCheck;
+
+typedef struct
+{
+    bool                    hasMDAgent;
+    MaliceAttrAgent         mdAgent;
+    bool                    hasMDRespUP;
+    MaliceAttrResp          mdRespUP;
+    bool                    hasMDRespDN;
+    MaliceAttrResp          mdRespDN;
+    bool                    hasMDPeerCheck;
+    MaliceAttrPeerCheck     mdPeerCheck;
+} MaliceMetadata;
+
+/****************************************************************************************************************/
+/****************************************** end MALICE specific *************************************************/
+/****************************************************************************************************************/
+
+
 
 /* Decoded  STUN message */
 typedef struct
@@ -438,6 +515,17 @@ typedef struct
     /* No value, only flaged */
     bool hasUseCandidate;
     bool hasDontFragment;
+    /****************************************************************************************************************/
+    /****************************************** start MALICE specific *************************************************/
+    /****************************************************************************************************************/
+
+    bool hasMaliceMetadata;
+    MaliceMetadata maliceMetadata;
+
+    /****************************************************************************************************************/
+    /****************************************** end MALICE specific *************************************************/
+    
+
 
 } StunMessage;
 
