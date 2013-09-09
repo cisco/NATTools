@@ -23,9 +23,9 @@ stamp-h1
 .libs
 
 #executables
-pumpturn
-testturn
-testice
+stunclient
+stunserver
+turnclient
 
 check_icelib
 check_stunlib
@@ -34,3 +34,5 @@ check_sockaddrutil
 #other
 natlib.info
 *.swp
+*.tar.gz
+*.cache
