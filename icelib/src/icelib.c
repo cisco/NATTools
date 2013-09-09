@@ -251,7 +251,6 @@ bool ICELIB_compareUfragPair(const char *pUfragPair,
         return false;
     }
 
-
     pSecondPart = pICELIB_splitUfragPair(pUfragPair, &colonIndex);
     if (pSecondPart == NULL) return false;
 
@@ -290,6 +289,9 @@ void ICELIB_logStringBasic(const ICELIB_CALLBACK_LOG *pCallbackLog,
         if (LogFunction != NULL) {
             LogFunction(pCallbackLog->pLogUserData, logLevel, str);
         }
+    }
+    else{
+        printf("%s", str);
     }
 }
 
