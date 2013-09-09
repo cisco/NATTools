@@ -315,8 +315,6 @@ typedef struct {
                                                   candidates will be stored here */
 } ICELIB_STREAM_CONTROLLER;
 
-void ICELIBTYPES_ICE_CANDIDATE_reset(ICE_CANDIDATE *candidate);
-
 void ICELIBTYPES_ICE_MEDIA_STREAM_reset(ICE_MEDIA_STREAM *iceMediaStream);
 bool ICELIBTYPES_ICE_MEDIA_STREAM_isEmpty(const ICE_MEDIA_STREAM *iceMediaStream);
 
@@ -324,7 +322,6 @@ void ICELIBTYPES_ICE_MEDIA_reset(ICE_MEDIA *iceMedia);
 bool ICELIBTYPES_ICE_MEDIA_isEmpty(const ICE_MEDIA *iceMedia);
 
 char const * ICELIBTYPES_ICE_CANDIDATE_TYPE_toString( const ICE_CANDIDATE_TYPE candidateType);
-char const * ICELIBTYPES_ICE_CANDIDATE_Component_toString (uint32_t componentid);
 
 #ifdef __cplusplus
 }

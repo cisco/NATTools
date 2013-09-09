@@ -48,22 +48,6 @@ char const * ICELIBTYPES_ICE_CANDIDATE_TYPE_toString(const ICE_CANDIDATE_TYPE ca
     return "UNKNOWN";
 }
 
-char const * ICELIBTYPES_ICE_CANDIDATE_Component_toString (uint32_t componentid)
-{
-    if (componentid == ICELIB_RTP_COMPONENT_ID)
-        return "RTP";
-    else if (componentid == ICELIB_RTCP_COMPONENT_ID)
-        return "RTCP";
-
-    return "UNKNOWN Component";
-
-}
-
-void ICELIBTYPES_ICE_CANDIDATE_reset(ICE_CANDIDATE *candidate)
-{
-	memset(candidate, 0, sizeof(*candidate));
-}
-
 bool ICELIBTYPES_ICE_MEDIA_STREAM_isEmpty(const ICE_MEDIA_STREAM *iceMediaStream)
 {
     if (iceMediaStream->numberOfCandidates > 0) {
