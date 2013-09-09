@@ -15,70 +15,6 @@ START_TEST( candidate_toString )
 }
 END_TEST
 
-START_TEST( candidate_dump )
-{
-    ICE_CANDIDATE candidate;
-    FILE *devnull = fopen("/dev/null", "wt");
-
-    //ICELIBTYPES_ICE_CANDIDATE_dump(devnull, &candidate);
-    
-    close(devnull);
-}
-END_TEST
-
-START_TEST( mediastream_dump )
-{
-
-    ICE_MEDIA_STREAM iceMediaStream;
-    FILE *devnull = fopen("/dev/null", "wt");
-
-    ICELIBTYPES_ICE_MEDIA_STREAM_reset(&iceMediaStream);
-
-    //ICELIBTYPES_ICE_MEDIA_STREAM_dump(devnull, &iceMediaStream);
-
-
-    iceMediaStream.numberOfCandidates = 2;
-
-    //ICELIBTYPES_ICE_MEDIA_STREAM_dump(devnull, &iceMediaStream);
-
-    close(devnull);
-
-}
-END_TEST
-
-
-START_TEST( media_dump )
-{
-    int i;
-    ICE_MEDIA iceMedia;
-    ICELIBTYPES_ICE_MEDIA_reset(&iceMedia);
-    FILE *devnull = fopen("/dev/null", "wt");
-    
-    //ICELIBTYPES_ICE_MEDIA_dump(stderr, &iceMedia);
-    
-    //ICELIBTYPES_ICE_MEDIA_dump(devnull, &iceMedia);
-    
-    iceMedia.numberOfICEMediaLines = 1;
-    iceMedia.mediaStream[0].numberOfCandidates = 2;
-
-    //ICELIBTYPES_ICE_MEDIA_dump(devnull, &iceMedia);
-
-    iceMedia.numberOfICEMediaLines = (ICE_MAX_MEDIALINES + 10);
-
-    for(i=0;i<ICE_MAX_MEDIALINES; i++){
-        iceMedia.mediaStream[i].numberOfCandidates = 2;
-    }
-
-    iceMedia.mediaStream[ICE_MAX_MEDIALINES -1].numberOfCandidates = 2;
-    //iceMedia.mediaStream[ICE_MAX_MEDIALINES+1].numberOfCandidates = 2;
-
-    //ICELIBTYPES_ICE_MEDIA_dump(devnull, &iceMedia);
-    
-    close(devnull);
-
-}
-END_TEST
-
 
 START_TEST( iceMedia_empty )
 {
@@ -116,9 +52,6 @@ Suite * icelibtypes_suite (void)
   {/* Core test case */
       TCase *tc_core = tcase_create ("Core");
       tcase_add_test (tc_core, candidate_toString);
-      tcase_add_test (tc_core, candidate_dump);
-      tcase_add_test (tc_core, mediastream_dump);
-      tcase_add_test (tc_core, media_dump );
       tcase_add_test (tc_core, iceMedia_empty );
       tcase_add_test (tc_core, mediastream_empty );
       suite_add_tcase (s, tc_core);

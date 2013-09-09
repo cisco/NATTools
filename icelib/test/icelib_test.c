@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 
 
 #include "icelib.h"
@@ -72,12 +73,14 @@ typedef struct{
     uint32_t                userValue2;
     uint32_t                componentId;
     bool                    useRelay;
-    const char              *pUfrag;
+    char ufrag[ ICE_MAX_UFRAG_LENGTH];
+    //const char              *pUfrag;
     const char              *pPasswd;
     uint32_t                peerPriority;
     bool                    useCandidate;
     bool                    iceControlling;
     bool                    iceControlled;
+    uint64_t                tieBreaker;
     StunMsgId               transactionId;
 }ConncheckCB;
 
@@ -110,13 +113,14 @@ ICELIB_Result ICELIB_TEST_sendConnectivityCheck( void                    *pUserD
     connChkCB.userValue2 = userValue2;
     connChkCB.componentId = componentId;
     connChkCB.useRelay = useRelay;
-    connChkCB.pUfrag = pUfrag;
+    strncpy(connChkCB.ufrag, pUfrag, ICE_MAX_UFRAG_LENGTH);
     connChkCB.pPasswd = pPasswd;
     connChkCB.peerPriority = peerPriority;
     connChkCB.useCandidate = useCandidate;
     connChkCB.iceControlling = iceControlling;
     connChkCB.iceControlled = iceControlled;
     connChkCB.transactionId = transactionId;
+    connChkCB.tieBreaker = tieBreaker;
     return 0;
 }
 
@@ -132,8 +136,8 @@ static char remoteRelayRtcpAddr[] = "93.95.67.89:49832";
 
 static char remoteUfrag[] = "remUf";
 static char remotePasswd[] = "remPa";
-static char localUfrag[] = "locUf";
-static char localPasswd[] = "locPa";
+//static char localUfrag[] = "locUf";
+//static char localPasswd[] = "locPa";
 
 
 void
@@ -151,6 +155,9 @@ icelib_setup (void)
 
     
     ICELIB_CONFIGURATION iceConfig;     
+
+
+    srand(time(NULL));
 
     icelib = (ICELIB_INSTANCE *)malloc(sizeof(ICELIB_INSTANCE));
 
@@ -261,8 +268,8 @@ icelib_setup (void)
     
     
     
-    sockaddr_initFromString( (struct sockaddr *)&defaultAddr,
-                             "0.0.0.0:0"); 
+    //sockaddr_initFromString( (struct sockaddr *)&defaultAddr,
+    //                         "0.0.0.0:0"); 
 
     
     
@@ -290,7 +297,7 @@ icelib_setup (void)
     
     ICELIB_addRemoteCandidate(icelib, 
                               0,
-                              "1", 
+                              "3", 
                               1, 
                               1, 
                               1694498815,
@@ -353,10 +360,12 @@ START_TEST (create_ufrag)
     memset( tmp1, '#', sizeof( tmp1));
     memset( tmp2, '#', sizeof( tmp2));
 
+      
+    srand(time(NULL));
+
     ICELIB_createUfrag( tmp1, ICELIB_UFRAG_LENGTH);
     ICELIB_createUfrag( tmp2, ICELIB_UFRAG_LENGTH);
 
-    
     fail_unless( isLegalString( tmp1),
                  "ufrag failed" );
 
@@ -974,15 +983,15 @@ START_TEST (checklistInitialState)
 
     fail_unless( icelib->streamControllers[0].checkList.checkListPairs[0].pairState == ICELIB_PAIR_WAITING );
     fail_unless( icelib->streamControllers[0].checkList.checkListPairs[1].pairState == ICELIB_PAIR_FROZEN );
-    fail_unless( icelib->streamControllers[0].checkList.checkListPairs[2].pairState == ICELIB_PAIR_FROZEN );
-    fail_unless( icelib->streamControllers[0].checkList.checkListPairs[3].pairState == ICELIB_PAIR_WAITING );
+    fail_unless( icelib->streamControllers[0].checkList.checkListPairs[2].pairState == ICELIB_PAIR_WAITING );
+    fail_unless( icelib->streamControllers[0].checkList.checkListPairs[3].pairState == ICELIB_PAIR_FROZEN );
     fail_unless( icelib->streamControllers[0].checkList.checkListPairs[4].pairState == ICELIB_PAIR_WAITING );
     fail_unless( icelib->streamControllers[0].checkList.checkListPairs[5].pairState == ICELIB_PAIR_WAITING );
-    fail_unless( icelib->streamControllers[0].checkList.checkListPairs[6].pairState == ICELIB_PAIR_FROZEN );
+    fail_unless( icelib->streamControllers[0].checkList.checkListPairs[6].pairState == ICELIB_PAIR_WAITING );
     fail_unless( icelib->streamControllers[0].checkList.checkListPairs[7].pairState == ICELIB_PAIR_WAITING );
     fail_unless( icelib->streamControllers[0].checkList.checkListPairs[8].pairState == ICELIB_PAIR_FROZEN );
     fail_unless( icelib->streamControllers[0].checkList.checkListPairs[9].pairState == ICELIB_PAIR_FROZEN );
-    fail_unless( icelib->streamControllers[0].checkList.checkListPairs[10].pairState == ICELIB_PAIR_WAITING );
+    fail_unless( icelib->streamControllers[0].checkList.checkListPairs[10].pairState == ICELIB_PAIR_FROZEN );
     fail_unless( icelib->streamControllers[0].checkList.checkListPairs[11].pairState == ICELIB_PAIR_FROZEN );
 
 }
@@ -998,7 +1007,7 @@ START_TEST (checklistTick)
 
     
     ICELIB_Tick( icelib );
-    fail_unless( icelib->streamControllers[0].checkList.checkListPairs[3].pairState == ICELIB_PAIR_INPROGRESS );
+    fail_unless( icelib->streamControllers[0].checkList.checkListPairs[2].pairState == ICELIB_PAIR_INPROGRESS );
 
     
     ICELIB_Tick( icelib );
@@ -1010,10 +1019,10 @@ START_TEST (checklistTick)
 
     
     ICELIB_Tick( icelib );
-    fail_unless( icelib->streamControllers[0].checkList.checkListPairs[7].pairState == ICELIB_PAIR_INPROGRESS );
+    fail_unless( icelib->streamControllers[0].checkList.checkListPairs[6].pairState == ICELIB_PAIR_INPROGRESS );
 
     ICELIB_Tick( icelib );    
-    fail_unless( icelib->streamControllers[0].checkList.checkListPairs[10].pairState == ICELIB_PAIR_INPROGRESS );
+    fail_unless( icelib->streamControllers[0].checkList.checkListPairs[7].pairState == ICELIB_PAIR_INPROGRESS );
 
     ICELIB_Tick( icelib );
     fail_unless( icelib->streamControllers[0].checkList.checkListPairs[1].pairState == ICELIB_PAIR_INPROGRESS );
@@ -1076,7 +1085,7 @@ START_TEST (conncheck)
     memset(&connChkCB, 0, sizeof(ConncheckCB));
     ICELIB_Tick( icelib );
     
-    fail_unless( strncmp(remoteRflxRtcpAddr, 
+    fail_unless( strncmp(remoteRflxRtpAddr, 
                          sockaddr_toString((const struct sockaddr *)connChkCB.destination, 
                                            ipaddr, 
                                            SOCKADDR_MAX_STRLEN, 
@@ -1120,7 +1129,7 @@ START_TEST (conncheck)
     memset(&connChkCB, 0, sizeof(ConncheckCB));
     ICELIB_Tick( icelib );
     
-    fail_unless( strncmp(remoteRelayRtpAddr, 
+    fail_unless( strncmp(remoteRflxRtpAddr, 
                          sockaddr_toString((const struct sockaddr *)connChkCB.destination, 
                                            ipaddr, 
                                            SOCKADDR_MAX_STRLEN, 
@@ -1135,7 +1144,7 @@ START_TEST (conncheck)
     memset(&connChkCB, 0, sizeof(ConncheckCB));
     ICELIB_Tick( icelib );
     
-    fail_unless( strncmp(remoteRflxRtcpAddr, 
+    fail_unless( strncmp(remoteRelayRtpAddr, 
                          sockaddr_toString((const struct sockaddr *)connChkCB.destination, 
                                            ipaddr, 
                                            SOCKADDR_MAX_STRLEN, 
@@ -1164,7 +1173,7 @@ START_TEST (conncheck)
     memset(&connChkCB, 0, sizeof(ConncheckCB));
     ICELIB_Tick( icelib );
     
-    fail_unless( strncmp(remoteRflxRtpAddr, 
+    fail_unless( strncmp(remoteRflxRtcpAddr, 
                          sockaddr_toString((const struct sockaddr *)connChkCB.destination, 
                                            ipaddr, 
                                            SOCKADDR_MAX_STRLEN, 
@@ -1179,21 +1188,6 @@ START_TEST (conncheck)
     memset(&connChkCB, 0, sizeof(ConncheckCB));
     ICELIB_Tick( icelib );
     
-    fail_unless( strncmp(remoteRflxRtpAddr, 
-                         sockaddr_toString((const struct sockaddr *)connChkCB.destination, 
-                                           ipaddr, 
-                                           SOCKADDR_MAX_STRLEN, 
-                                           true),
-                         INET_ADDRSTRLEN) == 0 ,
-                 "sockaddr toString failed (Got:'%s' Expected: '%s')", ipaddr, remoteRflxRtpAddr); 
-
-    fail_unless( connChkCB.useRelay );
-
-
-    /* 10. Tick */
-    memset(&connChkCB, 0, sizeof(ConncheckCB));
-    ICELIB_Tick( icelib );
-    
     fail_unless( strncmp(remoteRelayRtcpAddr, 
                          sockaddr_toString((const struct sockaddr *)connChkCB.destination, 
                                            ipaddr, 
@@ -1202,14 +1196,27 @@ START_TEST (conncheck)
                          INET_ADDRSTRLEN) == 0 ,
                  "sockaddr toString failed (Got:'%s' Expected: '%s')", ipaddr, remoteRflxRtpAddr); 
 
-    fail_if( connChkCB.useRelay );
     
+
+    /* 10. Tick */
+    memset(&connChkCB, 0, sizeof(ConncheckCB));
+    ICELIB_Tick( icelib );
+    
+    fail_unless( strncmp(remoteHostRtcpAddr, 
+                         sockaddr_toString((const struct sockaddr *)connChkCB.destination, 
+                                           ipaddr, 
+                                           SOCKADDR_MAX_STRLEN, 
+                                           true),
+                         INET_ADDRSTRLEN) == 0 ,
+                 "sockaddr toString failed (Got:'%s' Expected: '%s')", ipaddr, remoteRflxRtpAddr); 
+
+        
     
     /* 11. Tick */
     memset(&connChkCB, 0, sizeof(ConncheckCB));
     ICELIB_Tick( icelib );
     
-    fail_unless( strncmp(remoteHostRtcpAddr, 
+    fail_unless( strncmp(remoteRflxRtcpAddr, 
                          sockaddr_toString((const struct sockaddr *)connChkCB.destination, 
                                            ipaddr, 
                                            SOCKADDR_MAX_STRLEN, 
@@ -1296,7 +1303,7 @@ START_TEST (conncheck_withIncomming)
     memset(&connChkCB, 0, sizeof(ConncheckCB));
     ICELIB_Tick( icelib );
     
-    fail_unless( strncmp(remoteRflxRtcpAddr, 
+    fail_unless( strncmp(remoteRflxRtpAddr, 
                          sockaddr_toString((const struct sockaddr *)connChkCB.destination, 
                                            ipaddr, 
                                            SOCKADDR_MAX_STRLEN, 
@@ -1382,7 +1389,7 @@ START_TEST (conncheck_withIncomming)
     memset(&connChkCB, 0, sizeof(ConncheckCB));
     ICELIB_Tick( icelib );
     
-    fail_unless( strncmp(remoteRelayRtpAddr, 
+    fail_unless( strncmp(remoteRflxRtpAddr, 
                          sockaddr_toString((const struct sockaddr *)connChkCB.destination, 
                                            ipaddr, 
                                            SOCKADDR_MAX_STRLEN, 
@@ -1396,7 +1403,7 @@ START_TEST (conncheck_withIncomming)
     memset(&connChkCB, 0, sizeof(ConncheckCB));
     ICELIB_Tick( icelib );
     
-    fail_unless( strncmp(remoteRflxRtcpAddr, 
+    fail_unless( strncmp(remoteRelayRtpAddr, 
                          sockaddr_toString((const struct sockaddr *)connChkCB.destination, 
                                            ipaddr, 
                                            SOCKADDR_MAX_STRLEN, 
@@ -1426,7 +1433,7 @@ START_TEST (conncheck_withIncomming)
     memset(&connChkCB, 0, sizeof(ConncheckCB));
     ICELIB_Tick( icelib );
     
-    fail_unless( strncmp(remoteRflxRtpAddr, 
+    fail_unless( strncmp(remoteRflxRtcpAddr, 
                          sockaddr_toString((const struct sockaddr *)connChkCB.destination, 
                                            ipaddr, 
                                            SOCKADDR_MAX_STRLEN, 
@@ -1453,7 +1460,7 @@ START_TEST (conncheck_withIncomming)
     memset(&connChkCB, 0, sizeof(ConncheckCB));
     ICELIB_Tick( icelib );
     
-    fail_unless( strncmp(remoteRflxRtpAddr, 
+    fail_unless( strncmp(remoteRelayRtcpAddr, 
                          sockaddr_toString((const struct sockaddr *)connChkCB.destination, 
                                            ipaddr, 
                                            SOCKADDR_MAX_STRLEN, 
@@ -1461,14 +1468,13 @@ START_TEST (conncheck_withIncomming)
                          INET_ADDRSTRLEN) == 0 ,
                  "sockaddr toString failed (Got:'%s' Expected: '%s')", ipaddr, remoteRflxRtpAddr); 
 
-    fail_unless( connChkCB.useRelay );
-    
+        
     
     /* 11. Tick */
     memset(&connChkCB, 0, sizeof(ConncheckCB));
     ICELIB_Tick( icelib );
     
-    fail_unless( strncmp(remoteRelayRtcpAddr, 
+    fail_unless( strncmp(remoteHostRtcpAddr, 
                          sockaddr_toString((const struct sockaddr *)connChkCB.destination, 
                                            ipaddr, 
                                            SOCKADDR_MAX_STRLEN, 
@@ -1476,13 +1482,13 @@ START_TEST (conncheck_withIncomming)
                          INET_ADDRSTRLEN) == 0 ,
                  "sockaddr toString failed (Got:'%s' Expected: '%s')", ipaddr, remoteRelayRtcpAddr); 
 
-    fail_if( connChkCB.useRelay );
+    
     
     /* 12. Tick */
     memset(&connChkCB, 0, sizeof(ConncheckCB));
     ICELIB_Tick( icelib );
     
-    fail_unless( strncmp(remoteHostRtcpAddr, 
+    fail_unless( strncmp(remoteRflxRtcpAddr, 
                          sockaddr_toString((const struct sockaddr *)connChkCB.destination, 
                                            ipaddr, 
                                            SOCKADDR_MAX_STRLEN, 
@@ -1502,6 +1508,56 @@ START_TEST (conncheck_withIncomming)
     ICELIB_Tick( icelib );
     fail_if( connChkCB.gotCB );
 
+}
+END_TEST
+
+
+START_TEST (ICE_Incomming_Response)
+{
+    char ipaddr[SOCKADDR_MAX_STRLEN];
+    char ufragPair[ICE_MAX_UFRAG_PAIR_LENGTH];
+    StunMsgId stunId;
+    char srcAddrStr[] = "10.47.1.23:52456";
+    char respRflxAddrStr[] = "158.38.48.10:52423";
+    int i;
+
+    struct sockaddr_storage srcAddr;
+    struct sockaddr_storage dstAddr;
+
+    struct sockaddr_storage respRflxAddr;
+
+    memset(&connChkCB, 0, sizeof(ConncheckCB));
+
+    fail_unless( ICELIB_Start(icelib, true) );
+    
+    sockaddr_initFromString( (struct sockaddr *)&respRflxAddr,  respRflxAddrStr);
+    /* 1. Tick */
+    
+    
+    for(i=0;i<10000;i++){ 
+        ICELIB_Tick( icelib );
+        if(connChkCB.gotCB) {
+            sockaddr_toString((const struct sockaddr *)connChkCB.destination, 
+                              ipaddr, 
+                              SOCKADDR_MAX_STRLEN, 
+                              true);
+            
+            //We pretend to be the perfect network. Responses arrive imediately!
+            
+            ICELIB_incomingBindingResponse(icelib,
+                                           200,
+                                           connChkCB.transactionId,
+                                           connChkCB.destination,
+                                           connChkCB.source,
+                                           connChkCB.source);
+            
+            memset(&connChkCB, 0, sizeof(ConncheckCB));
+        }
+    }
+        
+    //ICELIB_validListDump(&icelib->streamControllers[0].validList);
+    
+    fail_unless(icelib->iceState == ICELIB_COMPLETED);
 }
 END_TEST
 
@@ -1831,8 +1887,7 @@ START_TEST( formPairs_IPv4 )
     
     cand = &LocalMediaStream.candidate[1];
 
-    fflush(stdout);
-
+    
     ICELIB_fillLocalCandidate(cand,
                               1,
                               (struct sockaddr *)&localRelay,
@@ -1849,8 +1904,7 @@ START_TEST( formPairs_IPv4 )
           ICELIB_candidateSort);
     //Remote
 
-    fflush(stdout);
-
+    
     cand = &RemoteMediaStream.candidate[0];
     
     ICELIB_fillRemoteCandidate(cand,
@@ -1865,8 +1919,7 @@ START_TEST( formPairs_IPv4 )
     cand = &RemoteMediaStream.candidate[1];
 
 
-    fflush(stdout);
-
+    
 
     ICELIB_fillRemoteCandidate(cand,
                                1,
@@ -1886,15 +1939,8 @@ START_TEST( formPairs_IPv4 )
                      &RemoteMediaStream,
                      10);
 
-    fflush(stdout);
-
-
     ICELIB_computeListPairPriority(&CheckList, true);
     ICELIB_sortPairsCL(&CheckList);
-
-    
-    fflush(stdout);
-
 
     fail_unless( CheckList.numberOfPairs  == 4 );
 
@@ -1939,9 +1985,7 @@ START_TEST( formPairs_IPv4 )
                                    (struct sockaddr *)&remoteRelay),
                  "wrong pair");
 
-    //ICELIB_checkListDump(&CheckList);
-    //fflush(stdout);
-     
+         
 }
 END_TEST
 
@@ -2079,9 +2123,6 @@ START_TEST( formPairs_IPv6 )
                                    (struct sockaddr *)&remoteRelay_6),
                  "wrong pair");
 
-    //ICELIB_checkListDump(&CheckList);
-    //fflush(stdout);
-     
 }
 END_TEST
 
@@ -2136,7 +2177,6 @@ Suite * icelib_suite (void)
   {/* Run ICELib test case */
       TCase *tc_runIcelib = tcase_create ("Run ICELib");
       tcase_add_checked_fixture (tc_runIcelib, icelib_setup, icelib_teardown);
-      
       tcase_add_test (tc_runIcelib, controlling);
       tcase_add_test (tc_runIcelib, initialState);
       tcase_add_test (tc_runIcelib, iceSupportVerified);
@@ -2145,7 +2185,7 @@ Suite * icelib_suite (void)
       tcase_add_test (tc_runIcelib, checklistTick);
       tcase_add_test (tc_runIcelib, conncheck);
       tcase_add_test (tc_runIcelib, conncheck_withIncomming );
-      
+      tcase_add_test (tc_runIcelib, ICE_Incomming_Response );     
       suite_add_tcase (s, tc_runIcelib);
   }
 
