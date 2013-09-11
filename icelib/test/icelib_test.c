@@ -156,6 +156,7 @@ icelib_setup (void)
     
     ICELIB_CONFIGURATION iceConfig;     
 
+    int mediaIdx=0;
 
     srand(time(NULL));
 
@@ -186,15 +187,14 @@ icelib_setup (void)
                                              NULL);
 
     //Local side
-    ICELIB_addLocalMediaStream(icelib,
-                               0,
-                               42,
-                               42,
-                               ICE_CAND_TYPE_HOST);
+    mediaIdx = ICELIB_addLocalMediaStream(icelib,
+                                          42,
+                                          42,
+                                          ICE_CAND_TYPE_HOST);
 
     
     ICELIB_addLocalCandidate( icelib,
-                              0,
+                              mediaIdx,
                               1,
                               (struct sockaddr *)&localHostRtp,
                               NULL,
@@ -202,7 +202,7 @@ icelib_setup (void)
                               0xffff );
     
     ICELIB_addLocalCandidate( icelib,
-                              0,
+                              mediaIdx,
                               2,
                               (struct sockaddr *)&localHostRtcp,
                               NULL,
@@ -214,7 +214,7 @@ icelib_setup (void)
     
     
     ICELIB_addLocalCandidate( icelib,
-                              0,
+                              mediaIdx,
                               1,
                               (struct sockaddr *)&localRflxRtp,
                               (struct sockaddr *)&localHostRtp,
@@ -222,7 +222,7 @@ icelib_setup (void)
                               0xffff);
         
     ICELIB_addLocalCandidate( icelib,
-                              0,
+                              mediaIdx,
                               2,
                               (struct sockaddr *)&localRflxRtcp,
                               (struct sockaddr *)&localHostRtp,
@@ -234,7 +234,7 @@ icelib_setup (void)
     
     //add relay candidates
     ICELIB_addLocalCandidate( icelib,
-                              0,
+                              mediaIdx,
                               1,
                               (struct sockaddr *)&localRelayRtp,
                               (struct sockaddr *)&localRflxRtp,
@@ -242,7 +242,7 @@ icelib_setup (void)
                               0xffff );
     
     ICELIB_addLocalCandidate( icelib,
-                              0,
+                              mediaIdx,
                               2,
                               (struct sockaddr *)&localRelayRtcp,
                               (struct sockaddr *)&localRflxRtcp,
@@ -522,7 +522,7 @@ START_TEST (create_localMediaStream)
     ICELIB_CONFIGURATION localIceConfig; 
     ICE_MEDIA const *localIceMedia;
 
-    int32_t result,i;
+    int32_t mediaIdx,i;
 
 
     //localIceConfig.logLevel = ICELIB_logDebug;
@@ -534,12 +534,11 @@ START_TEST (create_localMediaStream)
      
     
     for (i=0; i < ICE_MAX_MEDIALINES; i++){
-        result = ICELIB_addLocalMediaStream(&localIcelib,
-                                            i,
-                                            45,
-                                            34,
-                                            ICE_CAND_TYPE_HOST);
-        fail_unless( result == 1 );
+        mediaIdx = ICELIB_addLocalMediaStream(&localIcelib,
+                                              45,
+                                              34,
+                                              ICE_CAND_TYPE_HOST);
+        fail_unless( mediaIdx == i );
         
         localIceMedia = ICELIB_getLocalIceMedia(&localIcelib);
         fail_unless( isLegalString( localIceMedia->mediaStream[i].ufrag ) );
@@ -547,12 +546,11 @@ START_TEST (create_localMediaStream)
     }
             
     i++;
-    result = ICELIB_addLocalMediaStream(&localIcelib,
-                                        i,
-                                        45,
-                                        34,
-                                        ICE_CAND_TYPE_HOST);
-    fail_unless( result == -1 );
+    mediaIdx = ICELIB_addLocalMediaStream(&localIcelib,
+                                          45,
+                                          34,
+                                          ICE_CAND_TYPE_HOST);
+    fail_unless( mediaIdx == -1 );
 
 }
 END_TEST
@@ -2175,7 +2173,7 @@ Suite * icelib_suite (void)
   }
 
   {/* Run ICELib test case */
-      TCase *tc_runIcelib = tcase_create ("Run ICELib");
+      TCase *tc_runIcelib = tcase_create ("ICELib");
       tcase_add_checked_fixture (tc_runIcelib, icelib_setup, icelib_teardown);
       tcase_add_test (tc_runIcelib, controlling);
       tcase_add_test (tc_runIcelib, initialState);

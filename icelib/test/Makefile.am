@@ -3,7 +3,7 @@ if CHECK
 
 TESTS = check_icelib
 check_PROGRAMS = check_icelib
-check_icelib_SOURCES = icelib_test.c icelibtypes_test.c testmain.c ../src/icelib.c ../src/fifo.c ../src/timer.c ../src/icelibtypes.c
+check_icelib_SOURCES = icelib_test.c icelib_running_test.c icelibtypes_test.c testmain.c ../src/icelib.c ../src/fifo.c ../src/timer.c ../src/icelibtypes.c
 MY_LDFLAGS_1 = -lcheck
 MY_CFLAGS_1 = -I../include
 
