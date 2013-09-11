@@ -375,6 +375,12 @@ int32_t ICELIB_addRemoteMediaStream(ICELIB_INSTANCE *pInstance,
                                     const char *pwd,
                                     const struct sockaddr *defaultAddr );
 
+int32_t ICELIB_setRemoteMediaStream(ICELIB_INSTANCE *pInstance,
+                                    uint32_t mediaIdx,
+                                    const char *ufrag,
+                                    const char *pwd,
+                                    const struct sockaddr *defaultAddr);
+
 int32_t ICELIB_addRemoteCandidate(ICELIB_INSTANCE *pInstance,
                                   uint32_t mediaIdx,
                                   const char *foundation,
@@ -392,6 +398,11 @@ ICELIB_updateLocalMediaStreamDefaultCandidate(ICELIB_INSTANCE *pInstance,
 
 
 int32_t ICELIB_addLocalMediaStream(ICELIB_INSTANCE *pInstance,
+                                   uint32_t userValue1,
+                                   uint32_t userValue2,
+                                   ICE_CANDIDATE_TYPE defaultCandType );
+
+int32_t ICELIB_setLocalMediaStream(ICELIB_INSTANCE *pInstance,
                                    uint32_t mediaIdx,
                                    uint32_t userValue1,
                                    uint32_t userValue2,

@@ -399,10 +399,19 @@ bool ICELIB_verifyICESupport(const ICELIB_INSTANCE *pInstance,
 {
     uint32_t i;
 
+    ICE_MEDIA_STREAM const *mediaStream;
     //Need to see if someone mangled the default address.
 
     for (i=0; i<iceRemoteMedia->numberOfICEMediaLines; i++) {
-        ICE_MEDIA_STREAM const *mediaStream = &iceRemoteMedia->mediaStream[i];
+        if ( iceRemoteMedia->mediaStream[i].numberOfCandidates == 0) {
+            ICELIB_logVaString(&pInstance->callbacks.callbackLog,
+                         ICELIB_logDebug,
+                         "Verify ICE Support detected disbled medialine, ignoring. Medialine: %i/%i\n",
+                         i, iceRemoteMedia->numberOfICEMediaLines);
+            i++;
+        }
+
+        mediaStream = &iceRemoteMedia->mediaStream[i];
 
         if (!ICELIB_veryfyICESupportOnStream(pInstance, mediaStream)) {
             ICELIB_logVaString(&pInstance->callbacks.callbackLog,
@@ -1128,7 +1137,7 @@ bool ICELIB_makeCheckList(ICELIB_CHECKLIST       *pCheckList,
             ICELIB_removChecksFromCheckList(pCheckList);
             pCheckList->checkListState=ICELIB_CHECKLIST_COMPLETED;
 
-            return false;;
+            return false;
         }
     }
 
@@ -1139,6 +1148,22 @@ bool ICELIB_makeCheckList(ICELIB_CHECKLIST       *pCheckList,
                      pLocalMediaStream,
                      pRemoteMediaStream,
                      maxPairs);
+
+    if (pLocalMediaStream->numberOfCandidates == 0 ) {
+        ICELIB_log(pCallbackLog,
+                   ICELIB_logDebug, "No Candidates. Disabled local medialine. Checklist state set to Complete\n");
+
+        pCheckList->checkListState = ICELIB_CHECKLIST_COMPLETED;
+        return false;
+    }
+
+    if (pRemoteMediaStream->numberOfCandidates == 0 ) {
+        ICELIB_log(pCallbackLog,
+                   ICELIB_logDebug, "No Candidates. Disabled remote medialine. Checklist state set to Complete\n");
+
+        pCheckList->checkListState = ICELIB_CHECKLIST_COMPLETED;
+        return false;
+    }
 
     ICELIB_computeListPairPriority(pCheckList, iceControlling);
 
@@ -3613,30 +3638,20 @@ bool ICELIB_isNominatingCriteriaMetForAllMediaStreams(ICELIB_INSTANCE *pInstance
 {
     unsigned int i;
     ICELIB_VALIDLIST        *pValidList;
-    ICELIB_CHECKLIST        *pCheckList = NULL;
-    uint32_t pathScore = 0;
 
     for (i=0; i < pInstance->numberOfMediaStreams; ++i) {
+        if( pInstance->localIceMedia.mediaStream[i].numberOfCandidates == 0 ||
+            pInstance->remoteIceMedia.mediaStream[i].numberOfCandidates == 0 ) {
+            //Disabled medialine. Ignore
+            i++;
+        }
+
         pValidList   = &pInstance->streamControllers[ i].validList;
         if (!ICELIB_isNominatingCriteriaMet(pValidList)) {
             return false;
         }
     }
-    //Do additional check that all paths for all media streams are the same;
-    pValidList = &pInstance->streamControllers[0].validList;
-    pathScore  = pValidList->nominatedPathScore;
 
-    for (i=1; i < pInstance->numberOfMediaStreams; i++) {
-        pValidList = &pInstance->streamControllers[i].validList;
-        pCheckList = &pInstance->streamControllers[i].checkList;
-
-        if (pathScore != pValidList->nominatedPathScore) {
-            ICELIB_updateValidPairReadyToNominateWeightingMediaStream(pCheckList,
-                                                                      pValidList,
-                                                                      ICELIB_getWeightTimeMultiplier(pInstance));
-            return false;
-        }
-    }
     return true;
 }
 
@@ -4054,10 +4069,12 @@ void ICELIB_updatingStates(ICELIB_INSTANCE *pInstance)
             pInstance->iceState = ICELIB_FAILED;
             ICELIB_log(&pInstance->callbacks.callbackLog, ICELIB_logInfo,
                        "ICE failed (Timeout)");
-            ConnectivityCheckComplete(pInstance->callbacks.callbackComplete.pConnectivityChecksCompleteUserData,
-                                      pInstance->localIceMedia.mediaStream[0].userValue1,
-                                      pInstance->iceControlling,
-                                      true);
+            if (ConnectivityCheckComplete != NULL) {
+                ConnectivityCheckComplete(pInstance->callbacks.callbackComplete.pConnectivityChecksCompleteUserData,
+                                          pInstance->localIceMedia.mediaStream[0].userValue1,
+                                          pInstance->iceControlling,
+                                          true);
+            }
         }
     }
 }
@@ -5222,13 +5239,12 @@ ICELIB_updateLocalMediaStreamDefaultCandidate(ICELIB_INSTANCE *pInstance,
 }
 
 
-int32_t ICELIB_addLocalMediaStream(ICELIB_INSTANCE *pInstance,
+int32_t ICELIB_setLocalMediaStream(ICELIB_INSTANCE *pInstance,
                                    uint32_t mediaIdx,
                                    uint32_t userValue1,
                                    uint32_t userValue2,
                                    ICE_CANDIDATE_TYPE defaultCandType)
 {
-
     ICE_MEDIA_STREAM *mediaStream;
 
     if (mediaIdx >= ICE_MAX_MEDIALINES) {
@@ -5241,6 +5257,8 @@ int32_t ICELIB_addLocalMediaStream(ICELIB_INSTANCE *pInstance,
 
     mediaStream = &pInstance->localIceMedia.mediaStream[mediaIdx];
 
+    memset(mediaStream, 0, sizeof(ICE_MEDIA_STREAM));
+
     mediaStream->userValue1 = userValue1;
     mediaStream->userValue2 = userValue2;
 
@@ -5249,31 +5267,48 @@ int32_t ICELIB_addLocalMediaStream(ICELIB_INSTANCE *pInstance,
 
     mediaStream->defaultCandType = defaultCandType;
 
-    //TODO: Can be possible holes in the array. Must fix that.
+    return mediaIdx;
+}
+
+int32_t ICELIB_addLocalMediaStream(ICELIB_INSTANCE *pInstance,
+                                   uint32_t userValue1,
+                                   uint32_t userValue2,
+                                   ICE_CANDIDATE_TYPE defaultCandType)
+{
+    int32_t mediaIdx = 0;
+
+    mediaIdx = ICELIB_setLocalMediaStream(pInstance,
+                                          pInstance->localIceMedia.numberOfICEMediaLines,
+                                          userValue1,
+                                          userValue2,
+                                          defaultCandType);
+
     pInstance->localIceMedia.numberOfICEMediaLines++;
 
-
-    return 1;
+    return mediaIdx;;
 }
 
 
-int32_t ICELIB_addRemoteMediaStream(ICELIB_INSTANCE *pInstance,
+int32_t ICELIB_setRemoteMediaStream(ICELIB_INSTANCE *pInstance,
+                                    uint32_t mediaIdx,
                                     const char *ufrag,
                                     const char *pwd,
                                     const struct sockaddr *defaultAddr)
 {
-    uint32_t i;
+
     ICE_MEDIA_STREAM *mediaStream;
 
-    if (pInstance->remoteIceMedia.numberOfICEMediaLines >= ICE_MAX_MEDIALINES) {
+    if (mediaIdx >= ICE_MAX_MEDIALINES) {
+
         ICELIB_log(&pInstance->callbacks.callbackLog,
-                   ICELIB_logDebug, "Failed to add remote medialine. MAX number of medialines reached\n");
+                   ICELIB_logDebug, "Failed to set remote media stream. Index larger than MAX number of medialines\n");
         return -1;
     }
 
-    mediaStream = &pInstance->remoteIceMedia.mediaStream[pInstance->remoteIceMedia.numberOfICEMediaLines];
+    mediaStream = &pInstance->remoteIceMedia.mediaStream[mediaIdx];
 
-    i = pInstance->remoteIceMedia.numberOfICEMediaLines;
+    memset(mediaStream, 0, sizeof(ICE_MEDIA_STREAM));
+
 
     if ((ufrag != NULL) && (pwd != NULL)) {
         memset(mediaStream->ufrag,0, sizeof(mediaStream->ufrag));
@@ -5287,7 +5322,8 @@ int32_t ICELIB_addRemoteMediaStream(ICELIB_INSTANCE *pInstance,
                 min(sizeof(mediaStream->passwd)-1, strlen(pwd)));
     }else{
         ICELIB_logVaString(&pInstance->callbacks.callbackLog,
-                    ICELIB_logDebug, "Failed to add remote medialine %u. No UFRAG or PASSWD\n", i);
+                    ICELIB_logDebug, "Failed to add remote medialine %u. No UFRAG or PASSWD\n",
+                           pInstance->remoteIceMedia.numberOfICEMediaLines);
         return -1;
 
     }
@@ -5302,10 +5338,33 @@ int32_t ICELIB_addRemoteMediaStream(ICELIB_INSTANCE *pInstance,
 
     }
 
+    return mediaIdx;
+}
+
+int32_t ICELIB_addRemoteMediaStream(ICELIB_INSTANCE *pInstance,
+                                    const char *ufrag,
+                                    const char *pwd,
+                                    const struct sockaddr *defaultAddr)
+{
+
+    int32_t mediaIdx = 0;
+
+    if (pInstance->remoteIceMedia.numberOfICEMediaLines >= ICE_MAX_MEDIALINES) {
+        ICELIB_log(&pInstance->callbacks.callbackLog,
+                   ICELIB_logDebug, "Failed to add remote medialine. MAX number of medialines reached\n");
+        return -1;
+    }
+
+    mediaIdx = ICELIB_setRemoteMediaStream(pInstance,
+                                           pInstance->remoteIceMedia.numberOfICEMediaLines,
+                                           ufrag,
+                                           pwd,
+                                           defaultAddr);
+
     pInstance->remoteIceMedia.numberOfICEMediaLines++;
 
 
-    return pInstance->remoteIceMedia.numberOfICEMediaLines;
+    return mediaIdx;
 }
 
 
