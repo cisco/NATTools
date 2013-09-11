@@ -408,7 +408,7 @@ bool ICELIB_verifyICESupport(const ICELIB_INSTANCE *pInstance,
                          ICELIB_logDebug,
                          "Verify ICE Support detected disbled medialine, ignoring. Medialine: %i/%i\n",
                          i, iceRemoteMedia->numberOfICEMediaLines);
-            i++;
+            continue;
         }
 
         mediaStream = &iceRemoteMedia->mediaStream[i];
@@ -3643,7 +3643,7 @@ bool ICELIB_isNominatingCriteriaMetForAllMediaStreams(ICELIB_INSTANCE *pInstance
         if( pInstance->localIceMedia.mediaStream[i].numberOfCandidates == 0 ||
             pInstance->remoteIceMedia.mediaStream[i].numberOfCandidates == 0 ) {
             //Disabled medialine. Ignore
-            i++;
+            continue;
         }
 
         pValidList   = &pInstance->streamControllers[ i].validList;

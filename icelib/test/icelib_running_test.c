@@ -454,6 +454,159 @@ START_TEST (medialines_both_inactive)
 }
 END_TEST
 
+START_TEST (medialines_remote_last_inactive)
+{
+    
+    int i;
+    
+    memset(&m_connChkCB, 0, sizeof(m_ConncheckCB));
+        
+    
+    ICELIB_setRemoteMediaStream( m_icelib, 
+                                 2, 
+                                 m0_remoteUfrag, 
+                                 m0_remotePasswd, 
+                                 NULL);        
+
+    
+    fail_unless( ICELIB_Start(m_icelib, true) );
+    fail_unless( m_icelib->streamControllers[2].checkList.numberOfPairs == 0);
+
+    //ICELIB_checkListDumpAll(m_icelib);
+    
+    for(i=0;i<300;i++){
+        //if(i==30) ICELIB_checkListDumpAll(m_icelib);
+        
+        ICELIB_Tick( m_icelib );
+        if(m_connChkCB.gotCB) {
+            //We pretend to be the perfect network. Responses arrive imediately!
+           
+            ICELIB_incomingBindingResponse(m_icelib,
+                                           200,
+                                           m_connChkCB.transactionId,
+                                           m_connChkCB.destination,
+                                           m_connChkCB.source,
+                                           m_connChkCB.source);
+            
+            memset(&m_connChkCB, 0, sizeof(m_ConncheckCB));
+        }
+    }
+        
+    //ICELIB_validListDump(&m_icelib->streamControllers[0].validList);
+    //ICELIB_validListDump(&m_icelib->streamControllers[1].validList);
+    //ICELIB_validListDump(&m_icelib->streamControllers[2].validList);
+     
+    ICELIB_checkListDumpAll(m_icelib);
+
+    fail_unless( m_icelib->iceState == ICELIB_COMPLETED );
+    
+    
+}
+END_TEST
+
+START_TEST (medialines_remote_first_inactive)
+{
+    
+    int i;
+    
+    memset(&m_connChkCB, 0, sizeof(m_ConncheckCB));
+        
+    
+    ICELIB_setRemoteMediaStream( m_icelib, 
+                                 0, 
+                                 m0_remoteUfrag, 
+                                 m0_remotePasswd, 
+                                 NULL);        
+
+    
+    fail_unless( ICELIB_Start(m_icelib, true) );
+    fail_unless( m_icelib->streamControllers[0].checkList.numberOfPairs == 0);
+
+    //ICELIB_checkListDumpAll(m_icelib);
+    
+    for(i=0;i<300;i++){
+        //if(i==30) ICELIB_checkListDumpAll(m_icelib);
+        
+        ICELIB_Tick( m_icelib );
+        if(m_connChkCB.gotCB) {
+            //We pretend to be the perfect network. Responses arrive imediately!
+           
+            ICELIB_incomingBindingResponse(m_icelib,
+                                           200,
+                                           m_connChkCB.transactionId,
+                                           m_connChkCB.destination,
+                                           m_connChkCB.source,
+                                           m_connChkCB.source);
+            
+            memset(&m_connChkCB, 0, sizeof(m_ConncheckCB));
+        }
+    }
+        
+    //ICELIB_validListDump(&m_icelib->streamControllers[0].validList);
+    //ICELIB_validListDump(&m_icelib->streamControllers[1].validList);
+    //ICELIB_validListDump(&m_icelib->streamControllers[2].validList);
+     
+    ICELIB_checkListDumpAll(m_icelib);
+
+    fail_unless( m_icelib->iceState == ICELIB_COMPLETED );
+    
+    
+}
+END_TEST
+
+
+START_TEST (medialines_both_mixed_inactive)
+{
+    
+    int i;
+    
+    memset(&m_connChkCB, 0, sizeof(m_ConncheckCB));
+        
+    ICELIB_setLocalMediaStream( m_icelib, 0, 42, 42, ICE_CAND_TYPE_HOST);    
+
+    ICELIB_setRemoteMediaStream( m_icelib, 
+                                 2, 
+                                 m0_remoteUfrag, 
+                                 m0_remotePasswd, 
+                                 NULL);        
+
+    
+    fail_unless( ICELIB_Start(m_icelib, true) );
+    fail_unless( m_icelib->streamControllers[0].checkList.numberOfPairs == 0);
+
+    //ICELIB_checkListDumpAll(m_icelib);
+    
+    for(i=0;i<300;i++){
+        //if(i==30) ICELIB_checkListDumpAll(m_icelib);
+        
+        ICELIB_Tick( m_icelib );
+        if(m_connChkCB.gotCB) {
+            //We pretend to be the perfect network. Responses arrive imediately!
+           
+            ICELIB_incomingBindingResponse(m_icelib,
+                                           200,
+                                           m_connChkCB.transactionId,
+                                           m_connChkCB.destination,
+                                           m_connChkCB.source,
+                                           m_connChkCB.source);
+            
+            memset(&m_connChkCB, 0, sizeof(m_ConncheckCB));
+        }
+    }
+        
+    //ICELIB_validListDump(&m_icelib->streamControllers[0].validList);
+    //ICELIB_validListDump(&m_icelib->streamControllers[1].validList);
+    //ICELIB_validListDump(&m_icelib->streamControllers[2].validList);
+     
+    ICELIB_checkListDumpAll(m_icelib);
+
+    fail_unless( m_icelib->iceState == ICELIB_COMPLETED );
+    
+    
+}
+END_TEST
+
+
 
 
 
@@ -468,6 +621,9 @@ Suite * icelib_running_suite (void)
       tcase_add_test (tc_medialines, medialines_local_inactive);
       tcase_add_test (tc_medialines, medialines_remote_inactive);
       tcase_add_test (tc_medialines, medialines_both_inactive);
+      tcase_add_test (tc_medialines, medialines_remote_last_inactive);
+      tcase_add_test (tc_medialines, medialines_remote_first_inactive);
+      tcase_add_test (tc_medialines, medialines_both_mixed_inactive);
       suite_add_tcase (s, tc_medialines);
   }
 
