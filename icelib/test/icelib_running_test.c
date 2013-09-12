@@ -243,7 +243,7 @@ icelib_medialines_setup (void)
 
     ICELIB_addRemoteMediaStream( m_icelib, m1_remoteUfrag, m1_remotePasswd, (struct sockaddr *)&m1_defaultAddr);        
     ICELIB_addRemoteCandidate( m_icelib, 1, "1", 1, 1, 2130706431, m1_remoteHostRtpAddr, 47938, ICE_CAND_TYPE_HOST );
-    ICELIB_addRemoteCandidate( m_icelib, 1, "1", 1, 2, 2130706430, m1_remoteHostRtcpAddr, 47939, ICE_CAND_TYPE_HOST );
+    ICELIB_addRemoteCandidate( m_icelib, 1, "1", 1, 2, 2130706430, m1_remoteHostRtcpAddr, 47339, ICE_CAND_TYPE_HOST );
     
     ICELIB_addRemoteCandidate( m_icelib, 1, "3", 1, 1, 1694498815, m1_remoteRflxRtpAddr, 38071, ICE_CAND_TYPE_SRFLX );
     ICELIB_addRemoteCandidate( m_icelib, 1, "3", 1, 2, 1694498814, m1_remoteRflxRtcpAddr, 32529, ICE_CAND_TYPE_SRFLX );
@@ -286,8 +286,11 @@ START_TEST (multiple_medialines)
 
     fail_unless( ICELIB_Start(m_icelib, true) );
     
+    fail_unless( ICELIB_isRunning( m_icelib ) );
 
-    for(i=0;i<10000;i++){ 
+    fail_if( ICELIB_isMangled( m_icelib ) );
+
+    for(i=0;i<1000;i++){ 
         ICELIB_Tick( m_icelib );
         if(m_connChkCB.gotCB) {
             //We pretend to be the perfect network. Responses arrive imediately!
@@ -303,6 +306,7 @@ START_TEST (multiple_medialines)
         }
     }
         
+    fail_unless( ICELIB_isIceComplete( m_icelib ) );
     //ICELIB_validListDump(&m_icelib->streamControllers[0].validList);
     
     fail_unless(m_icelib->iceState == ICELIB_COMPLETED);
@@ -314,6 +318,7 @@ START_TEST (medialines_local_inactive)
 {
     
     int i;
+    ICE_CANDIDATE const * activeCand;
     
     memset(&m_connChkCB, 0, sizeof(m_ConncheckCB));
         
@@ -321,6 +326,8 @@ START_TEST (medialines_local_inactive)
 
     fail_unless( ICELIB_Start(m_icelib, true) );
     fail_unless( m_icelib->streamControllers[1].checkList.numberOfPairs == 0);
+    
+    fail_unless( ICELIB_isControlling( m_icelib ) );
 
     //ICELIB_checkListDumpAll(m_icelib);
     
@@ -346,9 +353,17 @@ START_TEST (medialines_local_inactive)
     //ICELIB_validListDump(&m_icelib->streamControllers[1].validList);
     //ICELIB_validListDump(&m_icelib->streamControllers[2].validList);
      
-    
+    fail_unless( ICELIB_isIceComplete( m_icelib ) );
     fail_unless( m_icelib->iceState == ICELIB_COMPLETED );
     
+
+    activeCand = ICELIB_getActiveCandidate(m_icelib, 0, 1);
+    fail_unless( activeCand->type == ICE_CAND_TYPE_HOST );
+    fail_if( activeCand->type == ICE_CAND_TYPE_RELAY );
+    fail_if( activeCand->type == ICE_CAND_TYPE_SRFLX );
+
+    activeCand = ICELIB_getActiveCandidate(m_icelib, 0, 3);
+    fail_unless( activeCand == NULL );
     
 }
 END_TEST
@@ -395,8 +410,9 @@ START_TEST (medialines_remote_inactive)
     //ICELIB_validListDump(&m_icelib->streamControllers[1].validList);
     //ICELIB_validListDump(&m_icelib->streamControllers[2].validList);
      
-    ICELIB_checkListDumpAll(m_icelib);
+    //ICELIB_checkListDumpAll(m_icelib);
 
+    fail_unless( ICELIB_isIceComplete( m_icelib ) );
     fail_unless( m_icelib->iceState == ICELIB_COMPLETED );
     
     
@@ -446,8 +462,8 @@ START_TEST (medialines_both_inactive)
     //ICELIB_validListDump(&m_icelib->streamControllers[1].validList);
     //ICELIB_validListDump(&m_icelib->streamControllers[2].validList);
      
-    ICELIB_checkListDumpAll(m_icelib);
-
+    //ICELIB_checkListDumpAll(m_icelib);
+    fail_unless( ICELIB_isIceComplete( m_icelib ) );
     fail_unless( m_icelib->iceState == ICELIB_COMPLETED );
     
     
@@ -496,8 +512,9 @@ START_TEST (medialines_remote_last_inactive)
     //ICELIB_validListDump(&m_icelib->streamControllers[1].validList);
     //ICELIB_validListDump(&m_icelib->streamControllers[2].validList);
      
-    ICELIB_checkListDumpAll(m_icelib);
+    //ICELIB_checkListDumpAll(m_icelib);
 
+    fail_unless( ICELIB_isIceComplete( m_icelib ) );
     fail_unless( m_icelib->iceState == ICELIB_COMPLETED );
     
     
@@ -546,8 +563,8 @@ START_TEST (medialines_remote_first_inactive)
     //ICELIB_validListDump(&m_icelib->streamControllers[1].validList);
     //ICELIB_validListDump(&m_icelib->streamControllers[2].validList);
      
-    ICELIB_checkListDumpAll(m_icelib);
-
+    //ICELIB_checkListDumpAll(m_icelib);
+    fail_unless( ICELIB_isIceComplete( m_icelib ) );
     fail_unless( m_icelib->iceState == ICELIB_COMPLETED );
     
     
@@ -598,14 +615,334 @@ START_TEST (medialines_both_mixed_inactive)
     //ICELIB_validListDump(&m_icelib->streamControllers[1].validList);
     //ICELIB_validListDump(&m_icelib->streamControllers[2].validList);
      
-    ICELIB_checkListDumpAll(m_icelib);
-
+    //ICELIB_checkListDumpAll(m_icelib);
+    fail_unless( ICELIB_isIceComplete( m_icelib ) );
     fail_unless( m_icelib->iceState == ICELIB_COMPLETED );
     
     
 }
 END_TEST
 
+START_TEST (medialines_both_mixed_inactive_fail)
+{
+    
+    int i;
+    
+    memset(&m_connChkCB, 0, sizeof(m_ConncheckCB));
+        
+    ICELIB_setLocalMediaStream( m_icelib, 0, 42, 42, ICE_CAND_TYPE_HOST);    
+
+    ICELIB_setRemoteMediaStream( m_icelib, 
+                                 2, 
+                                 m0_remoteUfrag, 
+                                 m0_remotePasswd, 
+                                 NULL);        
+
+    
+    fail_unless( ICELIB_Start(m_icelib, true) );
+    fail_unless( m_icelib->streamControllers[0].checkList.numberOfPairs == 0);
+
+    //ICELIB_checkListDumpAll(m_icelib);
+    
+    for(i=0;i<300;i++){
+        //if(i==30) ICELIB_checkListDumpAll(m_icelib);
+        
+        ICELIB_Tick( m_icelib );
+    }
+        
+    //ICELIB_validListDump(&m_icelib->streamControllers[0].validList);
+    //ICELIB_validListDump(&m_icelib->streamControllers[1].validList);
+    //ICELIB_validListDump(&m_icelib->streamControllers[2].validList);
+     
+    //ICELIB_checkListDumpAll(m_icelib);
+    fail_unless( !ICELIB_isIceComplete( m_icelib ) );
+    fail_unless( m_icelib->iceState == ICELIB_FAILED );
+    
+    
+}
+END_TEST
+
+
+
+START_TEST (isRestart)
+{
+    fail_unless( ICELIB_Start(m_icelib, true) );
+
+    fail_if (ICELIB_isRestart( m_icelib, 0, "rm0Uf", "rm0Pa") );
+    fail_if (ICELIB_isRestart( m_icelib, 1, "rm1Uf", "rm1Pa") );
+    fail_if (ICELIB_isRestart( m_icelib, 2, "rm2Uf", "rm2Pa") );
+    
+
+    fail_unless (ICELIB_isRestart( m_icelib, 1, "fail", "fail") );
+    fail_unless (ICELIB_isRestart( m_icelib, 1, "rm2Uf", "rm2Pa") );
+
+    fail_unless (ICELIB_isRestart( m_icelib, 1, "rm1Uf", "rm2Pa") );
+
+    fail_unless (ICELIB_isRestart( m_icelib, 3, "fail", "fail") );
+    fail_if (ICELIB_isRestart( m_icelib, 25, "fail", "fail") );
+
+    fail_if (ICELIB_isRestart( m_icelib, 1, NULL, "fail") );
+    fail_if (ICELIB_isRestart( m_icelib, 2, "fail", NULL) );
+    fail_if (ICELIB_isRestart( m_icelib, 0, NULL, NULL) );
+
+}
+END_TEST
+
+START_TEST (controlled)
+{
+    int i;
+    char ipaddr[SOCKADDR_MAX_STRLEN];
+    char ufragPair[ICE_MAX_UFRAG_PAIR_LENGTH];
+    StunMsgId stunId;
+    //char srcAddrStr[] = "10.47.1.23:52456";
+    //char respRflxAddrStr[] = "158.38.48.10:52423";
+    
+    struct sockaddr_storage srcAddr;
+    struct sockaddr_storage dstAddr;
+
+    struct sockaddr_storage respRflxAddr;
+
+    
+    memset(&m_connChkCB, 0, sizeof(m_ConncheckCB));
+        
+    fail_unless( ICELIB_Start(m_icelib, false) );
+    
+
+    //ICELIB_checkListDumpAll(m_icelib);
+    
+    for(i=0;i<50;i++){
+        //if(i==30) ICELIB_checkListDumpAll(m_icelib);
+        
+        ICELIB_Tick( m_icelib );
+        if(m_connChkCB.gotCB) {
+            //We pretend to be the perfect network. Responses arrive imediately!
+           
+            ICELIB_incomingBindingResponse(m_icelib,
+                                           200,
+                                           m_connChkCB.transactionId,
+                                           m_connChkCB.destination,
+                                           m_connChkCB.source,
+                                           m_connChkCB.source);
+            
+            memset(&m_connChkCB, 0, sizeof(m_ConncheckCB));
+        }
+    }
+    //send some nominating messages..
+    //Medialine: 0
+    stunlib_createId(&stunId, 34, 3);
+    sockaddr_initFromString( (struct sockaddr *)&srcAddr,  m0_remoteHostRtpAddr);
+    sockaddr_initFromString( (struct sockaddr *)&dstAddr,  "192.168.2.10:3456");
+    ICELIB_getCheckListRemoteUsernamePair(ufragPair,
+                                          ICE_MAX_UFRAG_PAIR_LENGTH,
+                                          &m_icelib->streamControllers[0].checkList,
+                                          false);
+    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, 0x9151314442783293438,
+                                  true, true, false, 45678, stunId,
+                                  (struct sockaddr *)&srcAddr,
+                                  (const struct sockaddr *)&dstAddr,
+                                  false, NULL, 1);
+    ICELIB_Tick( m_icelib );
+    stunlib_createId(&stunId, 34, 3);
+    sockaddr_initFromString( (struct sockaddr *)&srcAddr,  m0_remoteHostRtcpAddr);
+    sockaddr_initFromString( (struct sockaddr *)&dstAddr,  "192.168.2.10:3457");
+    
+    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, 0x9151314442783293438,
+                                  true, true, false, 45678, stunId,
+                                  (struct sockaddr *)&srcAddr,
+                                  (const struct sockaddr *)&dstAddr,
+                                  false, NULL, 2);
+
+    ICELIB_Tick( m_icelib );
+    //Medialine: 1
+    stunlib_createId(&stunId, 34, 3);
+    sockaddr_initFromString( (struct sockaddr *)&srcAddr,  m1_remoteHostRtpAddr);
+    sockaddr_initFromString( (struct sockaddr *)&dstAddr,  "192.168.2.10:3458");
+    ICELIB_getCheckListRemoteUsernamePair(ufragPair,
+                                          ICE_MAX_UFRAG_PAIR_LENGTH,
+                                          &m_icelib->streamControllers[1].checkList,
+                                          false);
+
+    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, 0x9151314442783293438,
+                                  true, true, false, 45678, stunId,
+                                  (struct sockaddr *)&srcAddr,
+                                  (const struct sockaddr *)&dstAddr,
+                                  false, NULL, 1);
+    ICELIB_Tick( m_icelib );
+    stunlib_createId(&stunId, 34, 3);
+    sockaddr_initFromString( (struct sockaddr *)&srcAddr,  m1_remoteHostRtcpAddr);
+    sockaddr_initFromString( (struct sockaddr *)&dstAddr,  "192.168.2.10:3459");
+    
+    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, 0x9151314442783293438,
+                                  true, true, false, 45678, stunId,
+                                  (struct sockaddr *)&srcAddr,
+                                  (const struct sockaddr *)&dstAddr,
+                                  false, NULL, 2);
+        
+    //Medialine: 2
+    stunlib_createId(&stunId, 34, 3);
+    sockaddr_initFromString( (struct sockaddr *)&srcAddr,  m2_remoteHostRtpAddr);
+    sockaddr_initFromString( (struct sockaddr *)&dstAddr,  "192.168.2.10:3460");
+    ICELIB_getCheckListRemoteUsernamePair(ufragPair,
+                                          ICE_MAX_UFRAG_PAIR_LENGTH,
+                                          &m_icelib->streamControllers[2].checkList,
+                                          false);
+    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, 0x9151314442783293438,
+                                  true, true, false, 45678, stunId,
+                                  (struct sockaddr *)&srcAddr,
+                                  (const struct sockaddr *)&dstAddr,
+                                  false, NULL, 1);
+    
+    stunlib_createId(&stunId, 34, 3);
+    sockaddr_initFromString( (struct sockaddr *)&srcAddr,  m2_remoteHostRtcpAddr);
+    sockaddr_initFromString( (struct sockaddr *)&dstAddr,  "192.168.2.10:3461");
+    
+    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, 0x9151314442783293438,
+                                  true, true, false, 45678, stunId,
+                                  (struct sockaddr *)&srcAddr,
+                                  (const struct sockaddr *)&dstAddr,
+                                  false, NULL, 2);
+
+    ICELIB_Tick( m_icelib );
+    
+    fail_unless( ICELIB_isIceComplete( m_icelib ) );
+    fail_unless( m_icelib->iceState == ICELIB_COMPLETED );
+}
+END_TEST
+
+
+START_TEST (controlled_inactive)
+{
+    int i;
+    char ipaddr[SOCKADDR_MAX_STRLEN];
+    char ufragPair[ICE_MAX_UFRAG_PAIR_LENGTH];
+    StunMsgId stunId;
+    //char srcAddrStr[] = "10.47.1.23:52456";
+    //char respRflxAddrStr[] = "158.38.48.10:52423";
+    
+    struct sockaddr_storage srcAddr;
+    struct sockaddr_storage dstAddr;
+
+    struct sockaddr_storage respRflxAddr;
+
+    
+    memset(&m_connChkCB, 0, sizeof(m_ConncheckCB));
+        
+    fail_unless( ICELIB_Start(m_icelib, false) );
+    
+    ICELIB_setLocalMediaStream( m_icelib, 1, 42, 42, ICE_CAND_TYPE_HOST);
+    
+    ICELIB_setRemoteMediaStream( m_icelib, 
+                                 1, 
+                                 m0_remoteUfrag, 
+                                 m0_remotePasswd, 
+                                 NULL);        
+
+    
+    fail_unless( ICELIB_Start(m_icelib, true) );
+    fail_unless( m_icelib->streamControllers[1].checkList.numberOfPairs == 0);
+
+
+
+    //ICELIB_checkListDumpAll(m_icelib);
+    
+    for(i=0;i<50;i++){
+        //if(i==30) ICELIB_checkListDumpAll(m_icelib);
+        
+        ICELIB_Tick( m_icelib );
+        if(m_connChkCB.gotCB) {
+            //We pretend to be the perfect network. Responses arrive imediately!
+           
+            ICELIB_incomingBindingResponse(m_icelib,
+                                           200,
+                                           m_connChkCB.transactionId,
+                                           m_connChkCB.destination,
+                                           m_connChkCB.source,
+                                           m_connChkCB.source);
+            
+            memset(&m_connChkCB, 0, sizeof(m_ConncheckCB));
+        }
+    }
+    //send some nominating messages..
+    //Medialine: 0
+    stunlib_createId(&stunId, 34, 3);
+    sockaddr_initFromString( (struct sockaddr *)&srcAddr,  m0_remoteHostRtpAddr);
+    sockaddr_initFromString( (struct sockaddr *)&dstAddr,  "192.168.2.10:3456");
+    ICELIB_getCheckListRemoteUsernamePair(ufragPair,
+                                          ICE_MAX_UFRAG_PAIR_LENGTH,
+                                          &m_icelib->streamControllers[0].checkList,
+                                          false);
+    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, 0x9151314442783293438,
+                                  true, true, false, 45678, stunId,
+                                  (struct sockaddr *)&srcAddr,
+                                  (const struct sockaddr *)&dstAddr,
+                                  false, NULL, 1);
+    ICELIB_Tick( m_icelib );
+    stunlib_createId(&stunId, 34, 3);
+    sockaddr_initFromString( (struct sockaddr *)&srcAddr,  m0_remoteHostRtcpAddr);
+    sockaddr_initFromString( (struct sockaddr *)&dstAddr,  "192.168.2.10:3457");
+    
+    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, 0x9151314442783293438,
+                                  true, true, false, 45678, stunId,
+                                  (struct sockaddr *)&srcAddr,
+                                  (const struct sockaddr *)&dstAddr,
+                                  false, NULL, 2);
+
+    ICELIB_Tick( m_icelib );
+    //Medialine: 1
+    stunlib_createId(&stunId, 34, 3);
+    sockaddr_initFromString( (struct sockaddr *)&srcAddr,  m1_remoteHostRtpAddr);
+    sockaddr_initFromString( (struct sockaddr *)&dstAddr,  "192.168.2.10:3458");
+    ICELIB_getCheckListRemoteUsernamePair(ufragPair,
+                                          ICE_MAX_UFRAG_PAIR_LENGTH,
+                                          &m_icelib->streamControllers[1].checkList,
+                                          false);
+
+    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, 0x9151314442783293438,
+                                  true, true, false, 45678, stunId,
+                                  (struct sockaddr *)&srcAddr,
+                                  (const struct sockaddr *)&dstAddr,
+                                  false, NULL, 1);
+    ICELIB_Tick( m_icelib );
+    stunlib_createId(&stunId, 34, 3);
+    sockaddr_initFromString( (struct sockaddr *)&srcAddr,  m1_remoteHostRtcpAddr);
+    sockaddr_initFromString( (struct sockaddr *)&dstAddr,  "192.168.2.10:3459");
+    
+    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, 0x9151314442783293438,
+                                  true, true, false, 45678, stunId,
+                                  (struct sockaddr *)&srcAddr,
+                                  (const struct sockaddr *)&dstAddr,
+                                  false, NULL, 2);
+        
+    //Medialine: 2
+    stunlib_createId(&stunId, 34, 3);
+    sockaddr_initFromString( (struct sockaddr *)&srcAddr,  m2_remoteHostRtpAddr);
+    sockaddr_initFromString( (struct sockaddr *)&dstAddr,  "192.168.2.10:3460");
+    ICELIB_getCheckListRemoteUsernamePair(ufragPair,
+                                          ICE_MAX_UFRAG_PAIR_LENGTH,
+                                          &m_icelib->streamControllers[2].checkList,
+                                          false);
+    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, 0x9151314442783293438,
+                                  true, true, false, 45678, stunId,
+                                  (struct sockaddr *)&srcAddr,
+                                  (const struct sockaddr *)&dstAddr,
+                                  false, NULL, 1);
+    
+    stunlib_createId(&stunId, 34, 3);
+    sockaddr_initFromString( (struct sockaddr *)&srcAddr,  m2_remoteHostRtcpAddr);
+    sockaddr_initFromString( (struct sockaddr *)&dstAddr,  "192.168.2.10:3461");
+    
+    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, 0x9151314442783293438,
+                                  true, true, false, 45678, stunId,
+                                  (struct sockaddr *)&srcAddr,
+                                  (const struct sockaddr *)&dstAddr,
+                                  false, NULL, 2);
+
+    ICELIB_Tick( m_icelib );
+    
+    fail_unless( ICELIB_isIceComplete( m_icelib ) );
+    fail_unless( m_icelib->iceState == ICELIB_COMPLETED );
+}
+END_TEST
 
 
 
@@ -614,8 +951,8 @@ Suite * icelib_running_suite (void)
 {
   Suite *s = suite_create ("ICElib Running");
 
-  {/* Core test case */
-      TCase *tc_medialines = tcase_create ("Multiple Medialines");
+  {/* Inactive Medialines test case */
+      TCase *tc_medialines = tcase_create ("Inactive Medialines");
       tcase_add_checked_fixture (tc_medialines, icelib_medialines_setup, icelib_medialines_teardown);
       tcase_add_test (tc_medialines, multiple_medialines);
       tcase_add_test (tc_medialines, medialines_local_inactive);
@@ -624,9 +961,22 @@ Suite * icelib_running_suite (void)
       tcase_add_test (tc_medialines, medialines_remote_last_inactive);
       tcase_add_test (tc_medialines, medialines_remote_first_inactive);
       tcase_add_test (tc_medialines, medialines_both_mixed_inactive);
+      tcase_add_test (tc_medialines, medialines_both_mixed_inactive_fail);
       suite_add_tcase (s, tc_medialines);
   }
-
+  {/*Restart */ 
+     TCase *tc_restart = tcase_create ("Restart");
+     tcase_add_checked_fixture (tc_restart, icelib_medialines_setup, icelib_medialines_teardown);
+     tcase_add_test (tc_restart, isRestart);
+     suite_add_tcase (s, tc_restart);
+  }
+  {/*Controlled */ 
+     TCase *tc_controlled = tcase_create ("Controlled");
+     tcase_add_checked_fixture (tc_controlled, icelib_medialines_setup, icelib_medialines_teardown);
+     tcase_add_test (tc_controlled, controlled);
+     tcase_add_test (tc_controlled, controlled_inactive);
+     suite_add_tcase (s, tc_controlled);
+  }
   
   return s;
 }

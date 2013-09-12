@@ -444,8 +444,8 @@ ICE_REMOTE_CANDIDATES const *ICELIB_getActiveRemoteCandidates(const ICELIB_INSTA
                                                               int mediaLineId);
 
 bool ICELIB_isRunning(const ICELIB_INSTANCE *pInstance);
-bool ICELIB_hasIceCompleted (const ICELIB_INSTANCE *pInstance);
-bool ICELIB_Mangled (const ICELIB_INSTANCE *pInstance);
+bool ICELIB_isIceComplete(const ICELIB_INSTANCE *pInstance);
+bool ICELIB_isMangled (const ICELIB_INSTANCE *pInstance);
 
 
 const ICE_MEDIA_STREAM * ICELIB_getLocalMediaStream(const ICELIB_INSTANCE *pInstance, uint32_t mediaIdx);

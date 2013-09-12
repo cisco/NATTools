@@ -398,7 +398,7 @@ bool ICELIB_verifyICESupport(const ICELIB_INSTANCE *pInstance,
                              const ICE_MEDIA *iceRemoteMedia)
 {
     uint32_t i;
-
+    bool supported = false;
     ICE_MEDIA_STREAM const *mediaStream;
     //Need to see if someone mangled the default address.
 
@@ -408,6 +408,7 @@ bool ICELIB_verifyICESupport(const ICELIB_INSTANCE *pInstance,
                          ICELIB_logDebug,
                          "Verify ICE Support detected disbled medialine, ignoring. Medialine: %i/%i\n",
                          i, iceRemoteMedia->numberOfICEMediaLines);
+
             continue;
         }
 
@@ -420,11 +421,13 @@ bool ICELIB_verifyICESupport(const ICELIB_INSTANCE *pInstance,
                          i, iceRemoteMedia->numberOfICEMediaLines);
             return false;
         }
+        else {
+            supported = true;
+        }
     }
 
-    return true;
+    return supported;
 }
-
 
 //
 //----- Convert a random number to a segment of ice-chars
@@ -1266,21 +1269,6 @@ ICELIB_LIST_PAIR *pICELIB_findPairByState(ICELIB_CHECKLIST *pCheckList,
     return NULL;
 }
 
-bool ICELIB_isPairAddressMatchInChecklist(ICELIB_CHECKLIST *pCheckList,
-                                          ICELIB_LIST_PAIR *pair)
-{
-    unsigned int i;
-
-    for (i=0; i < pCheckList->numberOfPairs; ++i) {
-        if (ICELIB_isPairAddressMatch(&pCheckList->checkListPairs[ i], pair)) {
-
-            return true;
-        }
-    }
-
-    return false;
-}
-
 
 //
 //----- Find ordinary (non triggered) pair to schedule
@@ -1756,16 +1744,7 @@ void ICELIB_listSortVL(ICELIB_LIST_VL *pList)
 }
 
 
-void ICELIB_listConstructorVL(ICELIB_LIST_VL *pList)
-{
-    memset(pList, 0, sizeof(*pList));
-}
 
-
-unsigned int ICELIB_listCountVL(const ICELIB_LIST_VL *pList)
-{
-    return(pList->numberOfElements);
-}
 
 
 //
@@ -1796,36 +1775,12 @@ bool ICELIB_listAddBackVL(ICELIB_LIST_VL           *pList,
 }
 
 
-//
-//----- Insert into list in order of pair priority
-//
-//      Return: true  - list is full
-//              false - element added
-//
-bool ICELIB_listInsertVL(ICELIB_LIST_VL            *pList,
-                           ICELIB_VALIDLIST_ELEMENT  *pPair)
-{
-    if (ICELIB_listAddBackVL(pList, pPair)) return true;
-    ICELIB_listSortVL(pList);
-    return false;
-}
-
 
 //-----------------------------------------------------------------------------
 //
 //===== Local Functions: Valid List
 //
 
-void ICELIB_validListConstructor(ICELIB_VALIDLIST *pValidList)
-{
-    memset(pValidList, 0, sizeof(*pValidList));
-}
-
-
-unsigned int ICELIB_validListCount(const ICELIB_VALIDLIST *pValidList)
-{
-    return(ICELIB_listCountVL(&pValidList->pairs));
-}
 
 
 //
@@ -1998,7 +1953,6 @@ bool ICELIB_validListAddBack(ICELIB_VALIDLIST         *pValidList,
     return false;
 }
 
-
 //
 //----- Insert into list in order of priority
 //
@@ -2012,6 +1966,7 @@ bool ICELIB_validListInsert(ICELIB_VALIDLIST         *pValidList,
     ICELIB_listSortVL(&pValidList->pairs);
     return false;
 }
+
 
 
 //
@@ -3186,9 +3141,12 @@ void ICELIB_processSuccessRequest(ICELIB_INSTANCE         *pInstance,
                 ICELIB_log(&pInstance->callbacks.callbackLog,
                            ICELIB_logDebug,
                            "Setting Nominated");
+                
+
                 pValidElement = ICELIB_findElementInValidListByid(pCurrentValidList, pKnownPair->pairId);
                 if (pValidElement != NULL) {
                     pValidElement->nominatedPair = true;
+                    ICELIB_pairDumpLog(&pInstance->callbacks.callbackLog, ICELIB_logDebug, pValidElement);
                     if (pKnownPair->pairState == ICELIB_PAIR_INPROGRESS) {
                         ICELIB_log(&pInstance->callbacks.callbackLog,
                                    ICELIB_logDebug,
@@ -4403,7 +4361,6 @@ bool ICELIB_isRestart(ICELIB_INSTANCE *pInstance, unsigned int mediaIdx,
         return true;
     }
     return false;
-
 }
 
 
@@ -4596,12 +4553,12 @@ bool ICELIB_isRunning(const ICELIB_INSTANCE *pInstance)
     return pInstance && (pInstance->iceState == ICELIB_RUNNING);
 }
 
-bool ICELIB_hasIceCompleted (const ICELIB_INSTANCE *pInstance)
+bool ICELIB_isIceComplete(const ICELIB_INSTANCE *pInstance)
 {
     return pInstance && (pInstance->iceState == ICELIB_COMPLETED);
 }
 
-bool ICELIB_Mangled (const ICELIB_INSTANCE *pInstance)
+bool ICELIB_isMangled (const ICELIB_INSTANCE *pInstance)
 {
     return pInstance && (pInstance->iceState == ICELIB_MANGLED);
 }
@@ -4625,7 +4582,7 @@ ICE_CANDIDATE const *ICELIB_getActiveCandidate(const ICELIB_INSTANCE *pInstance,
     }
     //We should look up the default candididate for the media stream and use that
     mediaStream =  &pInstance->localIceMedia.mediaStream[mediaLineId];
-    for (i=0;!ICELIB_hasIceCompleted (pInstance) && (i < mediaStream->numberOfCandidates); i++) {
+    for (i=0;!ICELIB_isIceComplete (pInstance) && (i < mediaStream->numberOfCandidates); i++) {
         const ICE_CANDIDATE *defaultCandidate = &mediaStream->candidate[i];
         if (defaultCandidate->type == mediaStream->defaultCandType &&
            defaultCandidate->componentid == componentId) {
