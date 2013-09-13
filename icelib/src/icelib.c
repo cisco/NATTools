@@ -3344,7 +3344,7 @@ void ICELIB_processIncommingFull(ICELIB_INSTANCE  *pInstance,
               ICELIB_sendBindingResponse(pInstance,          // pInstance
                                          destination,        // source
                                          source,             // destination
-                                         destination,        // MappedAddress ????
+                                         source,        // MappedAddress
                                          userValue1,         // userValue1
                                          userValue2,         // userValue2
                                          componentId,
