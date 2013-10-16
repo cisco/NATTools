@@ -29,8 +29,7 @@ AC_CONFIG_FILES([Makefile])
 
 AC_CONFIG_SUBDIRS([sockaddrutil
                    stunlib
-                   icelib
-                   samplecode])
+                   icelib])
 
 
 
