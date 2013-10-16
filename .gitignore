@@ -36,3 +36,11 @@ natlib.info
 *.swp
 *.tar.gz
 *.cache
+
+#Codian build system
+INPUT/
+OUTPUT/
+BUILD
+DEPS
+.hg/
+.hgignore
