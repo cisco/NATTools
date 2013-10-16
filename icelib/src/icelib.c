@@ -3141,7 +3141,7 @@ void ICELIB_processSuccessRequest(ICELIB_INSTANCE         *pInstance,
                 ICELIB_log(&pInstance->callbacks.callbackLog,
                            ICELIB_logDebug,
                            "Setting Nominated");
-                
+
 
                 pValidElement = ICELIB_findElementInValidListByid(pCurrentValidList, pKnownPair->pairId);
                 if (pValidElement != NULL) {
