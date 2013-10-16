@@ -1,1 +1,1 @@
-SUBDIRS = sockaddrutil stunlib icelib samplecode
+SUBDIRS = sockaddrutil stunlib icelib

@@ -241,7 +241,7 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-SUBDIRS = sockaddrutil stunlib icelib samplecode
+SUBDIRS = sockaddrutil stunlib icelib
 all: all-recursive
 
 .SUFFIXES:
