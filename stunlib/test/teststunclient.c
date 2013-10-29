@@ -8,7 +8,6 @@
 
 Suite * stunclient_suite (void);
 
-
 #define  MAX_INSTANCES  50
 #define  TEST_THREAD_CTX 1
 

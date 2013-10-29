@@ -143,6 +143,7 @@ const char *user_longAuth =  "<U+30DE><U+30C8><U+30EA><U+30C3><U+30AF><U+30B9>\0
 const char *pass_longAuth =  "TheMatrIX";
 const char *realm_longAuth = "example.org\0";
 
+
 #define MAX_STRING_TEST 5
 
 Suite * stunlib_suite (void);
@@ -155,8 +156,6 @@ START_TEST (request_longauth_decode)
     int keyLen = 16;
     char md5[keyLen];
 
-
-
     stunlib_createMD5Key((unsigned char *)md5, user_longAuth, realm_longAuth, pass_longAuth);
 
 
@@ -166,14 +165,12 @@ START_TEST (request_longauth_decode)
                                         NULL,
                                         NULL));
 
-    
+
     fail_unless(  stunlib_checkIntegrity(respv_longauth,
                                          sizeof(respv_longauth),
                                          &stunMsg,
                                          md5,
                                          keyLen) );
-
-    
 }
 END_TEST
 
@@ -244,8 +241,6 @@ START_TEST (request_encode)
     stunMsg.controlled.value = tieBreaker;
 
 
-
-
     fail_unless( stunlib_encodeMessage(&stunMsg,
                                        stunBuf,
                                        120,
@@ -258,7 +253,6 @@ START_TEST (request_encode)
 
 }
 END_TEST
-
 
 START_TEST (response_decode)
 {
@@ -870,6 +864,83 @@ START_TEST( channel_encode_decode )
 }
 END_TEST
 
+START_TEST (malice_encode_decode)
+{
+    StunMessage stunMsg;
+
+    unsigned char stunBuf[256];
+
+    MaliceMetadata testMaliceMetadata;
+    testMaliceMetadata.hasMDAgent = true;
+    testMaliceMetadata.mdAgent.hasFlowdataReq = true;
+    testMaliceMetadata.mdAgent.flowdataReq.flowdataUP.DT = 0;
+    testMaliceMetadata.mdAgent.flowdataReq.flowdataUP.LT = 1;
+    testMaliceMetadata.mdAgent.flowdataReq.flowdataUP.JT = 2;
+    testMaliceMetadata.mdAgent.flowdataReq.flowdataUP.minBW = 333;
+    testMaliceMetadata.mdAgent.flowdataReq.flowdataUP.maxBW = 444;
+    testMaliceMetadata.mdAgent.flowdataReq.flowdataDN.DT = 3;
+    testMaliceMetadata.mdAgent.flowdataReq.flowdataDN.LT = 4;
+    testMaliceMetadata.mdAgent.flowdataReq.flowdataDN.JT = 2;
+    testMaliceMetadata.mdAgent.flowdataReq.flowdataDN.minBW = 111;
+    testMaliceMetadata.mdAgent.flowdataReq.flowdataDN.maxBW = 222;
+
+    testMaliceMetadata.hasMDRespUP = true;
+    testMaliceMetadata.mdRespUP.hasFlowdataResp = true;
+    testMaliceMetadata.mdRespUP.flowdataResp.DT = 0;
+    testMaliceMetadata.mdRespUP.flowdataResp.LT = 1;
+    testMaliceMetadata.mdRespUP.flowdataResp.JT = 2;
+    testMaliceMetadata.mdRespUP.flowdataResp.minBW = 333;
+    testMaliceMetadata.mdRespUP.flowdataResp.maxBW = 444;
+
+    testMaliceMetadata.hasMDRespDN = true;
+    testMaliceMetadata.mdRespDN.hasFlowdataResp = true;
+    testMaliceMetadata.mdRespDN.flowdataResp.DT = 3;
+    testMaliceMetadata.mdRespDN.flowdataResp.LT = 4;
+    testMaliceMetadata.mdRespDN.flowdataResp.JT = 2;
+    testMaliceMetadata.mdRespDN.flowdataResp.minBW = 111;
+    testMaliceMetadata.mdRespDN.flowdataResp.maxBW = 222;
+
+    testMaliceMetadata.hasMDPeerCheck = true;
+
+    memset(&stunMsg, 0, sizeof(StunMessage));
+    stunMsg.hasMaliceMetadata = true;
+    stunMsg.maliceMetadata = testMaliceMetadata;
+
+    stunMsg.msgHdr.msgType = STUN_MSG_BindRequestMsg;
+    memcpy(&stunMsg.msgHdr.id.octet,&idOctet,12);
+
+    fail_unless(stunlib_addUserName(&stunMsg, username, '\x20'));
+
+    fail_unless(stunlib_addSoftware(&stunMsg, software, '\x20'));
+
+    stunMsg.hasPriority = true;
+    stunMsg.priority.value = priority;
+
+    stunMsg.hasControlled = true;
+    stunMsg.controlled.value = tieBreaker;
+
+
+    fail_unless(stunlib_encodeMessage(&stunMsg,
+                                      stunBuf,
+                                      256,
+                                      (unsigned char*)password,
+                                      strlen(password),
+                                      NULL));
+
+    StunMessage afterDecode;
+
+    fail_unless(stunlib_DecodeMessage(stunBuf,
+                                      256,
+                                      &afterDecode,
+                                      NULL,
+                                      NULL));
+
+    fail_unless(afterDecode.hasMaliceMetadata);
+    fail_unless(afterDecode.maliceMetadata.hasMDRespUP);
+    fail_unless(afterDecode.maliceMetadata.mdRespUP.flowdataResp.minBW == 333);
+}
+END_TEST
+
 START_TEST (print)
 {
 
@@ -888,7 +959,6 @@ END_TEST
 Suite * stunlib_suite (void)
 {
   Suite *s = suite_create ("STUN Test Vector");
-
 
   {/* Test Vector */
 
@@ -912,6 +982,8 @@ Suite * stunlib_suite (void)
       tcase_add_test (tc_encodeDecode, xor_encode_decode);
       tcase_add_test (tc_encodeDecode, transport_encode_decode);
       tcase_add_test (tc_encodeDecode, channel_encode_decode);
+      tcase_add_test (tc_encodeDecode, malice_encode_decode);
+
       //tcase_add_test (tc_encodeDecode, request_longauth_decode);
       suite_add_tcase (s, tc_encodeDecode);
   }
