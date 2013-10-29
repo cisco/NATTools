@@ -211,7 +211,7 @@ int StunClient_startBindTransaction(STUN_CLIENT_DATA      *clientData,
                                     uint32_t               sockhandle,
                                     STUN_SENDFUNC          sendFunc,
                                     STUNCB                 stunCbFunc,
-                                    MaliceMetadata     *maliceMetadata) // nullptr if no malicedata should be sent.
+                                    MaliceMetadata        *maliceMetadata) // nullptr if no malicedata should be sent.
 {
     StunBindReqStuct m;
 
