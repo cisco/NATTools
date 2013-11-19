@@ -37,7 +37,7 @@ StunResult_T stunResult;
 
 struct sockaddr_storage stunServerAddr;
 
-STUN_CLIENT_DATA * stunInstance;
+STUN_CLIENT_DATA *stunInstance;
 #define STUN_TICK_INTERVAL_MS 50
 
 
@@ -128,7 +128,7 @@ START_TEST (HandleReq_Valid)
     char ufrag[STUN_MAX_STRING] = "testPerson";
     fail_unless (strcmp(pReq.ufrag, ufrag) == 0);
 
-    //fail_unless (stunInstance->stats.BindReqReceived == 1);
+    //fail_unless (stunInstance->stats.BindReqReceived);
     //fail_unless (stunInstance->stats.BindReqReceived_ViaRelay == 0);
     
     fromRelay = true;
@@ -161,8 +161,8 @@ START_TEST (HandleReq_InValid)
                                                           &stunMsg,
                                                           fromRelay));
 
-    fail_unless (stunInstance->stats.BindReqReceived == 0);
-    fail_unless (stunInstance->stats.BindReqReceived_ViaRelay == 0);
+    //fail_unless (stunInstance->stats.BindReqReceived == 0);
+    //fail_unless (stunInstance->stats.BindReqReceived_ViaRelay == 0);
     
     fromRelay = true;
     stunMsg.hasUsername = true;
@@ -172,8 +172,8 @@ START_TEST (HandleReq_InValid)
                                                           &stunMsg,
                                                           fromRelay));
     
-    fail_unless (stunInstance->stats.BindReqReceived == 0);
-    fail_unless (stunInstance->stats.BindReqReceived_ViaRelay == 0);
+    //fail_unless (stunInstance->stats.BindReqReceived == 0);
+    //fail_unless (stunInstance->stats.BindReqReceived_ViaRelay == 0);
 }
 END_TEST
 
@@ -215,10 +215,6 @@ START_TEST (SendResp_Valid)
 
     maliceMetadata.hasMDPeerCheck = true;
 
-    fail_unless (sockaddr_initFromString((struct sockaddr*)&stunServerAddr, "193.200.93.152:3478"));
-
-    fail_unless (sockaddr_isSet(&stunServerAddr));
-
     fail_unless (StunServer_SendConnectivityBindingResp(stunInstance,
                                                         0, // sockhandle
                                                         LastTransId,
@@ -259,7 +255,6 @@ Suite * stunserver_suite (void)
 
   }
 
-
   {/* send response */
 
       TCase *ss_sendResp = tcase_create ("Stunserver send response");
@@ -272,6 +267,20 @@ Suite * stunserver_suite (void)
       suite_add_tcase (s, ss_sendResp);
 
   }
+
+  {/* send response IPv6*/
+
+      TCase *ss_sendRespIPv6 = tcase_create ("Stunserver send response IPv6");
+
+      tcase_add_checked_fixture (ss_sendRespIPv6, setupIPv6, teardownIPv6);
+
+      tcase_add_test (ss_sendRespIPv6, SendResp_Valid);
+      tcase_add_test (ss_sendRespIPv6, SendResp_InValid);
+
+      suite_add_tcase (s, ss_sendRespIPv6);
+
+  }
+
   
   return s;
 }

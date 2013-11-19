@@ -23,14 +23,14 @@ typedef  struct
 AppCtx_T;
 
 static AppCtx_T           AppCtx[MAX_INSTANCES];
-static StunCallBackData_T StunCbData[MAX_INSTANCES];
-
 static AppCtx_T CurrAppCtx;
 
-//static int            TestNo;
-static uint32_t       StunDefaultTimeoutList[STUNCLIENT_MAX_RETRANSMITS] = {100, 0};
-static StunMsgId      LastTransId;
+static uint32_t StunDefaultTimeoutList[STUNCLIENT_MAX_RETRANSMITS] = {100, 0};
+static StunCallBackData_T StunCbData[MAX_INSTANCES];
+static StunMsgId LastTransId;
 static struct sockaddr_storage LastAddress;
+static uint8_t buf [STUN_MAX_PACKET_SIZE];
+
 static bool runningAsIPv6;
 
 const uint8_t test_addr_ipv6[16] = {0x20, 0x1, 0x4, 0x70, 0xdc, 0x88, 0x1, 0x22, 0x21, 0x26, 0x18, 0xff, 0xfe, 0x92, 0x6d, 0x53};
@@ -54,7 +54,7 @@ static void StunStatusCallBack(void *ctx, StunCallBackData_T *retData)
 }
 
 /* Callback for management info  */
-static void  PrintStunInfo(StunInfoCategory_T category, char *InfoStr)
+static void  PrintStunInfo(void *userData, StunInfoCategory_T category, char *InfoStr)
 {
     //fprintf(stderr, "%s\n", ErrStr);
 }
@@ -82,8 +82,6 @@ static int SendRawStun(int sockfd,
 
 static int StartBindTransaction(int n)
 {
-    //struct sockaddr_storage addr;
-
     n = 0; // hardcoded for now...  TODO: fixme
 
     CurrAppCtx.a =  AppCtx[n].a = 100+n;
@@ -130,24 +128,28 @@ static int StartBindTransaction(int n)
                                            false,
                                            "pem",
                                            "pem",
-                                           0, // uint32_t 1845494271 (priority)
+                                           0,           // uint32_t 1845494271 (priority)
                                            false,
                                            false,
-                                           0, // uint64_t 0x932FF9B151263B36LL (tieBreaker)
+                                           0,           // uint64_t 0x932FF9B151263B36LL (tieBreaker)
                                            LastTransId,
-                                           0,                       /* socket */
-                                           SendRawStun,             /* send func */
+                                           0,           /* socket */
+                                           SendRawStun, /* send func */
                                            StunStatusCallBack,
                                            &maliceMetadata);
 }
 
-static void SimBindSuccessResp(int ctx, bool IPv6)
+static void SimBindSuccessResp(int ctx, bool IPv6, bool success)
 {
     StunMessage m;
     memset(&m, 0, sizeof(m));
     memcpy(&m.msgHdr.id, &LastTransId, STUN_MSG_ID_SIZE);  
     memcpy(&m.msgHdr.cookie, StunCookie, sizeof(m.msgHdr.cookie));
-    m.msgHdr.msgType = STUN_MSG_BindResponseMsg;
+    if (success) 
+        m.msgHdr.msgType = STUN_MSG_BindResponseMsg;
+    else
+        m.msgHdr.msgType = STUN_MSG_BindErrorResponseMsg;
+
     m.hasXorMappedAddress = true;
 
     if(IPv6){
@@ -162,7 +164,6 @@ static void SimBindSuccessResp(int ctx, bool IPv6)
     StunClient_HandleIncResp(stunInstance, &m, NULL);
 
 }
-
 
 static void setup (void)
 {
@@ -230,61 +231,114 @@ END_TEST
 
 START_TEST (WaitBindRespNotAut_BindSuccess)
 {
-    printf("IPv6: %s\n", runningAsIPv6? "True" : "False");
+    //printf("IPv6: %s\n", runningAsIPv6? "True" : "False");
     int ctx;
     ctx = StartBindTransaction(0);
     StunClient_HandleTick(stunInstance, STUN_TICK_INTERVAL_MS);
 
-    SimBindSuccessResp(ctx, runningAsIPv6);
+    SimBindSuccessResp(ctx, runningAsIPv6, true);
     fail_unless (stunResult == StunResult_BindOk);
 
 }
 END_TEST
 
+START_TEST (WaitBindRespNotAut_BindError)
+{
+    //printf("IPv6: %s\n", runningAsIPv6? "True" : "False");
+    int ctx;
+    ctx = StartBindTransaction(0);
+    StunClient_HandleTick(stunInstance, STUN_TICK_INTERVAL_MS);
+
+    SimBindSuccessResp(ctx, runningAsIPv6, false);
+    fail_unless (stunResult == StunResult_BindFail);
+
+}
+END_TEST
+
+START_TEST (CancelTrans_BindResp)
+{
+    int ctx;
+    ctx = StartBindTransaction(0);
+    StunClient_HandleTick(stunInstance, STUN_TICK_INTERVAL_MS);
+    
+    fail_unless (StunClient_cancelBindingTransaction(stunInstance,
+                                                     LastTransId) == ctx);
+
+    StunClient_HandleTick(stunInstance, STUN_TICK_INTERVAL_MS);
+    SimBindSuccessResp(ctx, runningAsIPv6, true);
+}
+END_TEST
+
+START_TEST (CancelTrans_BindErrorResp)
+{
+    int ctx;
+    ctx = StartBindTransaction(0);
+    StunClient_HandleTick(stunInstance, STUN_TICK_INTERVAL_MS);
+    
+    fail_unless (StunClient_cancelBindingTransaction(stunInstance,
+                                                     LastTransId) == ctx);
+
+    StunClient_HandleTick(stunInstance, STUN_TICK_INTERVAL_MS);
+    SimBindSuccessResp(ctx, runningAsIPv6, false);
+}
+END_TEST
+
+START_TEST (DumpStats)
+{
+    StunClient_dumpStats(stunInstance, PrintStunInfo, NULL);
+}
+END_TEST
 
 Suite * stunclient_suite (void)
 {
-  Suite *s = suite_create ("Stunclient");
+    Suite *s = suite_create ("Stunclient");
 
 
+    {/* bind */
 
+        TCase *sc_allocate = tcase_create ("Stunclient Bind");
 
-  {/* bind */
-
-      TCase *sc_allocate = tcase_create ("Stunclient Bind");
-
-      tcase_add_checked_fixture (sc_allocate, setup, teardown);
+        tcase_add_checked_fixture (sc_allocate, setup, teardown);
       
-      tcase_add_test (sc_allocate, WaitBindRespNotAut_Timeout);
-      tcase_add_test (sc_allocate, WaitBindRespNotAut_BindSuccess);
+        tcase_add_test (sc_allocate, WaitBindRespNotAut_Timeout);
+        tcase_add_test (sc_allocate, WaitBindRespNotAut_BindSuccess);
+        tcase_add_test (sc_allocate, WaitBindRespNotAut_BindError);
+        tcase_add_test (sc_allocate, CancelTrans_BindResp);
+        tcase_add_test (sc_allocate, CancelTrans_BindErrorResp);
+
+        suite_add_tcase (s, sc_allocate);
+
+    }
+
+
+    {/* bind IPv6 */
+
+        TCase *sc_allocateIPv6 = tcase_create ("Stunclient Bind IPv6");
+
+        tcase_add_checked_fixture (sc_allocateIPv6, setupIPv6, teardownIPv6);
+
+        tcase_add_test (sc_allocateIPv6, WaitBindRespNotAut_Timeout);
+        tcase_add_test (sc_allocateIPv6, WaitBindRespNotAut_BindSuccess);
+        tcase_add_test (sc_allocateIPv6, WaitBindRespNotAut_BindError);
+        tcase_add_test (sc_allocateIPv6, CancelTrans_BindResp);
+        tcase_add_test (sc_allocateIPv6, CancelTrans_BindErrorResp);
       
-      suite_add_tcase (s, sc_allocate);
+        suite_add_tcase (s, sc_allocateIPv6);
 
-  }
+    }
 
+    {/* Misc */
 
-  {/* bind IPv6 */
-
-      TCase *sc_allocateIPv6 = tcase_create ("Stunclient Bind IPv6");
-
-      tcase_add_checked_fixture (sc_allocateIPv6, setupIPv6, teardownIPv6);
-
-      tcase_add_test (sc_allocateIPv6, WaitBindRespNotAut_Timeout);
-      tcase_add_test (sc_allocateIPv6, WaitBindRespNotAut_BindSuccess);
-
-      suite_add_tcase (s, sc_allocateIPv6);
-
-  }
-
-  {/* Misc */
-
-      TCase *sc_misc = tcase_create ("Stun Misc");
+        TCase *sc_misc = tcase_create ("Stun Misc");
       
-      //tcase_add_test ( sc_misc, SendIndication );
+        tcase_add_checked_fixture (sc_misc, setup, teardown);
+      
+        //tcase_add_test ( sc_misc, SendIndication );
+        tcase_add_test (sc_misc, DumpStats);
 
-      suite_add_tcase (s, sc_misc);
+        suite_add_tcase (s, sc_misc);
 
-  }
+    }
   
-  return s;
+    return s;
 }
