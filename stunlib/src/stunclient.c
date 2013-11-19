@@ -396,7 +396,7 @@ static bool SendConnectivityBindResponse(STUN_CLIENT_DATA      *clientData,
 
 
 /********* Server handling of STUN BIND RESP *************/
-void StunServer_SendConnectivityBindingResp(STUN_CLIENT_DATA      *clientData,
+bool StunServer_SendConnectivityBindingResp(STUN_CLIENT_DATA      *clientData,
                                             int32_t                globalSocketId,
                                             StunMsgId              transactionId,
                                             const char            *password,
@@ -418,15 +418,17 @@ void StunServer_SendConnectivityBindingResp(STUN_CLIENT_DATA      *clientData,
                                       maliceMetadata))
     {
         /* encode and send */
-        SendConnectivityBindResponse(clientData,
-                                     globalSocketId,
-                                     &stunRespMsg,
-                                     password,
-                                     dstAddr,
-                                     userData,
-                                     sendFunc,
-                                     useRelay);
+        if (SendConnectivityBindResponse(clientData,
+                                         globalSocketId,
+                                         &stunRespMsg,
+                                         password,
+                                         dstAddr,
+                                         userData,
+                                         sendFunc,
+                                         useRelay))
+            return true;
     }
+    return false;
 }
 
 

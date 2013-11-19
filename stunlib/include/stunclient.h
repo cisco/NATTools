@@ -198,7 +198,7 @@ int StunClient_cancelBindingTransaction(STUN_CLIENT_DATA *clientData, StunMsgId 
 
 
 /********* Server handling: send STUN BIND RESP *************/
-void StunServer_SendConnectivityBindingResp(STUN_CLIENT_DATA      *clientData,
+bool StunServer_SendConnectivityBindingResp(STUN_CLIENT_DATA      *clientData,
                                             int32_t                globalSocketId,
                                             StunMsgId              transactionId,
                                             const char            *password,
