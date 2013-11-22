@@ -155,8 +155,7 @@ static void SimAllocResp(int ctx, bool relay, bool xorMappedAddr, bool lifetime,
 }
 
 
-
-static void  Sim_ChanBindResp(int ctx, uint16_t msgType, uint32_t errClass, uint32_t errNumber)
+static void Sim_ChanBindOrPermissionResp(int ctx, uint16_t msgType, uint32_t errClass, uint32_t errNumber)
 {
     StunMessage m;
     memset(&m, 0, sizeof(m));
@@ -164,7 +163,8 @@ static void  Sim_ChanBindResp(int ctx, uint16_t msgType, uint32_t errClass, uint
     memcpy(&m.msgHdr.cookie, StunCookie, sizeof(m.msgHdr.cookie));
     m.msgHdr.msgType = msgType;
 
-    if (msgType == STUN_MSG_ChannelBindErrorResponseMsg)
+    if ((msgType == STUN_MSG_ChannelBindErrorResponseMsg)
+    || (msgType == STUN_MSG_CreatePermissionErrorResponseMsg))
     {
         m.hasErrorCode          = true;
         m.errorCode.errorClass  = errClass;
@@ -643,7 +643,7 @@ START_TEST (Allocated_ChanBindReqOk)
     ctx = GotoAllocatedState(12);
     TurnClient_StartChannelBindReq(pInst, 0x4001, (struct sockaddr *)&peerIp);
     TurnClient_HandleTick(pInst);
-    Sim_ChanBindResp(ctx, STUN_MSG_ChannelBindResponseMsg, 0, 0);
+    Sim_ChanBindOrPermissionResp(ctx, STUN_MSG_ChannelBindResponseMsg, 0, 0);
     TurnClient_HandleTick(pInst);
     fail_unless (turnResult == TurnResult_ChanBindOk);
 
@@ -663,7 +663,7 @@ START_TEST (Allocated_ChanBindErr)
     ctx = GotoAllocatedState(12);
     TurnClient_StartChannelBindReq(pInst, 0x4001, (struct sockaddr *)&peerIp);
     TurnClient_HandleTick(pInst);
-    Sim_ChanBindResp(ctx, STUN_MSG_ChannelBindErrorResponseMsg, 4, 4);
+    Sim_ChanBindOrPermissionResp(ctx, STUN_MSG_ChannelBindErrorResponseMsg, 4, 4);
     TurnClient_HandleTick(pInst);
     fail_unless (turnResult == TurnResult_ChanBindFail);
 
@@ -672,6 +672,121 @@ START_TEST (Allocated_ChanBindErr)
     fail_unless (turnResult == TurnResult_RelayReleaseComplete);
 }
 END_TEST
+
+START_TEST (Allocated_CreatePermissionReqOk)
+{
+    struct sockaddr_storage peerIp[6];
+    struct sockaddr_storage *p_peerIp[6];
+    int ctx;
+    uint32_t i;
+
+    for (i=0; i < sizeof(peerIp)/sizeof(peerIp[0]); i++)
+    {
+        sockaddr_initFromString((struct sockaddr *)&peerIp[i],"192.168.5.22:1234");
+        p_peerIp[i] = &peerIp[i];
+    }
+
+    ctx = GotoAllocatedState(12);
+    TurnClient_StartCreatePermissionReq(pInst, sizeof(peerIp)/sizeof(peerIp[0]), (const struct sockaddr**)p_peerIp);
+    TurnClient_HandleTick(pInst);
+    Sim_ChanBindOrPermissionResp(ctx, STUN_MSG_CreatePermissionResponseMsg, 0, 0);
+    TurnClient_HandleTick(pInst);
+    fail_unless (turnResult == TurnResult_CreatePermissionOk);
+    TurnClient_Deallocate(pInst);
+    Sim_RefreshResp(ctx);
+    fail_unless (turnResult == TurnResult_RelayReleaseComplete);
+}
+END_TEST
+
+START_TEST (Allocated_CreatePermissionErr)
+{
+    struct sockaddr_storage peerIp[3];
+    struct sockaddr_storage *p_peerIp[3];
+    int ctx;
+    uint32_t i;
+
+    for (i=0; i < sizeof(peerIp)/sizeof(peerIp[0]); i++)
+    {
+        sockaddr_initFromString((struct sockaddr *)&peerIp[i],"192.168.5.22:1234");
+        p_peerIp[i] = &peerIp[i];
+    }
+
+    ctx = GotoAllocatedState(12);
+    TurnClient_StartCreatePermissionReq(pInst, sizeof(peerIp)/sizeof(peerIp[0]), (const struct sockaddr**)p_peerIp);
+    TurnClient_HandleTick(pInst);
+    Sim_ChanBindOrPermissionResp(ctx, STUN_MSG_CreatePermissionErrorResponseMsg, 4, 4);
+    TurnClient_HandleTick(pInst);
+    fail_unless (turnResult == TurnResult_PermissionRefreshFail);
+    TurnClient_Deallocate(pInst);
+    Sim_RefreshResp(ctx);
+    fail_unless (turnResult == TurnResult_RelayReleaseComplete);
+}
+END_TEST
+
+START_TEST (Allocated_CreatePermissionReqAndChannelBind)
+{
+    struct sockaddr_storage peerIp[6];
+    struct sockaddr_storage *p_peerIp[6];
+    int ctx;
+    uint32_t i;
+
+    for (i=0; i < sizeof(peerIp)/sizeof(peerIp[0]); i++)
+    {
+        sockaddr_initFromString((struct sockaddr *)&peerIp[i],"192.168.5.22:1234");
+        p_peerIp[i] = &peerIp[i];
+    }
+
+    ctx = GotoAllocatedState(12);
+    TurnClient_StartCreatePermissionReq(pInst, sizeof(peerIp)/sizeof(peerIp[0]), (const struct sockaddr**)p_peerIp);
+    TurnClient_StartChannelBindReq(pInst, 0x4001, (struct sockaddr *)&peerIp[0]);
+
+    TurnClient_HandleTick(pInst);
+    Sim_ChanBindOrPermissionResp(ctx, STUN_MSG_CreatePermissionResponseMsg, 0, 0);
+    TurnClient_HandleTick(pInst);
+    fail_unless (turnResult == TurnResult_CreatePermissionOk);
+
+    Sim_ChanBindOrPermissionResp(ctx, STUN_MSG_ChannelBindResponseMsg, 0, 0);
+    TurnClient_HandleTick(pInst);
+    fail_unless (turnResult == TurnResult_ChanBindOk);
+
+    TurnClient_Deallocate(pInst);
+    Sim_RefreshResp(ctx);
+    fail_unless (turnResult == TurnResult_RelayReleaseComplete);
+}
+END_TEST
+
+START_TEST (Allocated_CreatePermissionErrorAndChannelBind)
+{
+    struct sockaddr_storage peerIp[6];
+    struct sockaddr_storage *p_peerIp[6];
+    int ctx;
+    uint32_t i;
+
+    for (i=0; i < sizeof(peerIp)/sizeof(peerIp[0]); i++)
+    {
+        sockaddr_initFromString((struct sockaddr *)&peerIp[i],"192.168.5.22:1234");
+        p_peerIp[i] = &peerIp[i];
+    }
+
+    ctx = GotoAllocatedState(12);
+    TurnClient_StartCreatePermissionReq(pInst, sizeof(peerIp)/sizeof(peerIp[0]), (const struct sockaddr**)p_peerIp);
+    TurnClient_StartChannelBindReq(pInst, 0x4001, (struct sockaddr *)&peerIp[0]);
+
+    TurnClient_HandleTick(pInst);
+    Sim_ChanBindOrPermissionResp(ctx, STUN_MSG_CreatePermissionErrorResponseMsg, 4, 4);
+    TurnClient_HandleTick(pInst);
+    fail_unless (turnResult == TurnResult_PermissionRefreshFail);
+
+    Sim_ChanBindOrPermissionResp(ctx, STUN_MSG_ChannelBindResponseMsg, 0, 0);
+    TurnClient_HandleTick(pInst);
+    fail_unless (turnResult == TurnResult_ChanBindOk);
+
+    TurnClient_Deallocate(pInst);
+    Sim_RefreshResp(ctx);
+    fail_unless (turnResult == TurnResult_RelayReleaseComplete);
+}
+END_TEST
+
 
 #if 0
 START_TEST( SendIndication )
@@ -870,6 +985,15 @@ Suite * turnclient_suite (void)
       tcase_add_test (tc_allocate, Allocated_StaleNonce);
       tcase_add_test (tc_allocate, Allocated_ChanBindReqOk); 
       tcase_add_test (tc_allocate, Allocated_ChanBindErr);
+      tcase_add_test (tc_allocate, Allocated_CreatePermissionReqOk);
+      tcase_add_test (tc_allocate, Allocated_CreatePermissionErr);
+      tcase_add_test (tc_allocate, Allocated_CreatePermissionReqAndChannelBind);
+      tcase_add_test (tc_allocate, Allocated_CreatePermissionErrorAndChannelBind);
+
+
+      
+      
+      
       
       suite_add_tcase (s, tc_allocate);
 
@@ -900,6 +1024,13 @@ Suite * turnclient_suite (void)
       tcase_add_test (tc_allocateIPv6, Allocated_StaleNonce);
       tcase_add_test (tc_allocateIPv6, Allocated_ChanBindReqOk); 
       tcase_add_test (tc_allocateIPv6, Allocated_ChanBindErr);
+      tcase_add_test (tc_allocateIPv6, Allocated_CreatePermissionReqOk);
+      tcase_add_test (tc_allocateIPv6, Allocated_CreatePermissionErr);
+      tcase_add_test (tc_allocateIPv6, Allocated_CreatePermissionReqAndChannelBind);
+      tcase_add_test (tc_allocateIPv6, Allocated_CreatePermissionErrorAndChannelBind);
+
+      
+
       suite_add_tcase (s, tc_allocateIPv6);
 
   }

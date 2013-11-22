@@ -132,7 +132,7 @@ struct TURN_INSTANCE_DATA
     StunMsgId              PrevRespTransId;                      /* transaction id of last received */
     uint8_t                stunReqMsgBuf[STUN_MAX_PACKET_SIZE];  /* encoded STUN request    */
     int                    stunReqMsgBufLen;                     /* of encoded STUN request */
-
+    bool                   pendingChannelBind;
     STUN_USER_CREDENTIALS userCredentials;
     bool authenticated;
     bool permissionsInstalled;

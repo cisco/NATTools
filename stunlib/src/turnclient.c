@@ -115,6 +115,7 @@ static void  TurnClientFsm(TURN_INSTANCE_DATA *pInst,
 static void  SetNextState(TURN_INSTANCE_DATA *pInst,  TURN_STATE NextState);
 static void  TurnPrint(TURN_INSTANCE_DATA *pInst, TurnInfoCategory_T category, const char *fmt, ...);
 static bool  TimerHasExpired(TURN_INSTANCE_DATA *pInst, TURN_SIGNAL sig);
+static void StartFirstRetransmitTimer(TURN_INSTANCE_DATA *pInst);
 
 
 /* forward declarations of state functions */
@@ -763,6 +764,11 @@ static void StoreChannelBindReq(TURN_INSTANCE_DATA *pInst, TurnChannelBindInfo_T
     memcpy(&pInst->channelBindInfo, pMsgIn, sizeof(pInst->channelBindInfo));
 }
 
+static bool PendingChannelBindReq(TURN_INSTANCE_DATA *pInst)
+{
+    return  pInst->pendingChannelBind;
+}
+
 static void StoreCreatePermReq(TURN_INSTANCE_DATA *pInst, TurnCreatePermissionInfo_T *pMsgIn)
 {
     memcpy(&pInst->createPermInfo, pMsgIn, sizeof(pInst->createPermInfo));
@@ -1327,6 +1333,37 @@ static bool  SendTurnReq(TURN_INSTANCE_DATA *pInst, StunMessage  *stunReqMsg)
     StoreReqTransId(pInst, stunReqMsg);
 
     return true;
+}
+
+static void SendPendingChannelBindReq(TURN_INSTANCE_DATA *pInst)
+{
+    StunMessage  stunReqMsg;
+    char addrStr[SOCKADDR_MAX_STRLEN];
+
+    TurnPrint(pInst,
+              TurnInfoCategory_Info,
+              "<TURNCLIENT:%d> ChannelBindReq (buffered) chan: %d Peer %s",
+              pInst->id,
+              pInst->channelBindInfo.channelNumber,
+              sockaddr_toString((struct sockaddr *)&pInst->channelBindInfo.peerTrnspAddr,
+                                    addrStr,
+                                    SOCKADDR_MAX_STRLEN,
+                                    true));
+
+    BuildChannelBindReq(pInst, &stunReqMsg);
+    SendTurnReq(pInst, &stunReqMsg);
+    StartFirstRetransmitTimer(pInst);
+}
+
+static bool HandlePendingChannelBindReq(TURN_INSTANCE_DATA *pInst)
+{
+    if (PendingChannelBindReq(pInst))
+    {
+        SendPendingChannelBindReq(pInst);
+        pInst->pendingChannelBind = false;
+        return true;
+    }
+    return false;
 }
 
 static void RetransmitLastReq(TURN_INSTANCE_DATA *pInst)
@@ -2050,16 +2087,17 @@ static void  TurnState_WaitCreatePermResp(TURN_INSTANCE_DATA *pInst,
             StopTimer(pInst,   TURN_SIGNAL_TimerRetransmit);
 
             StartCreatePermissionRefreshTimer(pInst);
-            SetNextState(pInst,TURN_STATE_Allocated);
 
             /* only do the callback on initial success, and not for every refresh  */
             if (!pInst->permissionsInstalled)
             {
                 pInst->permissionsInstalled = true;
+                SetNextState(pInst, HandlePendingChannelBindReq(pInst) ? TURN_STATE_WaitChanBindResp : TURN_STATE_Allocated);
                 CallBack(pInst, TurnResult_CreatePermissionOk);
             }
         }
         break;
+
 
         case TURN_SIGNAL_CreatePermissionRespError:
         {
@@ -2082,12 +2120,11 @@ static void  TurnState_WaitCreatePermResp(TURN_INSTANCE_DATA *pInst,
             else
             {
                 TurnPrint(pInst, TurnInfoCategory_Error, "<TURNCLIENT:%d> WaitCreatePermResp got ErrorCode %d",pInst->id, GetErrCode((StunMessage*)payload));
-                SetNextState(pInst,TURN_STATE_Allocated);
+                SetNextState(pInst, HandlePendingChannelBindReq(pInst) ? TURN_STATE_WaitChanBindResp : TURN_STATE_Allocated);
                 CallBack(pInst, TurnResult_PermissionRefreshFail);
             }
         }
         break;
-
 
 
         case TURN_SIGNAL_TimerRetransmit:
@@ -2107,6 +2144,24 @@ static void  TurnState_WaitCreatePermResp(TURN_INSTANCE_DATA *pInst,
         {
             /* just delay it til later, we're busy */
             StartTimer(pInst, TURN_SIGNAL_TimerRefreshChannel, 2*1000);
+        }
+        break;
+
+        case TURN_SIGNAL_ChannelBindReq:
+        {
+            TurnChannelBindInfo_T *pMsgIn = (TurnChannelBindInfo_T *)payload;
+            char addrStr[SOCKADDR_MAX_STRLEN];
+            StoreChannelBindReq(pInst, pMsgIn);
+            pInst->pendingChannelBind = true;
+            TurnPrint(pInst,
+                      TurnInfoCategory_Info,
+                      "<TURNCLIENT:%d> Buffering ChannelBindReq chan: %d Peer %s",
+                      pInst->id,
+                      pMsgIn->channelNumber,
+                      sockaddr_toString((struct sockaddr *)&pMsgIn->peerTrnspAddr,
+                                            addrStr,
+                                            SOCKADDR_MAX_STRLEN,
+                                            true));
         }
         break;
 
