@@ -1,5 +1,5 @@
 /*
-** talker.c -- a datagram "client" demo
+** stunclient.c A simple STUN demo
 */
 
 #include <signal.h>
@@ -19,6 +19,8 @@
 #include <stunlib.h>
 #include <stunclient.h>
 #include <stun_intern.h>
+#include "utils.h"
+
 
 #define SERVERPORT "4950"    // the port users will be connecting to
 #define USERNAME "evtj:h6vY"
@@ -28,11 +30,6 @@
 
 int sockfd;
 
-void sendRawStun(int sockHandle,
-                uint8_t *buf,
-                int bufLen,
-                struct sockaddr *dstAddr,
-                bool useRelay);
 
 void StunStatusCallBack(void *userCtx, StunCallBackData_T *stunCbData)
 {
@@ -158,11 +155,11 @@ int main(int argc, char *argv[])
     sockfd = createSocket(argv[1], SERVERPORT, 0, servinfo, &p);
     signal(SIGINT, teardown);
 
-    freeaddrinfo(servinfo);
+    //freeaddrinfo(servinfo);
 
     StunClient_Alloc(&clientData);
     
-    pthread_create(&stunTickThread, NULL, tickStun, clientData);
+    pthread_create(&stunTickThread, NULL, (void *)tickStun, clientData);
 
     if (getsockname(sockfd, &my_addr, &addrLen) == -1) {
         perror("getsockname");
@@ -191,7 +188,7 @@ int main(int argc, char *argv[])
             if( stunlib_checkIntegrity(buf,
                                        numbytes,
                                        &stunResponse,
-                                       PASSWORD,
+                                       (unsigned char*)PASSWORD,
                                        sizeof(PASSWORD)) ) {
                 printf("Integrity Check OK\n");
 

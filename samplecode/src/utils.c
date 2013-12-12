@@ -3,6 +3,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #define MAXBUFLEN 500 
 
@@ -47,7 +49,7 @@ int createSocket(char host[], char port[], int ai_flags, struct addrinfo *servin
 }
 
 
-void sendRawStun(int sockHandle,
+int sendRawStun(int sockHandle,
                 uint8_t *buf,
                 int bufLen,
                 struct sockaddr *dstAddr,

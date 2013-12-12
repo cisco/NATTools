@@ -22,6 +22,7 @@
 
 #include <turnclient.h>
 #include <sockaddr_util.h>
+#include "utils.h"
 
 #define SERVERPORT "3478"    // the port users will be connecting to
 #define MAXBUFLEN 500
