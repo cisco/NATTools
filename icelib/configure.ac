@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.61])
-AC_INIT([icelib], [0.1], [palmarti@cisco.com])
+AC_INIT([icelib], [0.2], [palmarti@cisco.com])
 AC_CONFIG_SRCDIR([src/icelib.c])
 AC_CONFIG_HEADERS([config.h])
 

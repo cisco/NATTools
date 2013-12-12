@@ -1,6 +1,5 @@
+AUTOMAKE_OPTIONS = subdir-objects
 if CHECK
-
-
 
 TESTS = check_sockaddrutil
 

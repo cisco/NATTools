@@ -1,4 +1,4 @@
-
+AUTOMAKE_OPTIONS = subdir-objects
 if CHECK
   MY_CFLAGS_1 = -I../include	
   MY_LDFLAGS_1 = -lcheck
