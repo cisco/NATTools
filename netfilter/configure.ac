@@ -2,14 +2,14 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.61])
-AC_INIT([samplecode], [0.1], [palmarti@cisco.com])
-AC_CONFIG_SRCDIR([src/stunclient.c])
+AC_INIT([stun_intercept], [0.1], [palmarti@cisco.com])
+AC_CONFIG_SRCDIR([src/malicenode.cc])
 AC_CONFIG_HEADERS([config.h])
 
-AC_CONFIG_AUX_DIR([build-aux])
+#AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([foreign -Wall -Werror])
-LT_INIT
+#LT_INIT
 
 # Checks for programs.
 AC_PROG_CC
@@ -18,7 +18,7 @@ AC_PROG_CXX
 
 
 # Checks for libraries.
-AC_CHECK_LIB([ssl], [SSL_library_init], [], [AC_MSG_FAILURE([could not find ssl])])
+#AC_CHECK_LIB([ssl], [SSL_library_init], [], [AC_MSG_FAILURE([could not find ssl])])
 
 
 
@@ -51,16 +51,8 @@ AM_COND_IF(LOCAL_ICELIB,
 
 
 AC_CHECK_LIB([pthread], [pthread_create], [], [AC_MSG_FAILURE([could not find pthread])])
-AC_CHECK_LIB([netfilter_queue], [nfq_open], [], [AC_MSG_FAILURE([could not find netfilter_queue])])
-AC_CHECK_LIB([nfnetlink], [nfnl_fd], [], [AC_MSG_FAILURE([could not find nfnetlink])])
-
-
-
-#AC_CHECK_LIB([curses], [getch], [], [AC_MSG_FAILURE([could not find curses ( sudo apt-get install libncurses5-dev?)])])
-#AC_CHECK_LIB([form], [new_form], [], [AC_MSG_FAILURE([could not find form])])
-#AC_CHECK_LIB([panel], [new_panel], [], [AC_MSG_FAILURE([could not find panel])])
-#AC_CHECK_LIB([menu], [new_menu], [], [AC_MSG_FAILURE([could not find menu])])
-
+#AC_CHECK_LIB([netfilter_queue], [nfq_open], [], [AC_MSG_FAILURE([could not find netfilter_queue])])
+#AC_CHECK_LIB([nfnetlink], [nfnl_fd], [], [AC_MSG_FAILURE([could not find nfnetlink])])
 
 
 
