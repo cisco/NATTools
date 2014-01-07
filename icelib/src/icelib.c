@@ -3597,6 +3597,19 @@ bool ICELIB_isNominatingCriteriaMetForAllMediaStreams(ICELIB_INSTANCE *pInstance
     unsigned int i;
     ICELIB_VALIDLIST        *pValidList;
 
+    /*************************************************************************************/
+    /************************ start trickle specific *************************************/
+    /*************************************************************************************/
+    
+    if(pInstance->iceConfiguration.trickleIce 
+        && (pInstance->endOfLocalCandidates || pInstance->endOfRemoteCandidates))
+    {
+        return false;
+    }    
+    /*************************************************************************************/
+    /************************** end trickle specific *************************************/
+    /*************************************************************************************/
+
     for (i=0; i < pInstance->numberOfMediaStreams; ++i) {
         if( pInstance->localIceMedia.mediaStream[i].numberOfCandidates == 0 ||
             pInstance->remoteIceMedia.mediaStream[i].numberOfCandidates == 0 ) {
@@ -4266,7 +4279,7 @@ void ICELIB_EliminateRedundantCandidates(ICELIB_INSTANCE *pInstance)
 }
 
 
-bool ICELIB_Start(ICELIB_INSTANCE *pInstance, bool controlling)
+bool ICELIB_Start(ICELIB_INSTANCE *pInstance, bool controlling, bool trickle)
 {
     ICELIB_logVaString(&pInstance->callbacks.callbackLog, ICELIB_logDebug,
                        "ICELIB_Start with role=%s", controlling ? "Controlling" : "Controlled");
@@ -5076,6 +5089,7 @@ int32_t ICELIB_addLocalCandidate(ICELIB_INSTANCE *pInstance,
                                  ICE_CANDIDATE_TYPE candType,
                                  uint16_t local_pref)
 {
+    
     ICE_MEDIA_STREAM *mediaStream;
     ICE_CANDIDATE *cand;
 
@@ -5086,6 +5100,7 @@ int32_t ICELIB_addLocalCandidate(ICELIB_INSTANCE *pInstance,
 
     }
 
+    
     mediaStream = &(pInstance->localIceMedia.mediaStream[mediaIdx]);
 
     if (mediaStream->numberOfCandidates >= ICE_MAX_CANDIDATES) {
@@ -5093,7 +5108,21 @@ int32_t ICELIB_addLocalCandidate(ICELIB_INSTANCE *pInstance,
                     ICELIB_logDebug, "Failed to add candidate. MAX number of candidates reached\n");
         return -1;
     }
-
+    
+    /*************************************************************************************/
+    /************************ start trickle specific *************************************/
+    /*************************************************************************************/
+    
+    if(pInstance->config.trickleIce){
+        if(checkIfRedundant(connectionAddr)){
+            ICELIB_log(&pInstance->callbacks.callbackLog,
+                    ICELIB_logDebug, "Redundant local candidate...\n");
+            return 1;
+        }
+    }    
+    /*************************************************************************************/
+    /************************** end trickle specific *************************************/
+    /*************************************************************************************/
 
     cand = &mediaStream->candidate[mediaStream->numberOfCandidates];
 
@@ -5117,6 +5146,17 @@ int32_t ICELIB_addLocalCandidate(ICELIB_INSTANCE *pInstance,
           sizeof(ICE_CANDIDATE),
           ICELIB_candidateSort);
 
+
+    /*************************************************************************************/
+    /************************ start trickle specific *************************************/
+    /*************************************************************************************/
+    
+    generatePairs(cand);
+    
+    /*************************************************************************************/
+    /************************** end trickle specific *************************************/
+    /*************************************************************************************/
+    
     return 1;
 
 }
@@ -5151,6 +5191,21 @@ int32_t ICELIB_addRemoteCandidate(ICELIB_INSTANCE *pInstance,
     }
     iceCand = &mediaStream->candidate[mediaStream->numberOfCandidates];
 
+    /*************************************************************************************/
+    /************************ start trickle specific *************************************/
+    /*************************************************************************************/
+    
+    if(pInstance->config.trickleIce){
+        if(checkIfRedundant(connectionAddr)){
+            ICELIB_log(&pInstance->callbacks.callbackLog,
+                    ICELIB_logDebug, "Redundant remote candidate...\n");
+            return mediaStream->numberOfCandidates;
+        }
+    }
+    
+    /*************************************************************************************/
+    /************************** end trickle specific *************************************/
+    /*************************************************************************************/
 
 
     if (! sockaddr_initFromString((struct sockaddr *)&addr,
@@ -5172,6 +5227,16 @@ int32_t ICELIB_addRemoteCandidate(ICELIB_INSTANCE *pInstance,
 
     mediaStream->numberOfCandidates++;
 
+    /*************************************************************************************/
+    /************************ start trickle specific *************************************/
+    /*************************************************************************************/
+    
+    generatePairs(cand);
+    
+    /*************************************************************************************/
+    /************************** end trickle specific *************************************/
+    /*************************************************************************************/
+    
     return mediaStream->numberOfCandidates;
 }
 
