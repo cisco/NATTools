@@ -14,6 +14,7 @@
 
 #include <stunlib.h>
 #include <stunclient.h>
+#include "utils.h"
 
 #define MYPORT "4950"    // the port users will be connecting to
 #define PASSWORD "VOkJxbRl1RmTxUk/WvJxBt"
@@ -21,11 +22,6 @@
 
 int sockfd;
 
-void sendRawStun(int sockHandle,
-                uint8_t *buf,
-                int bufLen,
-                struct sockaddr *dstAddr,
-                bool useRelay);
 
 void teardown()
 {
@@ -45,19 +41,20 @@ int main(void)
     STUN_INCOMING_REQ_DATA pReq;
 
     STUN_CLIENT_DATA *clientData;
-
+    
     StunClient_Alloc(&clientData);
 
     signal(SIGINT, teardown);
-
+    
     sockfd = createSocket(NULL, MYPORT, AI_PASSIVE, servinfo, &p);
-    freeaddrinfo(servinfo);
-
+    
+    //freeaddrinfo(servinfo);
+    
     while(1) {
         printf("stunserver: waiting to recvfrom...\n");
         if((numbytes = recvStunMsg(sockfd, &their_addr, &stunRequest, buf)) != -1) {
 
-            if(stunlib_checkIntegrity(buf, numbytes, &stunRequest, PASSWORD, sizeof(PASSWORD)) ) {
+            if(stunlib_checkIntegrity(buf, numbytes, &stunRequest, (unsigned char*)PASSWORD, sizeof(PASSWORD)) ) {
                 printf("   Integrity OK\n");
 
                 printMalice(stunRequest);

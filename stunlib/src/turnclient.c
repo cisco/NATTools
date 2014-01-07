@@ -1523,6 +1523,11 @@ static void  CommonRetryTimeoutHandler(TURN_INSTANCE_DATA *pInst, TurnResult_T t
                   errStr,
                   pInst->retransmits);
 
+        if  (turnResult == TurnResult_CreatePermissionNoAnswer)
+            pInst->permissionsInstalled = false;
+        else if  (turnResult == TurnResult_ChanBindFailNoanswer)
+            pInst->channelBound = false;
+
         SetNextState(pInst, FailedState);
         CallBack(pInst, turnResult);
     }
@@ -1823,6 +1828,7 @@ static void  TurnState_Allocated(TURN_INSTANCE_DATA *pInst,
             TurnCreatePermissionInfo_T *pMsgIn = (TurnCreatePermissionInfo_T *)payload;
             char addrStr[SOCKADDR_MAX_STRLEN];
 
+            pInst->createPermissionCallbackCalled = false;
             StoreCreatePermReq(pInst, pMsgIn);
 
             for (i = 0; i < pMsgIn->numberOfPeers; i++)
@@ -1844,6 +1850,8 @@ static void  TurnState_Allocated(TURN_INSTANCE_DATA *pInst,
         {
             TurnChannelBindInfo_T *pMsgIn = (TurnChannelBindInfo_T *)payload;
             char addrStr[SOCKADDR_MAX_STRLEN];
+
+            pInst->channelBindCallbackCalled = false;
             StoreChannelBindReq(pInst, pMsgIn);
             TurnPrint(pInst,
                       TurnInfoCategory_Info,
@@ -2004,14 +2012,15 @@ static void  TurnState_WaitChanBindResp(TURN_INSTANCE_DATA *pInst,
         case TURN_SIGNAL_ChannelBindResp:
         {
             StopTimer(pInst, TURN_SIGNAL_TimerRetransmit);
+            pInst->channelBound = true;
 
             StartChannelBindRefreshTimer(pInst);
             SetNextState(pInst,TURN_STATE_Allocated);
 
             /* only do the callback on initial success, and not for every refresh  */
-            if (!pInst->channelBound)
+            if (!pInst->channelBindCallbackCalled)
             {
-                pInst->channelBound = true;
+                pInst->channelBindCallbackCalled = true;
                 CallBack(pInst, TurnResult_ChanBindOk);
             }
         }
@@ -2086,13 +2095,14 @@ static void  TurnState_WaitCreatePermResp(TURN_INSTANCE_DATA *pInst,
         {
             StopTimer(pInst,   TURN_SIGNAL_TimerRetransmit);
 
+            pInst->permissionsInstalled = true;
             StartCreatePermissionRefreshTimer(pInst);
+            SetNextState(pInst, HandlePendingChannelBindReq(pInst) ? TURN_STATE_WaitChanBindResp : TURN_STATE_Allocated);
 
             /* only do the callback on initial success, and not for every refresh  */
-            if (!pInst->permissionsInstalled)
+            if (!pInst->createPermissionCallbackCalled)
             {
-                pInst->permissionsInstalled = true;
-                SetNextState(pInst, HandlePendingChannelBindReq(pInst) ? TURN_STATE_WaitChanBindResp : TURN_STATE_Allocated);
+                pInst->createPermissionCallbackCalled = true;
                 CallBack(pInst, TurnResult_CreatePermissionOk);
             }
         }
@@ -2153,6 +2163,7 @@ static void  TurnState_WaitCreatePermResp(TURN_INSTANCE_DATA *pInst,
             char addrStr[SOCKADDR_MAX_STRLEN];
             StoreChannelBindReq(pInst, pMsgIn);
             pInst->pendingChannelBind = true;
+            pInst->channelBindCallbackCalled = false;
             TurnPrint(pInst,
                       TurnInfoCategory_Info,
                       "<TURNCLIENT:%d> Buffering ChannelBindReq chan: %d Peer %s",

@@ -5,17 +5,14 @@ Run
 To compile
 
 For OSX the following ./configure command can be used:
-./configure --with-check --enable-gcov CC=gcc-mp-4.6 CFLAGS="-fno-strict-aliasing -I/usr/local/include" LDFLAGS=-"L/opt/local/lib -lcrypto"
+./configure --with-check --enable-gcov CC=gcc-mp-4.9 CFLAGS="-fno-strict-aliasing -I/usr/local/include" LDFLAGS=-"L/opt/local/lib -lcrypto"
 
-
-There should now be stunserver, stunclient and turnclient test binary in:
-
-samplecode/src/
-
+This will build the three libraries sockaddrutillib, stunlib and icelib. (They are all standalone libs and can be build seperately if you want to)
 
 
 ** samplecode **
-Module containing sample code of library usage.
+Module containing sample code of library usage. Note that this directory is not part of the ditribution if you do a "make dist".
+To build you ned to cd into the directory and do the ./configure && make dance.
 
 ** ICElib **
 A implementation of RFC 5245 Interactive Connectivity Establishment (ICE):

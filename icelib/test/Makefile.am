@@ -1,9 +1,12 @@
+AUTOMAKE_OPTIONS = subdir-objects
 if CHECK
-
 
 TESTS = check_icelib
 check_PROGRAMS = check_icelib
+
 check_icelib_SOURCES = icelib_test.c icelib_running_test.c icelibtypes_test.c testmain.c ../src/icelib.c ../src/fifo.c ../src/timer.c ../src/icelibtypes.c
+
+
 MY_LDFLAGS_1 = -lcheck
 MY_CFLAGS_1 = -I../include
 
@@ -20,7 +23,7 @@ endif
 
 if GCOV
   MY_CFLAGS_4 = -I../include -fprofile-arcs -ftest-coverage
-  MY_LDFLAGS_4 = -lcheck -lgcov
+  MY_LDFLAGS_4 = -lgcov
 endif
 
 if USE_VALGRIND

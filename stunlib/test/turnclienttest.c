@@ -286,7 +286,15 @@ static void  Sim_TimerRefreshAlloc(int ctx)
     TurnClientSimulateSig(pInst, TURN_SIGNAL_TimerRefreshAlloc);
 }
 
+static void  Sim_TimerRefreshChannelBind(int ctx)
+{
+    TurnClientSimulateSig(pInst, TURN_SIGNAL_TimerRefreshChannel);
+}
 
+static void  Sim_TimerRefreshPermission(int ctx)
+{
+    TurnClientSimulateSig(pInst, TURN_SIGNAL_TimerRefreshPermission);
+}
 
 
 static void setup (void)
@@ -654,6 +662,32 @@ START_TEST (Allocated_ChanBindReqOk)
 }
 END_TEST
 
+START_TEST (Allocated_ChanBindRefresh)
+{
+    struct sockaddr_storage peerIp;
+    int ctx;
+    sockaddr_initFromString((struct sockaddr *)&peerIp,"192.168.5.22:1234");
+
+    ctx = GotoAllocatedState(12);
+    TurnClient_StartChannelBindReq(pInst, 0x4001, (struct sockaddr *)&peerIp);
+    TurnClient_HandleTick(pInst);
+    Sim_ChanBindOrPermissionResp(ctx, STUN_MSG_ChannelBindResponseMsg, 0, 0);
+    TurnClient_HandleTick(pInst);
+    fail_unless (turnResult == TurnResult_ChanBindOk);
+
+    /* verfiy callback is not called again */
+    turnResult = TurnResult_Empty; 
+    Sim_TimerRefreshChannelBind(ctx);
+    Sim_ChanBindOrPermissionResp(ctx, STUN_MSG_ChannelBindResponseMsg, 0, 0);
+    fail_unless (turnResult == TurnResult_Empty);
+
+    TurnClient_Deallocate(pInst);
+    Sim_RefreshResp(ctx);
+    fail_unless (turnResult == TurnResult_RelayReleaseComplete);
+}
+END_TEST
+
+
 START_TEST (Allocated_ChanBindErr)
 {
     struct sockaddr_storage peerIp;
@@ -697,6 +731,41 @@ START_TEST (Allocated_CreatePermissionReqOk)
     fail_unless (turnResult == TurnResult_RelayReleaseComplete);
 }
 END_TEST
+
+START_TEST (Allocated_CreatePermissionRefresh)
+{
+    struct sockaddr_storage peerIp[6];
+    struct sockaddr_storage *p_peerIp[6];
+    int ctx;
+    uint32_t i;
+
+    for (i=0; i < sizeof(peerIp)/sizeof(peerIp[0]); i++)
+    {
+        sockaddr_initFromString((struct sockaddr *)&peerIp[i],"192.168.5.22:1234");
+        p_peerIp[i] = &peerIp[i];
+    }
+
+    ctx = GotoAllocatedState(12);
+    TurnClient_StartCreatePermissionReq(pInst, sizeof(peerIp)/sizeof(peerIp[0]), (const struct sockaddr**)p_peerIp);
+    TurnClient_HandleTick(pInst);
+    Sim_ChanBindOrPermissionResp(ctx, STUN_MSG_CreatePermissionResponseMsg, 0, 0);
+    TurnClient_HandleTick(pInst);
+    fail_unless (turnResult == TurnResult_CreatePermissionOk);
+
+    /* verfiy callback is not called again */
+    turnResult = TurnResult_Empty; 
+    Sim_TimerRefreshPermission(ctx);
+    Sim_ChanBindOrPermissionResp(ctx, STUN_MSG_CreatePermissionResponseMsg, 0, 0);
+    fail_unless (turnResult == TurnResult_Empty);
+
+    TurnClient_Deallocate(pInst);
+    Sim_RefreshResp(ctx);
+    fail_unless (turnResult == TurnResult_RelayReleaseComplete);
+}
+END_TEST
+
+
+
 
 START_TEST (Allocated_CreatePermissionErr)
 {
@@ -989,6 +1058,9 @@ Suite * turnclient_suite (void)
       tcase_add_test (tc_allocate, Allocated_CreatePermissionErr);
       tcase_add_test (tc_allocate, Allocated_CreatePermissionReqAndChannelBind);
       tcase_add_test (tc_allocate, Allocated_CreatePermissionErrorAndChannelBind);
+      tcase_add_test (tc_allocate, Allocated_CreatePermissionRefresh);
+      tcase_add_test (tc_allocate, Allocated_ChanBindRefresh);
+
 
 
       
@@ -1028,6 +1100,8 @@ Suite * turnclient_suite (void)
       tcase_add_test (tc_allocateIPv6, Allocated_CreatePermissionErr);
       tcase_add_test (tc_allocateIPv6, Allocated_CreatePermissionReqAndChannelBind);
       tcase_add_test (tc_allocateIPv6, Allocated_CreatePermissionErrorAndChannelBind);
+      tcase_add_test (tc_allocateIPv6, Allocated_CreatePermissionRefresh);
+      tcase_add_test (tc_allocateIPv6, Allocated_ChanBindRefresh);
 
       
 

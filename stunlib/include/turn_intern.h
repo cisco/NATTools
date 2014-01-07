@@ -137,7 +137,8 @@ struct TURN_INSTANCE_DATA
     bool authenticated;
     bool permissionsInstalled;
     bool channelBound;
-
+    bool createPermissionCallbackCalled;
+    bool channelBindCallbackCalled;
     /* returned in allocate resp */
 
     struct sockaddr_storage  srflxAddr;

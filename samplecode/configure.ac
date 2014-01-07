@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.61])
-AC_INIT([samplecode], [0.1], [palmarti@cisco.com])
+AC_INIT([samplecode], [0.2], [palmarti@cisco.com])
 AC_CONFIG_SRCDIR([src/stunclient.c])
 AC_CONFIG_HEADERS([config.h])
 
