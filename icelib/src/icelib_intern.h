@@ -301,7 +301,8 @@ extern "C" {
                                      ICELIB_VALIDLIST *pValidList,
                                      ICELIB_STREAM_CONTROLLER streamControllers[],
                                      unsigned int numberOfMediaStreams,
-                                     ICELIB_CALLBACK_LOG *pCallbackLog);
+                                     ICELIB_CALLBACK_LOG *pCallbackLog,
+                                     bool trickleIce);
 
     void ICELIB_processSuccessResponse(ICELIB_INSTANCE *pInstance,
                                        const ICE_MEDIA_STREAM *pLocalMediaStream,
