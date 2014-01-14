@@ -9,7 +9,6 @@ AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([foreign -Wall -Werror])
-AM_PROG_AR
 LT_INIT
 
 
@@ -17,27 +16,6 @@ LT_INIT
 # Checks for programs.
 AC_PROG_CC
 AM_PROG_CC_C_O
-
-
-# Checks for libraries.
-#AC_CHECK_LIB([check], [srunner_create])
-#AM_PATH_CHECK()
-
-
-#AC_ARG_ENABLE(submodule,
-#AS_HELP_STRING([--enable-submodule],
-#               [enable submodule build @<:@default=no@:>@]),
-#              [case "${enableval}" in
-#                 yes) submodule=true ;;
-#                 no)  submodule=false ;;
-#                 *)   AC_MSG_ERROR([bad value ${enableval} for --enable-submodule]) ;;
-#               esac],
-#              [submodule=false])
-
-
-
-
-#AM_CONDITIONAL(SUBMODULE, test x"$submodule" = "xtrue")
 
 AC_CHECK_FILE(../sockaddrutil/include/sockaddr_util.h, local_sockaddr=true, local_sockaddr=false )
 
