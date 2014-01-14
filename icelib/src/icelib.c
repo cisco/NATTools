@@ -778,79 +778,6 @@ void ICELIB_formPairs(ICELIB_CHECKLIST       *pCheckList,
 }
 
 
-/*************************************************************************************/
-/************************ start trickle specific *************************************/
-/*************************************************************************************/
-
-static void formPairsFromNewCandidate(ICELIB_CHECKLIST       *pCheckList,
-                                      const ICE_MEDIA_STREAM *pLocalMediaStream,
-                                      const ICE_MEDIA_STREAM *pRemoteMediaStream,
-                                      unsigned int           maxPairs,
-                                      uint32_t               index,
-                                      bool                   local)
-{
-    
-    const ICE_CANDIDATE *pLocalCand = NULL;
-    const ICE_CANDIDATE *pRemoteCand = NULL;
-    unsigned int iPairs = pCheckList->numberOfPairs;
-    uint32_t i;
-    uint32_t iMax;
-
-    if(local)
-    {
-        pLocalCand = &pLocalMediaStream->candidate[index];
-        iMax = pRemoteMediaStream->numberOfCandidates;
-    }
-    else
-    {
-        pRemoteCand = &pRemoteMediaStream->candidate[index];
-        iMax = pLocalMediaStream->numberOfCandidates;
-    }
-
-    for (i = 0; i < iMax; i++)
-    {
-        if (iPairs >= maxPairs) break;
-        
-        if(local)
-            pRemoteCand = &pRemoteMediaStream->candidate[index];
-        else
-            pLocalCand = &pLocalMediaStream->candidate[index];
-        
-        
-        if (pLocalCand->componentid == pRemoteCand->componentid) {
-            if (pLocalCand->connectionAddr.ss_family ==
-                pRemoteCand->connectionAddr.ss_family) {
-
-                // Local and remote matches in component ID and address type,
-                // make a pair!
-                ICELIB_LIST_PAIR *pCheckListPair = &pCheckList->checkListPairs[ iPairs];
-                ICELIB_resetPair(pCheckListPair);
-                
-                //TODO: NULL? mulig?
-                ICELIB_changePairState(pCheckListPair, ICELIB_PAIR_PAIRED, NULL);
-                pCheckListPair->pairId           = ++pCheckList->nextPairId+100*pCheckList->id;
-                pCheckListPair->pLocalCandidate  = pLocalCand;
-                pCheckListPair->pRemoteCandidate = pRemoteCand;
-
-                ++iPairs;
-
-                //TODO: NULL? mulig?
-                ICELIB_log1(NULL, ICELIB_logDebug,
-                            "Pair Created, pair count: %d",
-                            iPairs);
-            }
-        }
-    }
-
-    pCheckList->numberOfPairs = iPairs;
-}
-
-
-/*************************************************************************************/
-/************************** end trickle specific *************************************/
-/*************************************************************************************/
-
-
 uint64_t ICELIB_pairPriority(uint32_t G, uint32_t D)
 {
 
@@ -4352,12 +4279,12 @@ void ICELIB_EliminateRedundantCandidates(ICELIB_INSTANCE *pInstance)
 }
 
 
-bool ICELIB_Start(ICELIB_INSTANCE *pInstance, bool controlling)
+bool ICELIB_Start(ICELIB_INSTANCE *pInstance, bool controlling, bool trickle)
 {
     ICELIB_logVaString(&pInstance->callbacks.callbackLog, ICELIB_logDebug,
                        "ICELIB_Start with role=%s", controlling ? "Controlling" : "Controlled");
 
-    if (!pInstance->iceConfiguration.trickleIce && !ICELIB_verifyICESupport(pInstance, &pInstance->remoteIceMedia)) {
+    if (!ICELIB_verifyICESupport(pInstance, &pInstance->remoteIceMedia)) {
         ICELIB_log(&pInstance->callbacks.callbackLog,
                    ICELIB_logDebug, "Remote Media mangling detected");
         pInstance->iceState = ICELIB_MANGLED;
@@ -5186,16 +5113,13 @@ int32_t ICELIB_addLocalCandidate(ICELIB_INSTANCE *pInstance,
     /************************ start trickle specific *************************************/
     /*************************************************************************************/
     
-    /*
-    if(pInstance->iceConfiguration.trickleIce){
+    if(pInstance->config.trickleIce){
         if(checkIfRedundant(connectionAddr)){
             ICELIB_log(&pInstance->callbacks.callbackLog,
                     ICELIB_logDebug, "Redundant local candidate...\n");
             return 1;
         }
-    }
-    */
-
+    }    
     /*************************************************************************************/
     /************************** end trickle specific *************************************/
     /*************************************************************************************/
@@ -5215,30 +5139,23 @@ int32_t ICELIB_addLocalCandidate(ICELIB_INSTANCE *pInstance,
     cand->userValue1 = mediaStream->userValue1;
     cand->userValue2 = mediaStream->userValue2;
 
-    /*************************************************************************************/
-    /************************ start trickle specific *************************************/
-    /*************************************************************************************/
-    
-    if(pInstance->iceConfiguration.trickleIce)
-    {
-        formPairsFromNewCandidate(&pInstance->streamControllers[mediaIdx].checkList,
-                                  mediaStream,
-                                  &(pInstance->remoteIceMedia.mediaStream[mediaIdx]),
-                                  pInstance->iceConfiguration.maxCheckListPairs,
-                                  mediaStream->numberOfCandidates,
-                                  true);
-    }
-
-    /*************************************************************************************/
-    /************************** end trickle specific *************************************/
-    /*************************************************************************************/
-    
     mediaStream->numberOfCandidates++;
 
     qsort(mediaStream->candidate,
           mediaStream->numberOfCandidates,
           sizeof(ICE_CANDIDATE),
           ICELIB_candidateSort);
+
+
+    /*************************************************************************************/
+    /************************ start trickle specific *************************************/
+    /*************************************************************************************/
+    
+    generatePairs(cand);
+    
+    /*************************************************************************************/
+    /************************** end trickle specific *************************************/
+    /*************************************************************************************/
     
     return 1;
 
@@ -5278,15 +5195,13 @@ int32_t ICELIB_addRemoteCandidate(ICELIB_INSTANCE *pInstance,
     /************************ start trickle specific *************************************/
     /*************************************************************************************/
     
-    /*
-    if(pInstance->iceConfiguration.trickleIce){
+    if(pInstance->config.trickleIce){
         if(checkIfRedundant(connectionAddr)){
             ICELIB_log(&pInstance->callbacks.callbackLog,
                     ICELIB_logDebug, "Redundant remote candidate...\n");
             return mediaStream->numberOfCandidates;
         }
     }
-    */
     
     /*************************************************************************************/
     /************************** end trickle specific *************************************/
@@ -5310,27 +5225,17 @@ int32_t ICELIB_addRemoteCandidate(ICELIB_INSTANCE *pInstance,
                                (struct sockaddr *)&addr,
                                candType);
 
+    mediaStream->numberOfCandidates++;
 
     /*************************************************************************************/
     /************************ start trickle specific *************************************/
     /*************************************************************************************/
     
-    if (pInstance->iceConfiguration.trickleIce)
-    {
-        
-        formPairsFromNewCandidate(&pInstance->streamControllers[mediaIdx].checkList,
-                                  &(pInstance->localIceMedia.mediaStream[mediaIdx]),
-                                  mediaStream,
-                                  pInstance->iceConfiguration.maxCheckListPairs,
-                                  mediaStream->numberOfCandidates,
-                                  false);
-    }
+    generatePairs(cand);
     
     /*************************************************************************************/
     /************************** end trickle specific *************************************/
     /*************************************************************************************/
-    
-    mediaStream->numberOfCandidates++;
     
     return mediaStream->numberOfCandidates;
 }
@@ -5449,20 +5354,9 @@ int32_t ICELIB_setRemoteMediaStream(ICELIB_INSTANCE *pInstance,
         sockaddr_copy((struct sockaddr *)&mediaStream->defaultAddr,
                       (struct sockaddr *)defaultAddr);
     }else{
-        /*************************************************************************************/
-        /************************ start trickle specific *************************************/
-        /*************************************************************************************/
-        
-        if (!&pInstance->iceConfiguration.trickleIce){
-            // pre-trickleCompatibility
-            ICELIB_log(&pInstance->callbacks.callbackLog,
-                        ICELIB_logDebug, "Failed to add remote medialine. No default address\n");
-            return -1;
-        }
-        
-        /*************************************************************************************/
-        /************************** end trickle specific *************************************/
-        /*************************************************************************************/
+        ICELIB_log(&pInstance->callbacks.callbackLog,
+                    ICELIB_logDebug, "Failed to add remote medialine. No default address\n");
+        return -1;
 
     }
 
