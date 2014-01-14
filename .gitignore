@@ -36,6 +36,7 @@ natlib.info
 *.swp
 *.tar.gz
 *.cache
+*.dirstamp
 
 #Codian build system
 INPUT/
