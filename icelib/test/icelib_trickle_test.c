@@ -181,7 +181,7 @@ START_TEST (startTrickle_oneCandidate)
 }
 END_TEST
 
-START_TEST (addCandidateAfterStart_nonRedundant)
+START_TEST (dynamicallyAddCandidate_nonRedundant)
 {
     struct sockaddr_storage m0_defaultAddr;
     struct sockaddr_storage m0_localHostRtp;
@@ -204,6 +204,7 @@ START_TEST (addCandidateAfterStart_nonRedundant)
     ICELIB_addLocalCandidate( m_icelib, 0, 1, (struct sockaddr *)&m0_localHostRtp, NULL, ICE_CAND_TYPE_HOST, 0xffff );
     ICELIB_addRemoteCandidate( m_icelib, 0, "1", 1, 1, 2130706431, m0_remoteHostRtpAddr, 47936, ICE_CAND_TYPE_HOST );
 
+    fail_if (m_icelib->streamControllers[0].checkList.numberOfPairs == 0);
     fail_unless (m_icelib->streamControllers[0].checkList.numberOfPairs == 1);
     int i;
     for (i = 1; i < m_icelib->numberOfMediaStreams; ++i) {
@@ -219,37 +220,12 @@ START_TEST (addCandidateAfterStart_nonRedundant)
     ICELIB_addRemoteCandidate( m_icelib, 0, "1", 1, 2, 2130706430, m0_remoteHostRtcpAddr, 47937, ICE_CAND_TYPE_HOST );
     ICELIB_addRemoteCandidate( m_icelib, 0, "3", 1, 1, 1694498815, m0_remoteRflxRtpAddr, 3807, ICE_CAND_TYPE_SRFLX );
     ICELIB_addRemoteCandidate( m_icelib, 0, "3", 1, 2, 1694498814, m0_remoteRflxRtcpAddr, 32629, ICE_CAND_TYPE_SRFLX );
+
     ICELIB_addRemoteCandidate( m_icelib, 0, "4", 1, 1, 16777215, m0_remoteRelayRtpAddr, 52948, ICE_CAND_TYPE_RELAY );
     ICELIB_addRemoteCandidate( m_icelib, 0, "4", 1, 2, 16777214, m0_remoteRelayRtcpAddr, 49832, ICE_CAND_TYPE_RELAY );
     
     fail_unless (m_icelib->localIceMedia.mediaStream[0].numberOfCandidates == 6);
-    //TODO: I admint I have not yet checked if 21 pairs is the correct number. It doesn't feel right, I would actually guess 20.
-    fail_unless (m_icelib->streamControllers[0].checkList.numberOfPairs == 21);
-}
-END_TEST
-
-
-START_TEST (addCandidateAfterStart_redundant)
-{
-    //TODO: Add test for when serverReflexive candidate is added and make sure redundant pair doesn't show.
-}
-END_TEST
-
-
-START_TEST (runningTrickle_successfulCandidates)
-{
-    // This test might succeed in a flash, with some minor check if endOfCandidates bool is true.
-    //TODO: Before end of candidates is called, trickle should not finish.
-    //TODO: After end of local and remote candidates have bin called, trickle should succed.
-}
-END_TEST
-
-
-START_TEST (running_trickle_failureCandidates)
-{
-    // This test might succeed in a flash, with some minor check if endOfCandidates bool is true.
-    //TODO: Before end of candidates is called, trickle should not fail.
-    //TODO: After end of local and remote candidates have bin called, trickle should fail.
+    fail_unless (m_icelib->streamControllers[0].checkList.numberOfPairs == 31);
 }
 END_TEST
 
@@ -263,10 +239,7 @@ Suite * icelib_trickle_suite (void)
      tcase_add_checked_fixture (tc_startup, icelib_medialines_setup_trickle, icelib_medialines_teardown_trickle);
      tcase_add_test (tc_startup, startTrickle_zeroCandidates);
      tcase_add_test (tc_startup, startTrickle_oneCandidate);
-     tcase_add_test (tc_startup, addCandidateAfterStart_nonRedundant);
-     tcase_add_test (tc_startup, addCandidateAfterStart_redundant);
-     tcase_add_test (tc_startup, runningTrickle_successfulCandidates);
-     tcase_add_test (tc_startup, running_trickle_failureCandidates);
+     tcase_add_test (tc_startup, dynamicallyAddCandidate_nonRedundant);
      suite_add_tcase (s, tc_startup);
   }
   
