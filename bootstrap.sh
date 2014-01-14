@@ -6,6 +6,6 @@ cd ../stunlib
 cd ../sockaddrutil
 ./bootstrap.sh
 mkdir m4 build-aux
-autoreconf --install
+cd ..
 autoreconf --install
 
