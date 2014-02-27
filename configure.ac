@@ -8,7 +8,8 @@ AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 
 AM_INIT_AUTOMAKE([foreign -Wall -Werror])
-#AM_PROG_AR
+m4_pattern_allow([AM_PROG_AR])
+AM_PROG_AR
 LT_INIT
 
 

@@ -583,27 +583,6 @@ void ICELIB_clearRedundantCandidates(ICE_CANDIDATE candidates[])
     }
 }
 
-/*************************************************************************************/
-/************************ start trickle specific *************************************/
-/*************************************************************************************/
-
-static bool ICELIB_isCandidateRedundant(const struct sockaddr *connectionAddr, ICE_MEDIA_STREAM *mediaStream)
-{
-    uint32_t i;
-
-    for (i=0; i < mediaStream->numberOfCandidates; i++)
-    {
-        if (sockaddr_alike((struct sockaddr *)&mediaStream->candidate[i].connectionAddr, connectionAddr)) {
-            // Found redundant.
-            return true;
-        }
-    }
-    return false;
-}
-
-/*************************************************************************************/
-/************************** end trickle specific *************************************/
-/*************************************************************************************/
 
 //
 //----- Eliminate empty and non-valid entries.
@@ -799,206 +778,6 @@ void ICELIB_formPairs(ICELIB_CHECKLIST       *pCheckList,
 }
 
 
-/*************************************************************************************/
-/************************ start trickle specific *************************************/
-/*************************************************************************************/
-
-static void formPairsFromNewCandidate(ICELIB_CHECKLIST       *pCheckList,
-                                      const ICE_MEDIA_STREAM *pLocalMediaStream,
-                                      const ICE_MEDIA_STREAM *pRemoteMediaStream,
-                                      unsigned int           maxPairs,
-                                      uint32_t               index,
-                                      bool                   local,
-                                      bool                   iceControlling)
-{
-    
-    const ICE_CANDIDATE *pLocalCand = NULL;
-    const ICE_CANDIDATE *pRemoteCand = NULL;
-    unsigned int iPairs = pCheckList->numberOfPairs;
-    uint32_t i;
-    uint32_t iMax;
-    
-    const ICE_CANDIDATE *pBaseServerReflexiveRtp;
-    const ICE_CANDIDATE *pBaseServerReflexiveRtcp;
-    bool foundBases;
-
-    foundBases = ICELIB_findReflexiveBaseAddresses(&pBaseServerReflexiveRtp,
-                                                   &pBaseServerReflexiveRtcp,
-                                                   pLocalMediaStream);
-
-    if(local)
-    {
-        pLocalCand = &pLocalMediaStream->candidate[index];
-        iMax = pRemoteMediaStream->numberOfCandidates;
- 
-        // The todos below are only relevant when the host candidates are added after reflexive ones.
-        // This is not likely, and I don't think it is commented in the IETF, so I don't know if it's neccesary. Still not sure though.)
-        if (pLocalCand->type == ICE_CAND_TYPE_HOST)
-        {
-            if (pLocalCand->componentid == ICELIB_RTP_COMPONENT_ID)
-            {
-                //TODO: find and replace serverreflexive addresses in pairs.
-                //TODO: remove redundant pairs.
-                //TODO: set correct state to pairs that matched were chosen, if any.
-            }
-            else if (pLocalCand->componentid == ICELIB_RTCP_COMPONENT_ID)
-            {
-                //TODO: find and replace serverreflexive addresses in pairs.
-                //TODO: remove redundant pairs.
-                //TODO: set correct state to pairs that matched were chosen, if any.
-            }
-        }
-    }
-    else
-    {
-        pRemoteCand = &pRemoteMediaStream->candidate[index];
-        iMax = pLocalMediaStream->numberOfCandidates;
-    }
-
-    for (i = 0; i < iMax; i++)
-    {
-        if (iPairs >= maxPairs) break;
-        
-        if(local)
-            pRemoteCand = &pRemoteMediaStream->candidate[index];
-        else
-            pLocalCand = &pLocalMediaStream->candidate[index];
-        
-        
-        if (pLocalCand->componentid == pRemoteCand->componentid) {
-            if (pLocalCand->connectionAddr.ss_family ==
-                pRemoteCand->connectionAddr.ss_family) {
-
-                // Local and remote matches in component ID and address type,
-                // make a pair!
-                bool stateIsSet = false;
-                bool checkRedundancy = false;
-                
-                ICELIB_LIST_PAIR *pCheckListPair = &pCheckList->checkListPairs[ iPairs];
-                ICELIB_resetPair(pCheckListPair);
-                
-                ICELIB_changePairState(pCheckListPair, ICELIB_PAIR_PAIRED, NULL);
-                pCheckListPair->pairId           = ++pCheckList->nextPairId+100*pCheckList->id;
-                
-                pCheckListPair->pLocalCandidate  = pLocalCand;
-                pCheckListPair->pRemoteCandidate = pRemoteCand;
-                
-                ICELIB_computePairPriority(pCheckListPair, iceControlling);
-
-                // Replace SrvrRflx with base.
-                if (pCheckListPair->pLocalCandidate->type == ICE_CAND_TYPE_SRFLX) {
-                    if (pCheckListPair->pLocalCandidate->componentid == ICELIB_RTP_COMPONENT_ID
-                        && foundBases && pBaseServerReflexiveRtp != NULL)
-                    {
-                        pCheckListPair->pLocalCandidate = pBaseServerReflexiveRtp;
-                        checkRedundancy = true;
-                    }
-                    else if (pCheckListPair->pLocalCandidate->componentid == ICELIB_RTCP_COMPONENT_ID
-                        && foundBases && pBaseServerReflexiveRtcp != NULL)
-                    {
-                        pCheckListPair->pLocalCandidate = pBaseServerReflexiveRtcp;
-                        checkRedundancy = true;
-                    }
-
-                    if (checkRedundancy)
-                    {
-                        for (i=0; i<iPairs; i++)
-                        {
-                            if (sockaddr_alike((struct sockaddr *)&pCheckList->checkListPairs[i].pLocalCandidate->connectionAddr,
-                                               (struct sockaddr *)&pCheckListPair->pLocalCandidate->connectionAddr)
-                                && sockaddr_alike((struct sockaddr *)&pCheckList->checkListPairs[i].pLocalCandidate->connectionAddr,
-                                                  (struct sockaddr *)&pCheckListPair->pLocalCandidate->connectionAddr))
-                            {
-                                
-                                // Ignore if the other pair has succeded state.
-                                if (pCheckList->checkListPairs[i].pairState == ICELIB_PAIR_SUCCEEDED)
-                                    ICELIB_resetPair(pCheckListPair);
-                                else if (pCheckList->checkListPairs[i].pairState == ICELIB_PAIR_FAILED
-                                        || pCheckList->checkListPairs[i].pairState == ICELIB_PAIR_INPROGRESS
-                                        || pCheckList->checkListPairs[i].pairState == ICELIB_PAIR_WAITING)
-                                {
-                                    if (pCheckList->checkListPairs[i].pairState == ICELIB_PAIR_INPROGRESS)
-                                    {
-                                        //TODO: Cancel the in progress transaction in the reugular vanilla ICE way.
-                                    }
-                                    
-                                    if (pCheckList->checkListPairs[i].pairPriority >= pCheckListPair->pairPriority)
-                                    {
-                                        pCheckList->checkListPairs[i].pairState = ICELIB_PAIR_WAITING;
-                                        ICELIB_resetPair(pCheckListPair);
-                                        stateIsSet = true;
-                                        break;
-                                    }
-                                    else
-                                    {
-                                        pCheckListPair->pairState = ICELIB_PAIR_WAITING;
-                                        ICELIB_resetPair(&pCheckList->checkListPairs[i]);
-                                        stateIsSet = true;
-                                        break;
-                                    }
-                                }
-                                else if (pCheckList->checkListPairs[i].pairState == ICELIB_PAIR_FROZEN)
-                                {
-                                    if (pCheckList->checkListPairs[i].pairPriority >= pCheckListPair->pairPriority)
-                                    {
-                                        pCheckList->checkListPairs[i].pairState = ICELIB_PAIR_FROZEN;
-                                        ICELIB_resetPair(pCheckListPair);
-                                        stateIsSet = true;
-                                        break;
-                                    }
-                                    else
-                                    {
-                                        pCheckListPair->pairState = ICELIB_PAIR_FROZEN;
-                                        ICELIB_resetPair(&pCheckList->checkListPairs[i]);
-                                        stateIsSet = true;
-                                        break;
-                                    }
-                                }
-                                //TODO: There are some states in this implementation that are not mentioned in the ietf for trickle.
-                                //      The states: REMOVED, PAIRED and IDLE will now get the state FROZEN. This probably aint right, but i felt that it was wrong for me to make a judgement call on this.
-                            }
-                        }
-                    }
-                }
-
-                if (!stateIsSet)
-                {
-                    if (pCheckList->checkListState == ICELIB_CHECKLIST_IDLE)
-                        pCheckListPair->pairState = ICELIB_PAIR_FROZEN;
-                    else if (pCheckList->checkListState == ICELIB_CHECKLIST_RUNNING)
-                    {
-                        uint32_t i;
-
-                        pCheckListPair->pairState = ICELIB_PAIR_WAITING;
-
-                        for (i=0; i<pCheckList->numberOfPairs; i++)
-                        {
-                            //TODO: If a pair has the same foundation as this, and is neither failed or succeded, pCheckListPair will get frozen state.
-                            //      Guessing that this involves checking the foundations of the candidates in the pairs...?
-                        }
-                    }
-                }
-
-                //TODO: Should the pairs be given an ID here?
-
-                ++iPairs;
-
-                ICELIB_log1(NULL, ICELIB_logDebug,
-                            "Pair Created, pair count: %d",
-                            iPairs);
-            }
-        }
-    }
-
-    pCheckList->numberOfPairs = iPairs;
-}
-
-
-/*************************************************************************************/
-/************************** end trickle specific *************************************/
-/*************************************************************************************/
-
-
 uint64_t ICELIB_pairPriority(uint32_t G, uint32_t D)
 {
 
@@ -1033,7 +812,7 @@ void ICELIB_computePairPriority(ICELIB_LIST_PAIR *pCheckListPair,
 
 
 void ICELIB_computeListPairPriority(ICELIB_CHECKLIST *pCheckList,
-                                    bool              iceControlling)
+                                     bool              iceControlling)
 {
     unsigned int i;
 
@@ -1087,6 +866,7 @@ bool ICELIB_findReflexiveBaseAddresses(const ICE_CANDIDATE * * ppBaseServerRefle
     if (foundRtp || foundRtcp) return true;
     return false;
 }
+
 
 bool ICELIB_isComponentIdPresent(const ICELIB_COMPONENTLIST *pComponentList,
                                  uint32_t                   componentId)
@@ -2565,8 +2345,7 @@ void ICELIB_updateCheckListState(ICELIB_CHECKLIST         *pCheckList,
                                  ICELIB_VALIDLIST         *pValidList,
                                  ICELIB_STREAM_CONTROLLER  streamControllers[],
                                  unsigned int              numberOfMediaStreams,
-                                 ICELIB_CALLBACK_LOG      *pCallbackLog,
-                                 bool                      trickleIce)
+                                 ICELIB_CALLBACK_LOG      *pCallbackLog)
 {
     //
     // If all of the pairs in the check list are now either in the Failed or
@@ -2577,29 +2356,10 @@ void ICELIB_updateCheckListState(ICELIB_CHECKLIST         *pCheckList,
         // If there is not a pair in the valid list for each component of the
         // media stream, the state of the check list is set to Failed.
 
-        
         if (! ICELIB_isPairForEachComponentInValidList(pValidList, &pCheckList->componentList)) {
-            if (!trickleIce || (pCheckList->endOfLocalCandidates && pCheckList->endOfRemoteCandidates)) // Trickle ice specific
-                pCheckList->checkListState = ICELIB_CHECKLIST_FAILED;
+            pCheckList->checkListState = ICELIB_CHECKLIST_FAILED;
         }
 
-        /*************************************************************************************/
-        /************************ start trickle specific *************************************/
-        /*************************************************************************************/
-        /*TODO:
-        Vanilla ICE requires that agents then update all other check lists,
-        placing one pair in each of them into the Waiting state, effectively
-        unfreezing the check list.  Given that with trickle ICE, other check
-        lists may still be empty at that point, a trickle ICE agent SHOULD
-        also maintain an explicit Active/Frozen state for every check list,
-        rather than deducing it from the state of the pairs it contains.
-        This state should be set to Active when unfreezing the first pair in
-        a list or when that couldn't happen because a list was empty.
-        */
-        /*************************************************************************************/
-        /************************** end trickle specific *************************************/
-        /*************************************************************************************/
-        
         // For each frozen check list, the agent:
         // *  Groups together all of the pairs with the same foundation,
         // *  For each group, sets the state of the pair with the lowest
@@ -3064,8 +2824,7 @@ void ICELIB_incomingBindingResponse(ICELIB_INSTANCE  *pInstance,
                                     pValidList,
                                     pInstance->streamControllers,
                                     pInstance->numberOfMediaStreams,
-                                    &pInstance->callbacks.callbackLog,
-                                    pInstance->iceConfiguration.trickleIce);
+                                    &pInstance->callbacks.callbackLog);
         return;
     }
 
@@ -3080,8 +2839,7 @@ void ICELIB_incomingBindingResponse(ICELIB_INSTANCE  *pInstance,
                                     pValidList,
                                     pInstance->streamControllers,
                                     pInstance->numberOfMediaStreams,
-                                    &pInstance->callbacks.callbackLog,
-                                    pInstance->iceConfiguration.trickleIce);
+                                    &pInstance->callbacks.callbackLog);
         return;
     }
 
@@ -3108,8 +2866,7 @@ void ICELIB_incomingBindingResponse(ICELIB_INSTANCE  *pInstance,
                                 pValidList,
                                 pInstance->streamControllers,
                                 pInstance->numberOfMediaStreams,
-                                &pInstance->callbacks.callbackLog,
-                                pInstance->iceConfiguration.trickleIce);
+                                &pInstance->callbacks.callbackLog);
 
     debug_log(&pInstance->callbacks.callbackLog, pCheckList, 0, "");
 }
@@ -3154,8 +2911,7 @@ void ICELIB_incomingTimeout(ICELIB_INSTANCE  *pInstance,
                                     pValidList,
                                     pInstance->streamControllers,
                                     pInstance->numberOfMediaStreams,
-                                    &pInstance->callbacks.callbackLog,
-                                    pInstance->iceConfiguration.trickleIce);
+                                    &pInstance->callbacks.callbackLog);
 
     } else if (pPair->pairState == ICELIB_PAIR_WAITING) {
 
@@ -3841,7 +3597,6 @@ bool ICELIB_isNominatingCriteriaMetForAllMediaStreams(ICELIB_INSTANCE *pInstance
     unsigned int i;
     ICELIB_VALIDLIST        *pValidList;
 
-
     for (i=0; i < pInstance->numberOfMediaStreams; ++i) {
         if( pInstance->localIceMedia.mediaStream[i].numberOfCandidates == 0 ||
             pInstance->remoteIceMedia.mediaStream[i].numberOfCandidates == 0 ) {
@@ -4516,7 +4271,7 @@ bool ICELIB_Start(ICELIB_INSTANCE *pInstance, bool controlling)
     ICELIB_logVaString(&pInstance->callbacks.callbackLog, ICELIB_logDebug,
                        "ICELIB_Start with role=%s", controlling ? "Controlling" : "Controlled");
 
-    if (!pInstance->iceConfiguration.trickleIce && !ICELIB_verifyICESupport(pInstance, &pInstance->remoteIceMedia)) {
+    if (!ICELIB_verifyICESupport(pInstance, &pInstance->remoteIceMedia)) {
         ICELIB_log(&pInstance->callbacks.callbackLog,
                    ICELIB_logDebug, "Remote Media mangling detected");
         pInstance->iceState = ICELIB_MANGLED;
@@ -5321,7 +5076,6 @@ int32_t ICELIB_addLocalCandidate(ICELIB_INSTANCE *pInstance,
                                  ICE_CANDIDATE_TYPE candType,
                                  uint16_t local_pref)
 {
-    
     ICE_MEDIA_STREAM *mediaStream;
     ICE_CANDIDATE *cand;
 
@@ -5332,7 +5086,6 @@ int32_t ICELIB_addLocalCandidate(ICELIB_INSTANCE *pInstance,
 
     }
 
-    
     mediaStream = &(pInstance->localIceMedia.mediaStream[mediaIdx]);
 
     if (mediaStream->numberOfCandidates >= ICE_MAX_CANDIDATES) {
@@ -5340,22 +5093,7 @@ int32_t ICELIB_addLocalCandidate(ICELIB_INSTANCE *pInstance,
                     ICELIB_logDebug, "Failed to add candidate. MAX number of candidates reached\n");
         return -1;
     }
-    
-    /*************************************************************************************/
-    /************************ start trickle specific *************************************/
-    /*************************************************************************************/
-    
-    if(pInstance->iceConfiguration.trickleIce){
-        if(ICELIB_isCandidateRedundant(connectionAddr, mediaStream)){
-            ICELIB_log(&pInstance->callbacks.callbackLog,
-                       ICELIB_logDebug, "Redundant local candidate...\n");
-            return -1;
-        }
-    }
 
-    /*************************************************************************************/
-    /************************** end trickle specific *************************************/
-    /*************************************************************************************/
 
     cand = &mediaStream->candidate[mediaStream->numberOfCandidates];
 
@@ -5372,32 +5110,13 @@ int32_t ICELIB_addLocalCandidate(ICELIB_INSTANCE *pInstance,
     cand->userValue1 = mediaStream->userValue1;
     cand->userValue2 = mediaStream->userValue2;
 
-    /*************************************************************************************/
-    /************************ start trickle specific *************************************/
-    /*************************************************************************************/
-    
-    if(pInstance->iceConfiguration.trickleIce)
-    {
-        formPairsFromNewCandidate(&pInstance->streamControllers[mediaIdx].checkList,
-                                  mediaStream,
-                                  &(pInstance->remoteIceMedia.mediaStream[mediaIdx]),
-                                  pInstance->iceConfiguration.maxCheckListPairs,
-                                  mediaStream->numberOfCandidates,
-                                  true,
-                                  pInstance->iceControlling);
-    }
-
-    /*************************************************************************************/
-    /************************** end trickle specific *************************************/
-    /*************************************************************************************/
-    
     mediaStream->numberOfCandidates++;
 
     qsort(mediaStream->candidate,
           mediaStream->numberOfCandidates,
           sizeof(ICE_CANDIDATE),
           ICELIB_candidateSort);
-    
+
     return 1;
 
 }
@@ -5432,6 +5151,8 @@ int32_t ICELIB_addRemoteCandidate(ICELIB_INSTANCE *pInstance,
     }
     iceCand = &mediaStream->candidate[mediaStream->numberOfCandidates];
 
+
+
     if (! sockaddr_initFromString((struct sockaddr *)&addr,
                                  connectionAddr)) {
         ICELIB_log(&pInstance->callbacks.callbackLog,
@@ -5449,29 +5170,8 @@ int32_t ICELIB_addRemoteCandidate(ICELIB_INSTANCE *pInstance,
                                (struct sockaddr *)&addr,
                                candType);
 
-
-    /*************************************************************************************/
-    /************************ start trickle specific *************************************/
-    /*************************************************************************************/
-    
-    if (pInstance->iceConfiguration.trickleIce)
-    {
-        
-        formPairsFromNewCandidate(&pInstance->streamControllers[mediaIdx].checkList,
-                                  &(pInstance->localIceMedia.mediaStream[mediaIdx]),
-                                  mediaStream,
-                                  pInstance->iceConfiguration.maxCheckListPairs,
-                                  mediaStream->numberOfCandidates,
-                                  false,
-                                  pInstance->iceControlling);
-    }
-    
-    /*************************************************************************************/
-    /************************** end trickle specific *************************************/
-    /*************************************************************************************/
-    
     mediaStream->numberOfCandidates++;
-    
+
     return mediaStream->numberOfCandidates;
 }
 
@@ -5589,20 +5289,9 @@ int32_t ICELIB_setRemoteMediaStream(ICELIB_INSTANCE *pInstance,
         sockaddr_copy((struct sockaddr *)&mediaStream->defaultAddr,
                       (struct sockaddr *)defaultAddr);
     }else{
-        /*************************************************************************************/
-        /************************ start trickle specific *************************************/
-        /*************************************************************************************/
-        
-        if (!&pInstance->iceConfiguration.trickleIce){
-            // pre-trickleCompatibility
-            ICELIB_log(&pInstance->callbacks.callbackLog,
-                        ICELIB_logDebug, "Failed to add remote medialine. No default address\n");
-            return -1;
-        }
-        
-        /*************************************************************************************/
-        /************************** end trickle specific *************************************/
-        /*************************************************************************************/
+        ICELIB_log(&pInstance->callbacks.callbackLog,
+                    ICELIB_logDebug, "Failed to add remote medialine. No default address\n");
+        return -1;
 
     }
 

@@ -14,6 +14,8 @@ lcov
 
 #Autoconf generated files
 Makefile
+configure
+*.in
 config.h
 config.log
 config.status
@@ -21,6 +23,9 @@ libtool
 stamp-h1
 .deps
 .libs
+aclocal.m4
+build-aux
+m4
 
 #executables
 stunclient
@@ -36,6 +41,7 @@ natlib.info
 *.swp
 *.tar.gz
 *.cache
+*.dirstamp
 
 #Codian build system
 INPUT/

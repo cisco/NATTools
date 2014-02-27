@@ -1,17 +1,18 @@
-Nattool is a package that contains several stand alone submodules.
+NATtool is a package that contains several stand alone submodules.
 
-Run
-./configure and make
-To compile
+-* Compiling *-
+run ./bootstrap.sh to crate the ./configure script. This requires that autotools and autoconfigure is intalled
+
+Then do a ./configure and make to compile
 
 For OSX the following ./configure command can be used:
 ./configure --with-check --enable-gcov CC=gcc-mp-4.9 CFLAGS="-fno-strict-aliasing -I/usr/local/include" LDFLAGS=-"L/opt/local/lib -lcrypto"
 
-This will build the three libraries sockaddrutillib, stunlib and icelib. (They are all standalone libs and can be build seperately if you want to)
+This will build the three libraries sockaddrutillib, stunlib and icelib. They are all standalone libs and can be build seperately if you want to. 
 
 
 ** samplecode **
-Module containing sample code of library usage. Note that this directory is not part of the ditribution if you do a "make dist".
+Module containing sample code of library usage. Note that this directory is not part of the distribution if you do a "make dist".
 To build you ned to cd into the directory and do the ./configure && make dance.
 
 ** ICElib **
