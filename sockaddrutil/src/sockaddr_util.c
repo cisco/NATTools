@@ -137,7 +137,7 @@ bool sockaddr_initFromIPv4Int(struct sockaddr_in *sin,
 }
 
 bool sockaddr_initFromIPv6Int(struct sockaddr_in6 *sin,
-                              uint8_t ipaddr[16],
+                              const uint8_t ipaddr[16],
                               uint16_t port)
 {
     sin->sin6_family = AF_INET6;
