@@ -104,7 +104,7 @@ static void StunPrint(void * userData, STUN_INFO_FUNC_PTR Log_cb, StunInfoCatego
 
 
 /* debug,trace */
-static STUN_SIGNAL StunMsgToInternalStunSig(StunMessage *msg)
+static STUN_SIGNAL StunMsgToInternalStunSig(const StunMessage *msg)
 {
     switch (msg->msgHdr.msgType)
     {
@@ -252,7 +252,7 @@ int StunClient_startBindTransaction(STUN_CLIENT_DATA      *clientData,
 }
 
 
-void StunClient_HandleIncResp(STUN_CLIENT_DATA * clientData, StunMessage *msg,
+void StunClient_HandleIncResp(STUN_CLIENT_DATA * clientData, const StunMessage *msg,
 			      const struct sockaddr *srcAddr)
 {
     int i;
@@ -435,7 +435,7 @@ bool StunServer_SendConnectivityBindingResp(STUN_CLIENT_DATA      *clientData,
 /********** Server handling of incoming STUN BIND REQ **********/
 bool StunServer_HandleStunIncomingBindReqMsg(STUN_CLIENT_DATA *clientData,
                                              STUN_INCOMING_REQ_DATA  *pReq,
-                                             StunMessage *stunMsg,
+                                             const StunMessage *stunMsg,
                                              bool fromRelay)
 {
     if (!clientData)

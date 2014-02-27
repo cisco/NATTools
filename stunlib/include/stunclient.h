@@ -185,7 +185,7 @@ void StunClient_HandleTick(STUN_CLIENT_DATA *clientData, uint32_t TimerResMsec);
  *  srcAddr       - Source adress in format  "a.b.c.d:port"
  *
  */
-void StunClient_HandleIncResp(STUN_CLIENT_DATA *clientData, StunMessage *msg,
+void StunClient_HandleIncResp(STUN_CLIENT_DATA *clientData, const StunMessage *msg,
 			      const struct sockaddr *srcAddr);
 
 
@@ -214,7 +214,7 @@ bool StunServer_SendConnectivityBindingResp(STUN_CLIENT_DATA      *clientData,
 /********** Server handling:  incoming STUN BIND REQ **********/
 bool StunServer_HandleStunIncomingBindReqMsg(STUN_CLIENT_DATA *clientData,
                                              STUN_INCOMING_REQ_DATA  *pReq,
-                                             StunMessage *stunMsg,
+                                             const StunMessage *stunMsg,
                                              bool fromRelay);
 
 void StunClient_clearStats(STUN_CLIENT_DATA *clientData);
