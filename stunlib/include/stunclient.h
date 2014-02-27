@@ -32,11 +32,12 @@ or implied, of Cisco.
 
 #include "stunlib.h"   /* stun enc/dec and msg formats*/
 #include <stdint.h>
-#include <stdbool.h>
 #include "sockaddr_util.h"
 
 #ifdef __cplusplus
 extern "C" {
+#else
+#include <stdbool.h>
 #endif
 
 #define MAX_STUN_TRANSACTIONS  60

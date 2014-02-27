@@ -29,7 +29,6 @@ or implied, of Cisco.
 #define STUNMSG_H
 
 #include <stdio.h>
-#include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <stdarg.h>
@@ -43,6 +42,8 @@ or implied, of Cisco.
 
 #ifdef __cplusplus
 extern "C" {
+#else
+#include <stdbool.h>
 #endif
 
 /*

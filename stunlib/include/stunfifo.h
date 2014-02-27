@@ -31,7 +31,12 @@ or implied, of Cisco.
 
 
 #include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#else
 #include <stdbool.h>
+#endif
 
 #define STUN_FIFO_SIZE 50
 #define STUN_FIFO_MAX_THREAD_CTX  4
@@ -68,6 +73,11 @@ StunFifoElement *StunFifo_FindElemBySockPairId(uint32_t threadCtx, int32_t sockP
 
 /* */
 bool StunFifo_DeleteBySockPairId(uint32_t threadCtx, int32_t sockPairId);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif /* STUNFIFO_H */

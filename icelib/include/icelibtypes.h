@@ -32,7 +32,6 @@ or implied, of Cisco.
 #include "icelib_defines.h"
 #include "stunlib.h"
 
-#include <stdbool.h>
 #include <stdint.h>
 #include <netinet/in.h>
 
@@ -40,6 +39,8 @@ struct console_output;
 
 #ifdef __cplusplus
 extern "C" {
+#else
+#include <stdbool.h>
 #endif
 
 

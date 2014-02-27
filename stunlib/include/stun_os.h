@@ -29,7 +29,6 @@ or implied, of Cisco.
 #ifndef STUN_OS_H
 #define STUN_OS_H
 
-#include <stdbool.h>
 
 #ifndef  WIN32
 #include <pthread.h>
@@ -43,6 +42,8 @@ or implied, of Cisco.
 
 #ifdef __cplusplus
 extern "C" {
+#else
+#include <stdbool.h>
 #endif
 
 #if defined(WIN32)

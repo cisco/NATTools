@@ -31,11 +31,12 @@ or implied, of Cisco.
 #ifndef SOCKADDR_UTIL_H
 #define SOCKADDR_UTIL_H
 
-#include <stdbool.h>
 #include <netinet/in.h>
 
 #ifdef __cplusplus
 extern "C" {
+#else
+#include <stdbool.h>
 #endif
 
 
