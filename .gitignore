@@ -43,4 +43,8 @@ OUTPUT/
 BUILD
 DEPS
 .hg/
+.hgtags
 .hgignore
+env_*.sh
+Jamfile
+Jamrules
