@@ -33,6 +33,7 @@ or implied, of Cisco.
 #include <stddef.h>
 #include <stdarg.h>
 
+#include <sys/socket.h>
 #include <netinet/in.h>
 
 #ifndef socklen_t

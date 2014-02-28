@@ -32,6 +32,8 @@ or implied, of Cisco.
 #define SOCKADDR_UTIL_H
 
 #include <netinet/in.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 #ifdef __cplusplus
 extern "C" {
