@@ -36,11 +36,6 @@ or implied, of Cisco.
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-#ifndef socklen_t
-#define socklen_t int
-#endif
-
-
 #ifdef __cplusplus
 extern "C" {
 #else
