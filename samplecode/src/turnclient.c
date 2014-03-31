@@ -37,9 +37,9 @@ static void turnInfoFunc(void *userCtx, TurnInfoCategory_T category, char *ErrSt
 }
 
 static void turnSendFunc(const uint8_t         *buffer,
-                          size_t                bufLen,
-                          const struct sockaddr *dstAddr,
-                          void                  *userCtx) 
+                         size_t                bufLen,
+                         const struct sockaddr *dstAddr,
+                         void                  *userCtx) 
 {
     sendRawStun(sockfd, buffer, bufLen, dstAddr, false);
 }
@@ -77,11 +77,11 @@ void turnCbFunc(void *userCtx, TurnCallBackData_T *turnCbData)
 }
 
 
-static void *tickTurn(TURN_INSTANCE_DATA *instData)
+static void *tickTurn( void *ptr)
 {
     struct timespec timer;
     struct timespec remaining;
-
+    TURN_INSTANCE_DATA *instData = (TURN_INSTANCE_DATA *)ptr;
     timer.tv_sec = 0;
     timer.tv_nsec = 50000000;
 
@@ -117,7 +117,7 @@ void listenAndHandleResponse(char *user, char *password)
             printf("   Integrity attribute present.\n");
             stunlib_createMD5Key((unsigned char *)md5, user, realm, password);
 
-            if (stunlib_checkIntegrity(buf, numbytes, &stunResponse, md5, keyLen)) {
+            if (stunlib_checkIntegrity(buf, numbytes, &stunResponse,(unsigned char *)md5, keyLen)) {
                 printf("     - Integrity check OK\n");
             } else {
                 printf("     - Integrity check NOT OK\n");
@@ -174,7 +174,7 @@ int main(int argc, char *argv[])
                                         false,
                                         0);
     
-    pthread_create(&turnTickThread, NULL, tickTurn, instData);
+    pthread_create(&turnTickThread, NULL, &tickTurn, instData);
 
     freeaddrinfo(servinfo);
 

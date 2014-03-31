@@ -49,11 +49,11 @@ int createSocket(char host[], char port[], int ai_flags, struct addrinfo *servin
 }
 
 
-int sendRawStun(int sockHandle,
-                uint8_t *buf,
-                int bufLen,
-                struct sockaddr *dstAddr,
-                bool useRelay)
+void sendRawStun(int sockHandle,
+                  const uint8_t *buf,
+                  int bufLen,
+                  const struct sockaddr *dstAddr,
+                  bool useRelay)
 {
     int tos = 0x28;
     int numbytes;
@@ -70,7 +70,7 @@ int sendRawStun(int sockHandle,
     sockaddr_toString(dstAddr, addrStr, SOCKADDR_MAX_STRLEN, true);
     printf("Sending Raw (To: '%s'(%i), Bytes:%i/%i  )\n", addrStr, sockHandle, numbytes, bufLen);
 
-    return numbytes;
+    //return numbytes;
 }
 
 int recvStunMsg(int sockfd, struct sockaddr_storage *their_addr, StunMessage *stunResponse, unsigned char *buf)
