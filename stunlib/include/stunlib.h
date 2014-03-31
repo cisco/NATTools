@@ -108,21 +108,9 @@ extern "C" {
 // Path Discovery test attribute
 #define STUN_ATTR_PD                 0x8041
 
-/****************************************************************************************************************/
-/****************************************** start MALICE specific ***********************************************/
-/****************************************************************************************************************/
-
-#define MALICE_ATTR_MD_AGENT        0x0C02
-#define MALICE_ATTR_MD_RESP_UP      0x0C03
-#define MALICE_ATTR_MD_RESP_DN      0x0C04
-#define MALICE_ATTR_MD_PEER_CHECK   0x0C05
-
-#define MALICE_IE_FLOWDATA_REQ      0x01
-#define MALICE_IE_FLOWDATA_RESP     0x02
-
-/****************************************************************************************************************/
-/****************************************** end MALICE specific ***********************************************/
-/****************************************************************************************************************/
+    //DISCUSS Draft Attributes
+#define STUN_ATTR_StreamType         0x8050
+#define STUN_ATTR_NetworkStatus      0x8051
 
 
 
@@ -363,6 +351,24 @@ StunAtrEvenPort;
 
 typedef struct
 {
+    uint16_t  type;
+    uint8_t   interactivity;
+    uint8_t   pad;
+}
+StunAtrStreamType;
+
+typedef struct
+{
+    uint8_t flags;
+    uint8_t nodeCnt;
+    uint16_t tbd;
+    uint16_t upMaxBandwidth;
+    uint16_t downMaxBandwidth;
+}    
+StunAtrNetworkStatus;
+
+typedef struct
+{
     char stunUserName[STUN_MSG_MAX_USERNAME_LENGTH];
     char stunPassword[STUN_MSG_MAX_PASSWORD_LENGTH];
     char realm[STUN_MSG_MAX_REALM_LENGTH];
@@ -371,65 +377,21 @@ typedef struct
                              /* for short term cred: key=password  */
 } STUN_USER_CREDENTIALS;
 
-/****************************************************************************************************************/
-/****************************************** start MALICE specific ***********************************************/
-/****************************************************************************************************************/
+
+
 
 typedef struct
 {
-    uint8_t type;
-    uint16_t length;
-} MaliceIEHdr;
-
-typedef struct
-{
-    uint8_t DT;
-    uint8_t LT;
-    uint8_t JT;
-
-    uint32_t minBW;
-    uint32_t maxBW;
-} MaliceFlowdata;
-
-typedef struct
-{
-    MaliceFlowdata flowdataUP;
-    MaliceFlowdata flowdataDN;
-} MaliceFlowdataReq;
-
-typedef struct
-{
-    bool hasFlowdataReq;
-    MaliceFlowdataReq flowdataReq;
-} MaliceAttrAgent;
-
-typedef struct
-{
-    bool hasFlowdataResp;
-    MaliceFlowdata flowdataResp;
-} MaliceAttrResp;
-
-typedef struct
-{
-    uint16_t peerMaliceCheckResult;
-} MaliceAttrPeerCheck;
-
-typedef struct
-{
-    bool                    hasMDAgent;
-    MaliceAttrAgent         mdAgent;
-    bool                    hasMDRespUP;
-    MaliceAttrResp          mdRespUP;
-    bool                    hasMDRespDN;
-    MaliceAttrResp          mdRespDN;
-    bool                    hasMDPeerCheck;
-    MaliceAttrPeerCheck     mdPeerCheck;
-} MaliceMetadata;
-
-/****************************************************************************************************************/
-/****************************************** end MALICE specific *************************************************/
-/****************************************************************************************************************/
-
+    uint16_t streamType;
+    uint8_t interactivity;
+    
+    uint8_t networkStatus_flags;
+    uint8_t networkStatus_nodeCnt;
+    uint16_t networkStatus_tbd;
+    uint16_t networkStatus_upMaxBandwidth;
+    uint16_t networkStatus_downMaxBandwidth;
+        
+} DiscussData;
 
 
 /* Decoded  STUN message */
@@ -448,6 +410,8 @@ typedef struct
 
     bool hasMessageIntegrity;
     StunAtrIntegrity messageIntegrity;
+
+    bool hasFingerPrint; //attribute never stored
 
     bool hasErrorCode;
     StunAtrError errorCode;
@@ -509,21 +473,15 @@ typedef struct
     bool hasReservationToken;
     StunAtrDoubleValue reservationToken;
 
+    bool hasStreamType;
+    StunAtrStreamType streamType;
+
+    bool hasNetworkStatus;
+    StunAtrNetworkStatus networkStatus;
+
     /* No value, only flaged */
     bool hasUseCandidate;
     bool hasDontFragment;
-    /****************************************************************************************************************/
-    /****************************************** start MALICE specific *************************************************/
-    /****************************************************************************************************************/
-
-    bool hasMaliceMetadata;
-    MaliceMetadata maliceMetadata;
-
-    /****************************************************************************************************************/
-    /****************************************** end MALICE specific *************************************************/
-    
-
-
 } StunMessage;
 
 /* Defines how a user of stun sends data on e.g. socket */

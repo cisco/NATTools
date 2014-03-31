@@ -211,7 +211,8 @@ int StunClient_startBindTransaction(STUN_CLIENT_DATA      *clientData,
                                     uint32_t               sockhandle,
                                     STUN_SENDFUNC          sendFunc,
                                     STUNCB                 stunCbFunc,
-                                    MaliceMetadata        *maliceMetadata) // nullptr if no malicedata should be sent.
+                                    DiscussData           *discussData) //NULL if none
+                                   
 {
     StunBindReqStuct m;
 
@@ -237,11 +238,8 @@ int StunClient_startBindTransaction(STUN_CLIENT_DATA      *clientData,
     m.sockhandle     = sockhandle;
     m.sendFunc       = sendFunc;
 
-    /******************************** start MALICE specific ******************************/
-
-    m.maliceMetadata = maliceMetadata;
-
-    /******************************** start MALICE specific ******************************/
+    m.discussData = discussData;
+    
 
 
     /* callback and data (owned by caller) */
@@ -312,7 +310,7 @@ static bool CreateConnectivityBindingResp(StunMessage *stunMsg,
                                           StunMsgId transactionId,
                                           const struct sockaddr *mappedSockAddr,
                                           uint16_t response,
-                                          MaliceMetadata *maliceMetadata)
+                                          DiscussData        *discussData)
 {
     StunIPAddress mappedAddr;
 
@@ -351,13 +349,7 @@ static bool CreateConnectivityBindingResp(StunMessage *stunMsg,
     stunMsg->hasXorMappedAddress = true;
     stunMsg->xorMappedAddress = mappedAddr;
 
-    if (maliceMetadata != NULL)
-    {
-        stunMsg->hasMaliceMetadata = true;
-        stunMsg->maliceMetadata = *maliceMetadata;
-    }
-
-
+    
     return true;
 }
 
@@ -406,7 +398,7 @@ bool StunServer_SendConnectivityBindingResp(STUN_CLIENT_DATA      *clientData,
                                             STUN_SENDFUNC          sendFunc,
                                             bool                   useRelay,
                                             uint32_t               responseCode,
-                                            MaliceMetadata        *maliceMetadata)
+                                            DiscussData        *discussData)
 {
     StunMessage stunRespMsg;
 
@@ -415,7 +407,7 @@ bool StunServer_SendConnectivityBindingResp(STUN_CLIENT_DATA      *clientData,
                                       transactionId,
                                       mappedAddr,
                                       responseCode == 200 ? STUN_MSG_BindResponseMsg:STUN_MSG_BindErrorResponseMsg,
-                                      maliceMetadata))
+                                      discussData))
     {
         /* encode and send */
         if (SendConnectivityBindResponse(clientData,
@@ -719,19 +711,22 @@ static void BuildStunBindReq(STUN_TRANSACTION_DATA *trans, StunMessage  *stunReq
         stunReqMsg->controlled.value = trans->stunBindReq.tieBreaker;
     }
     
-    /***************************************************************************************************/
-    /************************* start MALICE specific ***************************************************/
-    /***************************************************************************************************/
-
-    if (trans->stunBindReq.maliceMetadata != NULL)
+    //Adding DISCUSS attributes if present
+    if (trans->stunBindReq.discussData != NULL)
     {
-        stunReqMsg->hasMaliceMetadata = true;
-        stunReqMsg->maliceMetadata = *trans->stunBindReq.maliceMetadata;
+        stunReqMsg->hasStreamType = true;
+        stunReqMsg->streamType.type = trans->stunBindReq.discussData->streamType;
+        stunReqMsg->streamType.interactivity = trans->stunBindReq.discussData->interactivity;
+        
+        stunReqMsg->hasNetworkStatus = true;
+        stunReqMsg->networkStatus.flags = trans->stunBindReq.discussData->networkStatus_flags;
+        stunReqMsg->networkStatus.nodeCnt = trans->stunBindReq.discussData->networkStatus_nodeCnt;
+        stunReqMsg->networkStatus.upMaxBandwidth = trans->stunBindReq.discussData->networkStatus_upMaxBandwidth;
+        stunReqMsg->networkStatus.downMaxBandwidth = trans->stunBindReq.discussData->networkStatus_downMaxBandwidth;
+        
+        
     }
 
-    /***************************************************************************************************/
-    /************************* end MALICE specific ***************************************************/
-    /***************************************************************************************************/
 
 
     stunlib_addSoftware(stunReqMsg, SoftwareVersionStr, STUN_DFLT_PAD);

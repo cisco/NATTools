@@ -63,8 +63,7 @@ static int SendRawStun(int sockfd,
                        uint8_t *buf, 
                        int len, 
                        struct sockaddr *addr,
-                       socklen_t t,
-                       void *userdata)
+                       bool useRelay)
 {
     char addr_str[SOCKADDR_MAX_STRLEN];
     /* find the transaction id  so we can use this in the simulated resp */
@@ -77,7 +76,6 @@ static int SendRawStun(int sockfd,
                       
     //printf("Sendto: '%s'\n", addr_str);
 
-    return 1;
 }
 
 static int StartBindTransaction(int n)
@@ -87,39 +85,7 @@ static int StartBindTransaction(int n)
     CurrAppCtx.a =  AppCtx[n].a = 100+n;
     CurrAppCtx.b =  AppCtx[n].b = 200+n;
 
-    MaliceMetadata maliceMetadata;
-
-    maliceMetadata.hasMDAgent = true;
-    maliceMetadata.mdAgent.hasFlowdataReq = true;
-    maliceMetadata.mdAgent.flowdataReq.flowdataUP.DT = 0;
-    maliceMetadata.mdAgent.flowdataReq.flowdataUP.LT = 1;
-    maliceMetadata.mdAgent.flowdataReq.flowdataUP.JT = 2;
-    maliceMetadata.mdAgent.flowdataReq.flowdataUP.minBW = 333;
-    maliceMetadata.mdAgent.flowdataReq.flowdataUP.maxBW = 444;
-    maliceMetadata.mdAgent.flowdataReq.flowdataDN.DT = 3;
-    maliceMetadata.mdAgent.flowdataReq.flowdataDN.LT = 4;
-    maliceMetadata.mdAgent.flowdataReq.flowdataDN.JT = 2;
-    maliceMetadata.mdAgent.flowdataReq.flowdataDN.minBW = 111;
-    maliceMetadata.mdAgent.flowdataReq.flowdataDN.maxBW = 222;
-
-    maliceMetadata.hasMDRespUP = true;
-    maliceMetadata.mdRespUP.hasFlowdataResp = true;
-    maliceMetadata.mdRespUP.flowdataResp.DT = 0;
-    maliceMetadata.mdRespUP.flowdataResp.LT = 1;
-    maliceMetadata.mdRespUP.flowdataResp.JT = 2;
-    maliceMetadata.mdRespUP.flowdataResp.minBW = 333;
-    maliceMetadata.mdRespUP.flowdataResp.maxBW = 444;
-
-    maliceMetadata.hasMDRespDN = true;
-    maliceMetadata.mdRespDN.hasFlowdataResp = true;
-    maliceMetadata.mdRespDN.flowdataResp.DT = 3;
-    maliceMetadata.mdRespDN.flowdataResp.LT = 4;
-    maliceMetadata.mdRespDN.flowdataResp.JT = 2;
-    maliceMetadata.mdRespDN.flowdataResp.minBW = 111;
-    maliceMetadata.mdRespDN.flowdataResp.maxBW = 222;
-
-    maliceMetadata.hasMDPeerCheck = true;
-
+   
     /* kick off stun */
     return StunClient_startBindTransaction(stunInstance,
                                            NULL,
@@ -136,7 +102,7 @@ static int StartBindTransaction(int n)
                                            0,           /* socket */
                                            SendRawStun, /* send func */
                                            StunStatusCallBack,
-                                           &maliceMetadata);
+                                           NULL);
 }
 
 static void SimBindSuccessResp(int ctx, bool IPv6, bool success)
@@ -299,13 +265,13 @@ Suite * stunclient_suite (void)
         TCase *sc_allocate = tcase_create ("Stunclient Bind");
 
         tcase_add_checked_fixture (sc_allocate, setup, teardown);
-      
+        
         tcase_add_test (sc_allocate, WaitBindRespNotAut_Timeout);
         tcase_add_test (sc_allocate, WaitBindRespNotAut_BindSuccess);
         tcase_add_test (sc_allocate, WaitBindRespNotAut_BindError);
         tcase_add_test (sc_allocate, CancelTrans_BindResp);
         tcase_add_test (sc_allocate, CancelTrans_BindErrorResp);
-
+        
         suite_add_tcase (s, sc_allocate);
 
     }
@@ -316,13 +282,13 @@ Suite * stunclient_suite (void)
         TCase *sc_allocateIPv6 = tcase_create ("Stunclient Bind IPv6");
 
         tcase_add_checked_fixture (sc_allocateIPv6, setupIPv6, teardownIPv6);
-
+        
         tcase_add_test (sc_allocateIPv6, WaitBindRespNotAut_Timeout);
         tcase_add_test (sc_allocateIPv6, WaitBindRespNotAut_BindSuccess);
         tcase_add_test (sc_allocateIPv6, WaitBindRespNotAut_BindError);
         tcase_add_test (sc_allocateIPv6, CancelTrans_BindResp);
         tcase_add_test (sc_allocateIPv6, CancelTrans_BindErrorResp);
-      
+        
         suite_add_tcase (s, sc_allocateIPv6);
 
     }

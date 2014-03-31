@@ -7,4 +7,4 @@ int sendRawStun(int sockHandle,
                 int bufLen,
                 struct sockaddr *dstAddr,
                 bool useRelay);
-void printMalice(StunMessage stunRequest);
+void printDiscuss(StunMessage stunRequest);

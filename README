@@ -8,7 +8,15 @@ Then do a ./configure and make to compile
 For OSX the following ./configure command can be used:
 ./configure --with-check --enable-gcov CC=gcc-mp-4.9 CFLAGS="-fno-strict-aliasing -I/usr/local/include" LDFLAGS=-"L/opt/local/lib -lcrypto"
 
-This will build the three libraries sockaddrutillib, stunlib and icelib. They are all standalone libs and can be build seperately if you want to. 
+This will build the three libraries sockaddrutillib, stunlib and icelib. They are all standalone 
+libs and can be build seperately if you want to. 
+
+For osx it is recomended to build with a gcc version from port (MacPorts)
+Before running the configure script make sure:
+- Xcode commnd line tols are installed (xcode-select --install)
+- gcc is installed. (port install gcc49)
+- automake and libtool is installed
+- check is installed (port install check)
 
 
 ** samplecode **
