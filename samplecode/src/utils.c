@@ -102,9 +102,18 @@ void printDiscuss(StunMessage stunRequest)
 {
     if (stunRequest.hasStreamType)
     {
-        printf("  StreamType: %#06x  \n", stunRequest.streamType.type);
-        printf("  Interactivity: %#04x  \n", stunRequest.streamType.interactivity);
+        printf("  StreamType \n");
+        printf("    Type: %#06x  \n", stunRequest.streamType.type);
+        printf("    Interactivity: %#04x  \n", stunRequest.streamType.interactivity);
         
+    }
+    if (stunRequest.hasNetworkStatus)
+    {
+        printf("  NetworkStatus \n");
+        printf("  Flags: %#04x  \n", stunRequest.networkStatus.flags);
+        printf("  NodeCnt: %i  \n", stunRequest.networkStatus.nodeCnt);
+        printf("  UpMax: %i  \n", stunRequest.networkStatus.upMaxBandwidth);
+        printf("  DownMax: %i  \n", stunRequest.networkStatus.downMaxBandwidth);
     }
 }
 
