@@ -390,7 +390,16 @@ typedef struct
     uint16_t networkStatus_tbd;
     uint16_t networkStatus_upMaxBandwidth;
     uint16_t networkStatus_downMaxBandwidth;
-        
+    
+    //Ugh, maybee own structs? Will be Integrity protected
+    uint8_t networkStatusResp_flags;
+    uint8_t networkStatusResp_nodeCnt;
+    uint16_t networkStatusResp_tbd;
+    uint16_t networkStatusResp_upMaxBandwidth;
+    uint16_t networkStatusResp_downMaxBandwidth;
+    
+    
+
 } DiscussData;
 
 
@@ -476,8 +485,13 @@ typedef struct
     bool hasStreamType;
     StunAtrStreamType streamType;
 
+    //After Integrity attr
     bool hasNetworkStatus;
     StunAtrNetworkStatus networkStatus;
+
+    //Integrity protected
+    bool hasNetworkStatusResp;
+    StunAtrNetworkStatus networkStatusResp;
 
     /* No value, only flaged */
     bool hasUseCandidate;

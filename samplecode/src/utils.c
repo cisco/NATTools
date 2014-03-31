@@ -107,8 +107,8 @@ void printDiscuss(StunMessage stunRequest)
         printf("    Interactivity: %#04x  \n", stunRequest.streamType.interactivity);
         
     }
-    if (stunRequest.hasNetworkStatus)
-    {
+    
+    if (stunRequest.hasNetworkStatus){
         printf("  NetworkStatus \n");
         printf("  Flags: %#04x  \n", stunRequest.networkStatus.flags);
         printf("  NodeCnt: %i  \n", stunRequest.networkStatus.nodeCnt);

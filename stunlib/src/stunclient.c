@@ -349,7 +349,25 @@ static bool CreateConnectivityBindingResp(StunMessage *stunMsg,
     stunMsg->hasXorMappedAddress = true;
     stunMsg->xorMappedAddress = mappedAddr;
 
-    
+    if (discussData != NULL)
+    {
+        stunMsg->hasStreamType = true;
+        stunMsg->streamType.type = discussData->streamType;
+        stunMsg->streamType.interactivity = discussData->interactivity;
+        
+        stunMsg->hasNetworkStatus = true;
+        stunMsg->networkStatus.flags = 0;
+        stunMsg->networkStatus.nodeCnt = 0;
+        stunMsg->networkStatus.upMaxBandwidth = 0;
+        stunMsg->networkStatus.downMaxBandwidth = 0;
+        
+        stunMsg->hasNetworkStatusResp = true;
+        stunMsg->networkStatusResp.flags = discussData->networkStatusResp_flags;
+        stunMsg->networkStatusResp.nodeCnt = discussData->networkStatusResp_nodeCnt;
+        stunMsg->networkStatusResp.upMaxBandwidth = discussData->networkStatusResp_upMaxBandwidth;
+        stunMsg->networkStatusResp.downMaxBandwidth = discussData->networkStatusResp_downMaxBandwidth;       
+    }
+
     return true;
 }
 
@@ -398,7 +416,7 @@ bool StunServer_SendConnectivityBindingResp(STUN_CLIENT_DATA      *clientData,
                                             STUN_SENDFUNC          sendFunc,
                                             bool                   useRelay,
                                             uint32_t               responseCode,
-                                            DiscussData        *discussData)
+                                            DiscussData           *discussData)
 {
     StunMessage stunRespMsg;
 

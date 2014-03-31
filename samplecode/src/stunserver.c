@@ -57,7 +57,29 @@ int main(void)
             if(stunlib_checkIntegrity(buf, numbytes, &stunRequest, (unsigned char*)PASSWORD, sizeof(PASSWORD)) ) {
                 printf("   Integrity OK\n");
 
+                DiscussData discussData;
+
+                discussData.streamType=0x004;
+                discussData.interactivity=0x01;
+                
+                discussData.networkStatus_flags = 0;
+                discussData.networkStatus_nodeCnt = 0;
+                discussData.networkStatus_tbd = 0;
+                discussData.networkStatus_upMaxBandwidth = 0;
+                discussData.networkStatus_downMaxBandwidth = 0;
+
+                if (stunRequest.hasNetworkStatus){
+                    discussData.networkStatusResp_flags = stunRequest.networkStatus.flags;
+                    discussData.networkStatusResp_nodeCnt = stunRequest.networkStatus.nodeCnt;
+                    discussData.networkStatusResp_tbd = 0;
+                    discussData.networkStatusResp_upMaxBandwidth = stunRequest.networkStatus.upMaxBandwidth;
+                    discussData.networkStatusResp_downMaxBandwidth = stunRequest.networkStatus.downMaxBandwidth;
+                }
+
+
                 printDiscuss(stunRequest);
+
+
 
                 StunServer_HandleStunIncomingBindReqMsg(clientData,
                                                         &pReq,
@@ -74,7 +96,7 @@ int main(void)
                                                        sendRawStun,
                                                        false,
                                                        200,
-                                                       NULL);
+                                                       &discussData);
 
 
                 printf("Sending response\n\n");

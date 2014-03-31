@@ -1686,10 +1686,17 @@ stunlib_DecodeMessage(const uint8_t* buf,
                 break;
 
             case STUN_ATTR_NetworkStatus:
-                if (!stunDecodeNetworkStatus(&message->networkStatus,
-                                          &pCurrPtr,
-                                          &restlen)) return false;
-                message->hasNetworkStatus = true;
+                if(message->hasMessageIntegrity){
+                    if (!stunDecodeNetworkStatus(&message->networkStatus,
+                                                 &pCurrPtr,
+                                                 &restlen)) return false;
+                    message->hasNetworkStatus = true;
+                }else {
+                    if (!stunDecodeNetworkStatus(&message->networkStatusResp,
+                                                 &pCurrPtr,
+                                                 &restlen)) return false;
+                    message->hasNetworkStatusResp = true;
+                }
                 break;
                 
             case STUN_ATTR_ICEControlling:
@@ -2139,6 +2146,13 @@ stunlib_encodeMessage(StunMessage* message,
         return 0;
     }
 
+    if (message->hasNetworkStatusResp && !stunEncodeNetworkStatus(&message->networkStatusResp,
+                                                                  &pCurrPtr,
+                                                                  &restlen))
+    {
+        if (stream != NULL) printError(stream, "Invalid StreamType attribute\n");
+        return 0;
+    }
     
 
     /* note: DATA should be the last attribute */
