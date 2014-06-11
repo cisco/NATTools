@@ -37,6 +37,8 @@ StunResult_T stunResult;
 
 struct sockaddr_storage stunServerAddr;
 
+DiscussData discussData;
+
 STUN_CLIENT_DATA *stunInstance;
 #define STUN_TICK_INTERVAL_MS 50
 
@@ -200,6 +202,36 @@ START_TEST (SendResp_Valid)
 }
 END_TEST
 
+START_TEST (SendDiscussResp_Valid)
+{
+    bool useRelay = false;
+    
+    discussData.streamType=0x004;
+    discussData.interactivity=0x01;
+
+    discussData.networkStatus_flags = 0;
+    discussData.networkStatus_nodeCnt = 0;
+    discussData.networkStatus_tbd = 0;
+    discussData.networkStatus_upMaxBandwidth = 0;
+    discussData.networkStatus_downMaxBandwidth = 0;
+
+
+    fail_unless (StunServer_SendConnectivityBindingResp(stunInstance,
+                                                        0, // sockhandle
+                                                        LastTransId,
+                                                        "pem",
+                                                        (struct sockaddr *)&stunServerAddr,
+                                                        (struct sockaddr *)&stunServerAddr,
+                                                        NULL,
+                                                        SendRawStun,
+                                                        useRelay,
+                                                        0, // responseCode
+                                                        &discussData));
+
+}
+END_TEST
+
+
 
 START_TEST (SendResp_InValid)
 {
@@ -250,7 +282,18 @@ Suite * stunserver_suite (void)
       suite_add_tcase (s, ss_sendRespIPv6);
 
   }
-
+  {/* send Discuss response */
+      
+      TCase *ss_sendDiscussResp = tcase_create ("Stunserver send Discuss response");
+      
+      tcase_add_checked_fixture (ss_sendDiscussResp, setup, teardown);
+      
+      tcase_add_test (ss_sendDiscussResp, SendDiscussResp_Valid);
+     
+      
+      suite_add_tcase (s, ss_sendDiscussResp);
+      
+  }
   
   return s;
 }

@@ -856,6 +856,74 @@ START_TEST (print)
 END_TEST
 
 
+START_TEST (discuss_encode_decode)
+{
+    StunMessage stunMsg;
+    unsigned char stunBuf[STUN_MAX_PACKET_SIZE];
+    DiscussData discussData;
+
+    discussData.streamType=0x004;
+    discussData.interactivity=0x01;
+
+    discussData.networkStatus_flags = 0;
+    discussData.networkStatus_nodeCnt = 0;
+    discussData.networkStatus_tbd = 0;
+    discussData.networkStatus_upMaxBandwidth = 0;
+    discussData.networkStatus_downMaxBandwidth = 0;
+
+
+    memset(&stunMsg, 0, sizeof(StunMessage));
+    stunMsg.msgHdr.msgType = STUN_MSG_AllocateRequestMsg;
+    memcpy(&stunMsg.msgHdr.id.octet,&idOctet,12);
+
+    stunMsg.hasStreamType = true;
+    stunMsg.streamType.type = discussData.streamType;
+    stunMsg.streamType.interactivity = discussData.interactivity;
+    
+    stunMsg.hasNetworkStatus = true;
+    stunMsg.networkStatus.flags = 0;
+    stunMsg.networkStatus.nodeCnt = 0;
+    stunMsg.networkStatus.upMaxBandwidth = 0;
+    stunMsg.networkStatus.downMaxBandwidth = 0;
+    
+    stunMsg.hasNetworkStatusResp = true;
+    stunMsg.networkStatusResp.flags = discussData.networkStatusResp_flags;
+    stunMsg.networkStatusResp.nodeCnt = discussData.networkStatusResp_nodeCnt;
+    stunMsg.networkStatusResp.upMaxBandwidth = discussData.networkStatusResp_upMaxBandwidth;
+    stunMsg.networkStatusResp.downMaxBandwidth = discussData.networkStatusResp_downMaxBandwidth;       
+    
+    stunlib_encodeMessage(&stunMsg, 
+                          stunBuf, 
+                          sizeof(stunBuf), 
+                          (unsigned char*)password, 
+                          strlen(password), 
+                          NULL);
+
+    fail_unless( stunlib_DecodeMessage(stunBuf, 
+                                       sizeof(stunBuf), 
+                                       &stunMsg, 
+                                       NULL, 
+                                       NULL));
+
+    fail_unless(  stunlib_checkIntegrity(stunBuf,
+                                         sizeof(stunBuf), 
+                                         &stunMsg,
+                                         password,
+                                         sizeof(password)) );
+    
+    
+    fail_unless( stunMsg.streamType.type == discussData.streamType);
+    fail_unless( stunMsg.streamType.interactivity == discussData.interactivity);
+    fail_unless( stunMsg.networkStatusResp.flags == discussData.networkStatusResp_flags);
+    fail_unless( stunMsg.networkStatusResp.nodeCnt == discussData.networkStatusResp_nodeCnt);
+    fail_unless( stunMsg.networkStatusResp.upMaxBandwidth == discussData.networkStatusResp_upMaxBandwidth);
+    fail_unless( stunMsg.networkStatusResp.downMaxBandwidth == discussData.networkStatusResp_downMaxBandwidth);       
+    
+}
+END_TEST
+
+
+
 Suite * stunlib_suite (void)
 {
   Suite *s = suite_create ("STUN Test Vector");
@@ -901,6 +969,13 @@ Suite * stunlib_suite (void)
       tcase_add_test (tc_print, print);
       
       suite_add_tcase (s, tc_print);
+  }
+
+  {
+      TCase *tc_discuss = tcase_create ("Discuss");
+      tcase_add_test (tc_discuss, discuss_encode_decode);
+      
+      suite_add_tcase (s, tc_discuss);
   }
 
 

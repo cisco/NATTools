@@ -43,6 +43,8 @@ StunResult_T stunResult;
 
 struct sockaddr_storage stunServerAddr;
 
+DiscussData discussData;
+
 STUN_CLIENT_DATA * stunInstance;
 #define STUN_TICK_INTERVAL_MS 50
 
@@ -105,6 +107,44 @@ static int StartBindTransaction(int n)
                                            NULL);
 }
 
+
+static int StartDiscussBindTransaction(int n)
+{
+    n = 0; // hardcoded for now...  TODO: fixme
+
+    CurrAppCtx.a =  AppCtx[n].a = 100+n;
+    CurrAppCtx.b =  AppCtx[n].b = 200+n;
+
+    discussData.streamType=0x004;
+    discussData.interactivity=0x01;
+
+    discussData.networkStatus_flags = 0;
+    discussData.networkStatus_nodeCnt = 0;
+    discussData.networkStatus_tbd = 0;
+    discussData.networkStatus_upMaxBandwidth = 0;
+    discussData.networkStatus_downMaxBandwidth = 0;
+
+
+   
+    /* kick off stun */
+    return StunClient_startBindTransaction(stunInstance,
+                                           NULL,
+                                           (struct sockaddr *)&stunServerAddr,
+                                           NULL,
+                                           false,
+                                           "pem",
+                                           "pem",
+                                           0,           // uint32_t 1845494271 (priority)
+                                           false,
+                                           false,
+                                           0,           // uint64_t 0x932FF9B151263B36LL (tieBreaker)
+                                           LastTransId,
+                                           0,           /* socket */
+                                           SendRawStun, /* send func */
+                                           StunStatusCallBack,
+                                           &discussData);
+}
+
 static void SimBindSuccessResp(int ctx, bool IPv6, bool success)
 {
     StunMessage m;
@@ -146,6 +186,7 @@ static void teardown (void)
     stunResult = StunResult_Empty; 
     StunClient_free(stunInstance);
 }
+
 
 
 static void setupIPv6 (void)
@@ -255,6 +296,21 @@ START_TEST (DumpStats)
 }
 END_TEST
 
+START_TEST (Send_Discuss)
+{
+    
+    int ctx;
+    ctx = StartDiscussBindTransaction(0);
+    StunClient_HandleTick(stunInstance, STUN_TICK_INTERVAL_MS);
+
+    SimBindSuccessResp(ctx, runningAsIPv6, true);
+    fail_unless (stunResult == StunResult_BindOk);
+
+}
+END_TEST
+
+
+
 Suite * stunclient_suite (void)
 {
     Suite *s = suite_create ("Stunclient");
@@ -292,6 +348,17 @@ Suite * stunclient_suite (void)
         suite_add_tcase (s, sc_allocateIPv6);
 
     }
+    {//Discuss draft
+        TCase *sc_discuss = tcase_create ("Discuss");
+        
+        tcase_add_checked_fixture (sc_discuss, setup, teardown);
+        
+        tcase_add_test (sc_discuss, Send_Discuss);
+        
+        suite_add_tcase (s, sc_discuss);
+
+    }
+
 
     {/* Misc */
 
