@@ -42,6 +42,9 @@ natlib.info
 *.tar.gz
 *.cache
 *.dirstamp
+cscope.*
+\#*#
+\.#*
 
 #Codian build system
 INPUT/
