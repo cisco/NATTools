@@ -49,13 +49,6 @@ static void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData)
 }
 
 
-/* Callback for management info  */
-static void  PrintTurnInfo(TurnInfoCategory_T category, char *ErrStr)
-{
-    fprintf(stderr, "%s\n", ErrStr);
-}
-
-
 static void SendRawStun(const uint8_t *buf, 
                        size_t len, 
                        const struct sockaddr *addr,

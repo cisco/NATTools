@@ -150,30 +150,6 @@ Suite * stunlib_suite (void);
 
 
 
-START_TEST (request_longauth_decode)
-{
-    StunMessage stunMsg;
-    int keyLen = 16;
-    char md5[keyLen];
-
-    stunlib_createMD5Key((unsigned char *)md5, user_longAuth, realm_longAuth, pass_longAuth);
-
-
-    fail_unless( stunlib_DecodeMessage( respv_longauth,
-                                        sizeof(respv_longauth),
-                                        &stunMsg,
-                                        NULL,
-                                        NULL));
-
-
-    fail_unless(  stunlib_checkIntegrity(respv_longauth,
-                                         sizeof(respv_longauth),
-                                         &stunMsg,
-                                         md5,
-                                         keyLen) );
-}
-END_TEST
-
 START_TEST (request_decode)
 {
     StunMessage stunMsg;
@@ -906,8 +882,7 @@ Suite * stunlib_suite (void)
       tcase_add_test (tc_encodeDecode, xor_encode_decode);
       tcase_add_test (tc_encodeDecode, transport_encode_decode);
       tcase_add_test (tc_encodeDecode, channel_encode_decode);
-      
-      //tcase_add_test (tc_encodeDecode, request_longauth_decode);
+            
       suite_add_tcase (s, tc_encodeDecode);
   }
 

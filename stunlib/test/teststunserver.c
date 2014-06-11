@@ -40,19 +40,20 @@ struct sockaddr_storage stunServerAddr;
 STUN_CLIENT_DATA *stunInstance;
 #define STUN_TICK_INTERVAL_MS 50
 
-
+/*
 static void StunStatusCallBack(void *ctx, StunCallBackData_T *retData)
 {
     stunResult = retData->stunResult;
     //printf("Got STUN status callback\n");// (Result (%i)\n", retData->stunResult);
 }
-
+*/
 /* Callback for management info  */
+/*
 static void  PrintStunInfo(StunInfoCategory_T category, char *InfoStr)
 {
     //fprintf(stderr, "%s\n", ErrStr);
 }
-
+*/
 static int SendRawStun(int sockfd, 
                        uint8_t *buf, 
                        int len, 
