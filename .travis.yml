@@ -3,3 +3,4 @@ compiler:
   - gcc
 
 script: ./configure && make
+

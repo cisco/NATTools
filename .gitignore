@@ -45,6 +45,7 @@ natlib.info
 cscope.*
 \#*#
 \.#*
+*~
 
 #Codian build system
 INPUT/
