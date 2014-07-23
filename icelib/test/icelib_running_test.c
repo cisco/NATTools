@@ -37,7 +37,7 @@ static char m2_remoteRelayRtcpAddr[] = "93.95.67.89:41232";
 static char m2_remoteUfrag[] = "rm2Uf";
 static char m2_remotePasswd[] = "rm2Pa";
 
-
+static uint32_t peerPriority = (uint32_t)9145228645920719358;
 
 
 typedef struct{
@@ -61,9 +61,9 @@ typedef struct{
 
 m_ConncheckCB m_connChkCB;
 
-ICELIB_RUNNING_TEST_printLog( void                    *pUserData,
-                              int                     loglevel,
-                              char                    *str){
+void ICELIB_RUNNING_TEST_printLog( void                    *pUserData,
+                                   ICELIB_logLevel           loglevel,
+                                   const char                    *str){
     printf("%s\n", str);
 
 }
@@ -736,7 +736,7 @@ START_TEST (controlled)
                                           ICE_MAX_UFRAG_PAIR_LENGTH,
                                           &m_icelib->streamControllers[0].checkList,
                                           false);
-    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, 0x9151314442783293438,
+    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, peerPriority,
                                   true, true, false, 45678, stunId,
                                   (struct sockaddr *)&srcAddr,
                                   (const struct sockaddr *)&dstAddr,
@@ -746,7 +746,7 @@ START_TEST (controlled)
     sockaddr_initFromString( (struct sockaddr *)&srcAddr,  m0_remoteHostRtcpAddr);
     sockaddr_initFromString( (struct sockaddr *)&dstAddr,  "192.168.2.10:3457");
     
-    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, 0x9151314442783293438,
+    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, peerPriority,
                                   true, true, false, 45678, stunId,
                                   (struct sockaddr *)&srcAddr,
                                   (const struct sockaddr *)&dstAddr,
@@ -762,7 +762,7 @@ START_TEST (controlled)
                                           &m_icelib->streamControllers[1].checkList,
                                           false);
 
-    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, 0x9151314442783293438,
+    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, peerPriority,
                                   true, true, false, 45678, stunId,
                                   (struct sockaddr *)&srcAddr,
                                   (const struct sockaddr *)&dstAddr,
@@ -772,7 +772,7 @@ START_TEST (controlled)
     sockaddr_initFromString( (struct sockaddr *)&srcAddr,  m1_remoteHostRtcpAddr);
     sockaddr_initFromString( (struct sockaddr *)&dstAddr,  "192.168.2.10:3459");
     
-    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, 0x9151314442783293438,
+    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, peerPriority,
                                   true, true, false, 45678, stunId,
                                   (struct sockaddr *)&srcAddr,
                                   (const struct sockaddr *)&dstAddr,
@@ -786,7 +786,7 @@ START_TEST (controlled)
                                           ICE_MAX_UFRAG_PAIR_LENGTH,
                                           &m_icelib->streamControllers[2].checkList,
                                           false);
-    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, 0x9151314442783293438,
+    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, peerPriority,
                                   true, true, false, 45678, stunId,
                                   (struct sockaddr *)&srcAddr,
                                   (const struct sockaddr *)&dstAddr,
@@ -796,7 +796,7 @@ START_TEST (controlled)
     sockaddr_initFromString( (struct sockaddr *)&srcAddr,  m2_remoteHostRtcpAddr);
     sockaddr_initFromString( (struct sockaddr *)&dstAddr,  "192.168.2.10:3461");
     
-    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, 0x9151314442783293438,
+    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, peerPriority,
                                   true, true, false, 45678, stunId,
                                   (struct sockaddr *)&srcAddr,
                                   (const struct sockaddr *)&dstAddr,
@@ -871,7 +871,7 @@ START_TEST (controlled_inactive)
                                           ICE_MAX_UFRAG_PAIR_LENGTH,
                                           &m_icelib->streamControllers[0].checkList,
                                           false);
-    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, 0x9151314442783293438,
+    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, peerPriority,
                                   true, true, false, 45678, stunId,
                                   (struct sockaddr *)&srcAddr,
                                   (const struct sockaddr *)&dstAddr,
@@ -881,7 +881,7 @@ START_TEST (controlled_inactive)
     sockaddr_initFromString( (struct sockaddr *)&srcAddr,  m0_remoteHostRtcpAddr);
     sockaddr_initFromString( (struct sockaddr *)&dstAddr,  "192.168.2.10:3457");
     
-    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, 0x9151314442783293438,
+    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, peerPriority,
                                   true, true, false, 45678, stunId,
                                   (struct sockaddr *)&srcAddr,
                                   (const struct sockaddr *)&dstAddr,
@@ -897,7 +897,7 @@ START_TEST (controlled_inactive)
                                           &m_icelib->streamControllers[1].checkList,
                                           false);
 
-    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, 0x9151314442783293438,
+    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, peerPriority,
                                   true, true, false, 45678, stunId,
                                   (struct sockaddr *)&srcAddr,
                                   (const struct sockaddr *)&dstAddr,
@@ -907,7 +907,7 @@ START_TEST (controlled_inactive)
     sockaddr_initFromString( (struct sockaddr *)&srcAddr,  m1_remoteHostRtcpAddr);
     sockaddr_initFromString( (struct sockaddr *)&dstAddr,  "192.168.2.10:3459");
     
-    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, 0x9151314442783293438,
+    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, peerPriority,
                                   true, true, false, 45678, stunId,
                                   (struct sockaddr *)&srcAddr,
                                   (const struct sockaddr *)&dstAddr,
@@ -921,7 +921,7 @@ START_TEST (controlled_inactive)
                                           ICE_MAX_UFRAG_PAIR_LENGTH,
                                           &m_icelib->streamControllers[2].checkList,
                                           false);
-    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, 0x9151314442783293438,
+    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, peerPriority,
                                   true, true, false, 45678, stunId,
                                   (struct sockaddr *)&srcAddr,
                                   (const struct sockaddr *)&dstAddr,
@@ -931,7 +931,7 @@ START_TEST (controlled_inactive)
     sockaddr_initFromString( (struct sockaddr *)&srcAddr,  m2_remoteHostRtcpAddr);
     sockaddr_initFromString( (struct sockaddr *)&dstAddr,  "192.168.2.10:3461");
     
-    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, 0x9151314442783293438,
+    ICELIB_incomingBindingRequest(m_icelib, 1, 2, ufragPair, peerPriority,
                                   true, true, false, 45678, stunId,
                                   (struct sockaddr *)&srcAddr,
                                   (const struct sockaddr *)&dstAddr,

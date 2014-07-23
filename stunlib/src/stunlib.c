@@ -26,9 +26,21 @@ authors and should not be interpreted as representing official policies, either 
 or implied, of Cisco.
 */
 #include "stunlib.h"
+#if defined(__APPLE__)
+#  define COMMON_DIGEST_FOR_OPENSSL
+#  include <CommonCrypto/CommonDigest.h>
+#  include <CommonCrypto/CommonHMAC.h>
+
+#  define SHA1 CC_SHA1
+#else
+
 #include <openssl/md5.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
+#endif
+
+
+
 #include <zlib.h>
 
 #include <stdlib.h>
@@ -1774,9 +1786,10 @@ bool stunlib_checkIntegrity(const uint8_t* buf,
         unsigned char bufCopy[STUN_MAX_PACKET_SIZE];
         uint16_t msgIntLength;
         unsigned char hash[20];
-        uint32_t len = 0; /*dummy value*/
+        uint32_t len; /*dummy value*/
         uint8_t *pCurrPtr;
 
+        len= 0;
         //Lengt of message including integiryty lenght (Header and attribute)
         //Fingerprint and any trailing attributes are dismissed.
         //msgIntLength = message->messageIntegrity.offset+24;
@@ -1793,13 +1806,22 @@ bool stunlib_checkIntegrity(const uint8_t* buf,
         write_16(&pCurrPtr, msgIntLength);
         pCurrPtr = (uint8_t *)bufCopy;
 
+        #if defined(__APPLE__)
+        CCHmac(kCCHmacAlgSHA1,
+               integrityKey,
+               integrityKeyLen,
+               pCurrPtr,
+               message->messageIntegrity.offset,
+               &hash[0]);
+
+        #else
         HMAC(EVP_sha1(),
              integrityKey,
              integrityKeyLen,
              pCurrPtr,
              message->messageIntegrity.offset,
              &hash[0], &len);
-
+#endif
         if (memcmp( &hash, message->messageIntegrity.hash,20) != 0)
         {
             /*  
@@ -2201,16 +2223,24 @@ stunlib_encodeMessage(StunMessage* message,
     if (md5key)
     {
         uint32_t length;
+        length = 0;
         /*calculate and insert integrity hash*/
         pCurrPtr = (uint8_t*)buf;
-        
+#if defined(__APPLE__)
+        CCHmac(kCCHmacAlgSHA1,
+               md5key, keyLen,
+               pCurrPtr, /*stunmsg string*/
+               //msglen-STUN_HEADER_SIZE-4,
+               message->messageIntegrity.offset,
+               &message->messageIntegrity.hash[0]);
+#else
         HMAC(EVP_sha1(),
              md5key, keyLen,
              pCurrPtr, /*stunmsg string*/
              //msglen-STUN_HEADER_SIZE-4,
              message->messageIntegrity.offset,
              &message->messageIntegrity.hash[0], &length);
-
+#endif
         pCurrPtr = (uint8_t*)buf + message->messageIntegrity.offset;
         if (!stunEncodeIntegrityAtr(&message->messageIntegrity, &pCurrPtr, &restlen, bufLen))
         {
@@ -2452,7 +2482,9 @@ void stunlib_createMD5Key(unsigned char *md5key,
     bytes_written = snprintf(keyStr, sizeof keyStr, "%s:%s:%s", userName, realm, password);
     if((size_t)bytes_written >= sizeof keyStr)
         abort();
-
+#if defined(__APPLE__)
+    CC_MD5((uint8_t *)keyStr, bytes_written , md5key);
+#else
     MD5((uint8_t *)keyStr, bytes_written , md5key);
-
+#endif
 }

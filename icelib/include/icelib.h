@@ -443,6 +443,13 @@ ICE_CANDIDATE const *ICELIB_getActiveCandidate(const ICELIB_INSTANCE *pInstance,
 ICE_REMOTE_CANDIDATES const *ICELIB_getActiveRemoteCandidates(const ICELIB_INSTANCE *pInstance,
                                                               int mediaLineId);
 
+char *ICELIB_getCheckListRemoteUsernamePair(char                    *dst,
+                                            int                      maxlength,
+                                            const ICELIB_CHECKLIST  *pCheckList,
+                                            bool outgoing);
+
+
+
 bool ICELIB_isRunning(const ICELIB_INSTANCE *pInstance);
 bool ICELIB_isIceComplete(const ICELIB_INSTANCE *pInstance);
 bool ICELIB_isMangled (const ICELIB_INSTANCE *pInstance);

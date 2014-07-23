@@ -6,7 +6,8 @@ run ./bootstrap.sh to crate the ./configure script. This requires that autotools
 Then do a ./configure and make to compile
 
 For OSX the following ./configure command can be used:
-./configure --with-check --enable-gcov CC=gcc-mp-4.9 CFLAGS="-fno-strict-aliasing -I/usr/local/include" LDFLAGS=-"L/opt/local/lib -lcrypto"
+./configure --with-check --enable-gcov CFLAGS="-I/opt/local/include" LDFLAGS=-"L/opt/local/lib"
+
 
 This will build the three libraries sockaddrutillib, stunlib and icelib. They are all standalone 
 libs and can be build seperately if you want to. 
