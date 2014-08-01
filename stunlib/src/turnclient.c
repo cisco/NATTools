@@ -1467,10 +1467,10 @@ static void  TurnClientFsm(TURN_INSTANCE_DATA *pInst,
 {
     if (pInst->state < TURN_STATE_End)
     {
-        //TurnPrint(pInst,
-        //        TurnInfoCategory_Trace,
-        printf(        "<TURNCLIENT:%d> IN <-- %s (state %s)\n",
-                       (uint32_t) pInst->id, TurnsigToStr(sig),
+        TurnPrint(pInst,
+                  TurnInfoCategory_Trace,
+                  "<TURNCLIENT:%d> IN <-- %s (state %s)\n",
+                  (uint32_t) pInst->id, TurnsigToStr(sig),
                   StateTable[pInst->state].StateStr);
         if (pInst->inUse)
           (StateTable[pInst->state].Statefunc)(pInst, sig, payload, origMsgBuf);
