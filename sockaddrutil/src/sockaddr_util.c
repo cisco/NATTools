@@ -325,6 +325,30 @@ bool sockaddr_isAddrLinkLocal(const struct sockaddr * sa)
     return false;
 }
 
+bool sockaddr_isAddrSiteLocal(const struct sockaddr * sa)
+{
+    if (sa->sa_family == AF_INET) {
+        return false;
+    }else if (sa->sa_family == AF_INET6) {
+        return IN6_IS_ADDR_SITELOCAL(&((struct sockaddr_in6*)sa)->sin6_addr);
+    }
+    return false;
+}
+
+#define	SOCKADDR_IN6_IS_ADDR_ULA(a)	\
+   (((a)->s6_addr[0] & 0xFE)  == 0xFC)
+
+
+bool sockaddr_isAddrULA(const struct sockaddr * sa)
+{
+    if (sa->sa_family == AF_INET) {
+        return false;
+    }else if (sa->sa_family == AF_INET6) {
+        return SOCKADDR_IN6_IS_ADDR_ULA(&((struct sockaddr_in6*)sa)->sin6_addr);
+    }
+    return false;
+}
+
 
 const char *sockaddr_toString( const struct sockaddr *sa,
                                char *dest,

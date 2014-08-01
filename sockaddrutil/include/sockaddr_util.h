@@ -163,6 +163,19 @@ bool sockaddr_isAddrPrivate(const struct sockaddr * sa);
 bool sockaddr_isAddrLinkLocal(const struct sockaddr * sa);
 
 /*
+ * Checks if a sockaddr is a IPv6 site local address
+ * Will return false if it is a IPv4 addr
+ */
+
+bool sockaddr_isAddrSiteLocal(const struct sockaddr * sa);
+
+/*
+ * Checks if a sockaddr is a IPv6 ULA address
+ * Will return false if it is a IPv4 addr
+ */
+bool sockaddr_isAddrULA(const struct sockaddr * sa);
+
+/*
  * Converts a sockaddr to string
  * If add port is true the IPv6 string will contain [],
  * if not the IPv6 address is printed without[]

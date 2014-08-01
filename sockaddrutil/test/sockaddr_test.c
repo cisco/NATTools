@@ -614,6 +614,58 @@ START_TEST (sockaddr_IPv6_linklocal)
 }
 END_TEST
 
+START_TEST (sockaddr_IPv6_sitelocal)
+{
+    struct sockaddr_storage ip_link;
+    struct sockaddr_storage ip_4;
+    struct sockaddr_storage ip_6;
+    struct sockaddr_storage ip_wrong;
+
+    sockaddr_initFromString( (struct sockaddr *)&ip_link, "fec0::836:da94:3910:d502" );
+
+    sockaddr_initFromString( (struct sockaddr *)&ip_4, "1.2.3.4" );
+    sockaddr_initFromString( (struct sockaddr *)&ip_6, "2001:470:dc88:2:226:18ff:fe92:6d53" );
+
+    fail_unless( sockaddr_isAddrSiteLocal( (struct sockaddr *)&ip_link ));
+
+
+    fail_if( sockaddr_isAddrSiteLocal( (struct sockaddr *)&ip_4 ));
+    
+    fail_if( sockaddr_isAddrSiteLocal( (struct sockaddr *)&ip_6 ));
+
+
+    ip_wrong.ss_family = 12;
+    fail_if( sockaddr_isAddrSiteLocal( (struct sockaddr *)&ip_wrong ));
+}
+END_TEST
+
+START_TEST (sockaddr_IPv6_ula)
+{
+    struct sockaddr_storage ip_link;
+    struct sockaddr_storage ip_4;
+    struct sockaddr_storage ip_6;
+    struct sockaddr_storage ip_wrong;
+
+    sockaddr_initFromString( (struct sockaddr *)&ip_link, "fc00::836:da94:3910:d502" );
+
+    sockaddr_initFromString( (struct sockaddr *)&ip_4, "1.2.3.4" );
+    sockaddr_initFromString( (struct sockaddr *)&ip_6, "2001:470:dc88:2:226:18ff:fe92:6d53" );
+
+    fail_unless( sockaddr_isAddrULA( (struct sockaddr *)&ip_link ));
+
+
+    fail_if( sockaddr_isAddrULA( (struct sockaddr *)&ip_4 ));
+    
+    fail_if( sockaddr_isAddrULA( (struct sockaddr *)&ip_6 ));
+
+
+    ip_wrong.ss_family = 12;
+    fail_if( sockaddr_isAddrULA( (struct sockaddr *)&ip_wrong ));
+}
+END_TEST
+
+
+
 START_TEST (sockaddr_IPv4_ipPort)
 {
     fail_unless( sockaddr_ipPort( (struct sockaddr *)sockaddr_IPv4_1 ) == 4567 );
@@ -759,6 +811,19 @@ Suite * sockaddr_suite (void)
       tcase_add_test (tc_sockaddr_linklocal, sockaddr_IPv6_linklocal);
       suite_add_tcase (s, tc_sockaddr_linklocal);
   }
+
+  {/* sitelocal test case */
+      TCase *tc_sockaddr_sitelocal = tcase_create ("sockaddr_sitelocal");
+      tcase_add_test (tc_sockaddr_sitelocal, sockaddr_IPv6_sitelocal);
+      suite_add_tcase (s, tc_sockaddr_sitelocal);
+  }
+
+  {/* ULA test case */
+      TCase *tc_sockaddr_ula = tcase_create ("sockaddr_ula");
+      tcase_add_test (tc_sockaddr_ula, sockaddr_IPv6_ula);
+      suite_add_tcase (s, tc_sockaddr_ula);
+  }
+
 
   {/* ipPort test case */
       TCase *tc_sockaddr_ipPort = tcase_create ("sockaddr_ipPort");
