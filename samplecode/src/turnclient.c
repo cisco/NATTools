@@ -41,6 +41,7 @@ static void turnSendFunc(const uint8_t         *buffer,
                          const struct sockaddr *dstAddr,
                          void                  *userCtx) 
 {
+    printf("Sending CB \n");
     sendRawStun(sockfd, buffer, bufLen, dstAddr, false);
 }
 
@@ -87,6 +88,7 @@ static void *tickTurn( void *ptr)
 
     for(;;) {
         nanosleep(&timer, &remaining);
+        printf("Tick\n");
         TurnClient_HandleTick(instData);
     }
 
@@ -101,8 +103,7 @@ void listenAndHandleResponse(char *user, char *password)
     StunMessage stunResponse;
     int keyLen = 16;
     char md5[keyLen];
-
-    if((numbytes = recvStunMsg(sockfd, &their_addr, &stunResponse, buf)) != -1) {
+    if((numbytes = recvStunMsg(sockfd, &their_addr, &stunResponse, buf, MAXBUFLEN-1)) != -1) {
          if (stunResponse.msgHdr.msgType == STUN_MSG_DataIndicationMsg) {
              if (stunResponse.hasData) {
                //Decode and do something with the data?
@@ -128,6 +129,7 @@ void listenAndHandleResponse(char *user, char *password)
                                   &stunResponse,
                                   buf);
     }
+
 }
 
 
@@ -176,7 +178,7 @@ int main(int argc, char *argv[])
     
     pthread_create(&turnTickThread, NULL, &tickTurn, instData);
 
-    freeaddrinfo(servinfo);
+    //freeaddrinfo(servinfo);
 
     while (1) {
         //We listen on the socket for any response and feed it back to the library.

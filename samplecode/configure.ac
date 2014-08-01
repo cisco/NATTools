@@ -21,6 +21,11 @@ AC_PROG_CXX
 AC_CHECK_LIB([ssl], [SSL_library_init], [], [AC_MSG_FAILURE([could not find ssl])])
 
 
+AC_CHECK_LIB([curses], [getch], [], [AC_MSG_FAILURE([could not find curses ( sudo apt-get install libncurses5-dev?)])])
+AC_CHECK_LIB([form], [new_form], [], [AC_MSG_FAILURE([could not find form])])
+AC_CHECK_LIB([panel], [new_panel], [], [AC_MSG_FAILURE([could not find panel])])
+AC_CHECK_LIB([menu], [new_menu], [], [AC_MSG_FAILURE([could not find menu])])
+
 
 
 AC_CHECK_FILE(../sockaddrutil/include/sockaddr_util.h, local_sockaddr=true, local_sockaddr=false )

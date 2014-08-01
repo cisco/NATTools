@@ -52,7 +52,7 @@ int main(void)
     
     while(1) {
         printf("stunserver: waiting to recvfrom...\n");
-        if((numbytes = recvStunMsg(sockfd, &their_addr, &stunRequest, buf)) != -1) {
+        if((numbytes = recvStunMsg(sockfd, &their_addr, &stunRequest, buf, MAXBUFLEN-1)) != -1) {
 
             if(stunlib_checkIntegrity(buf, numbytes, &stunRequest, (unsigned char*)PASSWORD, sizeof(PASSWORD)) ) {
                 printf("   Integrity OK\n");

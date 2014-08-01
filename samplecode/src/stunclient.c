@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
 
     while(1)
     {
-        if((numbytes = recvStunMsg(sockfd, &their_addr, &stunResponse, buf)) != -1) {
+        if((numbytes = recvStunMsg(sockfd, &their_addr, &stunResponse, buf, MAXBUFLEN-1)) != -1) {
             if( stunlib_checkIntegrity(buf,
                                        numbytes,
                                        &stunResponse,

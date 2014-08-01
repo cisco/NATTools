@@ -1,13 +1,6 @@
-#include <turnclient.h>
-#include <sockaddr_util.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <stdlib.h>
-#include <unistd.h>
 
-#define MAXBUFLEN 500 
 
+#include "utils.h"
 
 int createSocket(char host[], char port[], int ai_flags, struct addrinfo *servinfo, struct addrinfo **p)
 {
@@ -68,24 +61,24 @@ void sendRawStun(int sockHandle,
     }
 
     sockaddr_toString(dstAddr, addrStr, SOCKADDR_MAX_STRLEN, true);
-    printf("Sending Raw (To: '%s'(%i), Bytes:%i/%i  )\n", addrStr, sockHandle, numbytes, bufLen);
+    //printf("Sending Raw (To: '%s'(%i), Bytes:%i/%i  )\n", addrStr, sockHandle, numbytes, bufLen);
 
     //return numbytes;
 }
 
-int recvStunMsg(int sockfd, struct sockaddr_storage *their_addr, StunMessage *stunResponse, unsigned char *buf)
+int recvStunMsg(int sockfd, struct sockaddr_storage *their_addr, StunMessage *stunResponse, unsigned char *buf, int buflen)
 {
     socklen_t addr_len = sizeof their_addr;
     int numbytes;
 
-    if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN-1 , 0, (struct sockaddr *)their_addr, &addr_len)) == -1) {
+    if ((numbytes = recvfrom(sockfd, buf, buflen , 0, (struct sockaddr *)their_addr, &addr_len)) == -1) {
           perror("recvfrom");
           exit(1);
     }
 
-    printf("Got a packet that is %d bytes long\n", numbytes);
+    //printf("Got a packet that is %d bytes long\n", numbytes);
     if (stunlib_isStunMsg(buf, numbytes)) {
-        printf("   Packet is STUN\n");
+        //printf("   Packet is STUN\n");
 
         stunlib_DecodeMessage(buf, numbytes, stunResponse, NULL, NULL);
 
