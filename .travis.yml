@@ -8,6 +8,6 @@ before_install:
 # Change this to your needs
 script: 
   - ./bootstrap.sh
-  - ./configure --with-check && make && make check
+  - ./configure CFLAGS=-std=c99 --with-check && make && make check
 
 
