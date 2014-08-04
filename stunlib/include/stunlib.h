@@ -105,10 +105,10 @@ extern "C" {
 #define STUN_ATTR_Software           0x8022
 #define STUN_ATTR_AlternateServer    0x8023
 
-// Path Discovery test attribute
+/*Path Discovery test attribute */
 #define STUN_ATTR_PD                 0x8041
 
-    //DISCUSS Draft Attributes
+/*DISCUSS Draft Attributes */
 #define STUN_ATTR_StreamType         0x8050
 #define STUN_ATTR_NetworkStatus      0x8051
 
@@ -334,8 +334,8 @@ StunAtrRequestedTransport;
 
 typedef struct
 {
-    //first 4 bytes for type,
-    //rest is for padding (future use)
+    /*first 4 bytes for type,
+      rest is for padding (future use)*/
     uint8_t  family;
     uint8_t  rffu[3];       /* reserved */
 }StunAttrRequestedAddrFamily;
@@ -391,7 +391,7 @@ typedef struct
     uint16_t networkStatus_upMaxBandwidth;
     uint16_t networkStatus_downMaxBandwidth;
     
-    //Ugh, maybee own structs? Will be Integrity protected
+    /*Ugh, maybee own structs? Will be Integrity protected*/
     uint8_t networkStatusResp_flags;
     uint8_t networkStatusResp_nodeCnt;
     uint16_t networkStatusResp_tbd;
@@ -420,7 +420,7 @@ typedef struct
     bool hasMessageIntegrity;
     StunAtrIntegrity messageIntegrity;
 
-    bool hasFingerPrint; //attribute never stored
+    bool hasFingerPrint; /* attribute never stored */
 
     bool hasErrorCode;
     StunAtrError errorCode;
@@ -465,7 +465,7 @@ typedef struct
 
     bool hasXorRelayAddressSSODA;
 
-    //Used when parsing message 
+    /* Used when parsing message */ 
     StunAttrRequestedAddrFamily requestedAddrFamilyTMP;
 
     bool hasRequestedAddrFamilyIPv4;
@@ -500,11 +500,11 @@ typedef struct
     bool hasStreamType;
     StunAtrStreamType streamType;
 
-    //After Integrity attr
+    /*After Integrity attr*/
     bool hasNetworkStatus;
     StunAtrNetworkStatus networkStatus;
 
-    //Integrity protected
+    /*Integrity protected*/
     bool hasNetworkStatusResp;
     StunAtrNetworkStatus networkStatusResp;
 

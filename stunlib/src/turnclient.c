@@ -180,7 +180,7 @@ static void TurnPrint(TURN_INSTANCE_DATA * pInst, TurnInfoCategory_T category, c
   /* print string to buffer  */
   vsprintf(s, fmt, ap);
 
-  if (true) return; // TODO: fix logging
+  if (true) return; /* TODO: fix logging */
 
   if (pInst->infoFunc)
     /* Call the application defined "error callback function" */
@@ -320,7 +320,7 @@ bool TurnClient_StartAllocateTransaction(TURN_INSTANCE_DATA   **instp,
 
 
 /* range 0x4000 - 0xFFFF, with channel number 0xFFFF reserved */
-static inline bool IsValidBindChannelNumber(uint16_t chanNum)
+static __inline bool IsValidBindChannelNumber(uint16_t chanNum)
 {
     return (chanNum >= 0x4000 && chanNum != 0xFFFF);
 }
@@ -858,16 +858,17 @@ static bool StoreToken (TURN_INSTANCE_DATA *pInst, StunMessage *stunRespMsg)
 
 static bool StoreRelayAddressStd(TURN_INSTANCE_DATA *pInst, StunMessage *stunRespMsg)
 {
+    int  requested_ai_family;
     struct sockaddr_storage addr_v4;
     struct sockaddr_storage addr_v6;
     memset(&addr_v4, 0, sizeof addr_v4);
     memset(&addr_v6, 0, sizeof addr_v6);
 
-    int  requested_ai_family = getAddrFamily(pInst);
+    
+    requested_ai_family = getAddrFamily(pInst);
+
     if (stunRespMsg->hasXorRelayAddressSSODA)
     {
-        //
-        
         if (stunRespMsg->xorRelayAddressIPv4.familyType == STUN_ADDR_IPv4Family)
         {
             sockaddr_initFromIPv4Int((struct sockaddr_in *)&addr_v4,
@@ -991,7 +992,7 @@ static void  BuildInitialAllocateReq(TURN_INSTANCE_DATA *pInst, StunMessage  *pR
     if (pInst->turnAllocateReq.evenPortAndReserve)
     {
       pReq->hasEvenPort = true;
-      pReq->evenPort.evenPort = 0x80;// Set the R bit to reserve the next port;
+      pReq->evenPort.evenPort = 0x80;/* Set the R bit to reserve the next port;*/
     }
     else if (pInst->turnAllocateReq.reservationToken > 0)
     {
@@ -1034,7 +1035,7 @@ static void  BuildNewAllocateReq(TURN_INSTANCE_DATA *pInst, StunMessage  *pReq)
     if (pInst->turnAllocateReq.evenPortAndReserve)
     {
       pReq->hasEvenPort = true;
-      pReq->evenPort.evenPort = 0x80;// Set the R bit to reserve the next port;
+      pReq->evenPort.evenPort = 0x80;/* Set the R bit to reserve the next port;*/
     }
     else if (pInst->turnAllocateReq.reservationToken > 0)
     {
@@ -1722,7 +1723,6 @@ static void  TurnState_WaitAllocRespNotAut(TURN_INSTANCE_DATA *pInst,
             if (HandleStunAllocateResponseMsg(pInst, pResp, NULL))
             {
                 StartAllocRefreshTimer(pInst);
-                //StartStunKeepAliveTimer(pInst);
                 SetNextState(pInst, TURN_STATE_Allocated);
                 AllocateResponseCallback(pInst);
             }
@@ -1835,7 +1835,6 @@ static void  TurnState_WaitAllocResp(TURN_INSTANCE_DATA *pInst,
             if (HandleStunAllocateResponseMsg(pInst, pResp, origMsgBuf))
             {
                 StartAllocRefreshTimer(pInst);
-                //StartStunKeepAliveTimer(pInst);
                 SetNextState(pInst, TURN_STATE_Allocated);
                 AllocateResponseCallback(pInst);
 

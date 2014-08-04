@@ -211,7 +211,7 @@ int StunClient_startBindTransaction(STUN_CLIENT_DATA      *clientData,
                                     uint32_t               sockhandle,
                                     STUN_SENDFUNC          sendFunc,
                                     STUNCB                 stunCbFunc,
-                                    DiscussData           *discussData) //NULL if none
+                                    DiscussData           *discussData) /*NULL if none*/
                                    
 {
     StunBindReqStuct m;
@@ -729,7 +729,7 @@ static void BuildStunBindReq(STUN_TRANSACTION_DATA *trans, StunMessage  *stunReq
         stunReqMsg->controlled.value = trans->stunBindReq.tieBreaker;
     }
     
-    //Adding DISCUSS attributes if present
+    /*Adding DISCUSS attributes if present*/
     if (trans->stunBindReq.discussData != NULL)
     {
         stunReqMsg->hasStreamType = true;
@@ -942,7 +942,7 @@ static void BindRespCallback(STUN_TRANSACTION_DATA *trans, const struct sockaddr
 
     StunPrint(client->logUserData, client->Log_cb, StunInfoCategory_Info,
                 "<STUNCLIENT:%02d> BindResp from src: %s",
-                trans->inst,// pData->rflxAddr, pData->rflxPort,
+                trans->inst,
                 sockaddr_toString((struct sockaddr *) &res.srcAddr, ip_str,
                         SOCKADDR_MAX_STRLEN,
                         true));

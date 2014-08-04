@@ -376,10 +376,6 @@ stunEncodeIP6AddrAtr(StunAddress6 *pAddr, uint16_t attrtype, uint8_t **pBuf, int
     write_16(pBuf, 20);        /* Lenght */
     write_16(pBuf, STUN_ADDR_IPv6Family);      /* 8 bit non used, 8 bit for Family */
     write_16(pBuf, pAddr->port);
-    //write_32(pBuf, pAddr->addr[0]);
-    //write_32(pBuf, pAddr->addr[1]);
-    //write_32(pBuf, pAddr->addr[2]);
-    //write_32(pBuf, pAddr->addr[3]);
     write_8(pBuf, pAddr->addr[0]);
     write_8(pBuf, pAddr->addr[1]);
     write_8(pBuf, pAddr->addr[2]);
@@ -522,9 +518,9 @@ static bool
 stunEncodeIntegrityAtr(StunAtrIntegrity *pIntg, uint8_t **pBuf, int *nBufLen, int packetLen)
 {
     if (*nBufLen < 24) return false;
-    // Message Integrity is located offset bytes from the start of the packet.
-    // This is calculated by taking, whats left of packet(nBufLen), from the packet len.
-    //pIntg->offset = (packetLen - *nBufLen);
+    /*Message Integrity is located offset bytes from the start of the packet.
+     This is calculated by taking, whats left of packet(nBufLen), from the packet len.
+     pIntg->offset = (packetLen - *nBufLen);*/
     if (pIntg->offset == 0)
     {
         pIntg->offset = (packetLen - *nBufLen);
@@ -950,10 +946,6 @@ stunDecodeIPAddrAtr(StunIPAddress *pAddr, const uint8_t **pBuf, int *nBufLen)
     {
         if (*nBufLen < 18) return false;
         read_16(pBuf, &pAddr->addr.v6.port);
-        //read_32(pBuf, &pAddr->addr.v6.addr[0]);
-        //read_32(pBuf, &pAddr->addr.v6.addr[1]);
-        //read_32(pBuf, &pAddr->addr.v6.addr[2]);
-        //read_32(pBuf, &pAddr->addr.v6.addr[3]);
         read_8(pBuf, &pAddr->addr.v6.addr[0]);
         read_8(pBuf, &pAddr->addr.v6.addr[1]);
         read_8(pBuf, &pAddr->addr.v6.addr[2]);
@@ -1004,10 +996,6 @@ stunDecodeIPAddrAtrXOR(StunIPAddress *pAddr, const uint8_t **pBuf, int *nBufLen,
     {
         if (*nBufLen < 18) return false;
         read_16_xor(pBuf, &pAddr->addr.v6.port, xorId);
-        //read_32_xor(pBuf, &pAddr->addr.v6.addr[0], xorId);
-        //read_32_xor(pBuf, &pAddr->addr.v6.addr[1], (xorId+4));
-        //read_32_xor(pBuf, &pAddr->addr.v6.addr[2], (xorId+8));
-        //read_32_xor(pBuf, &pAddr->addr.v6.addr[3], (xorId+12));
         read_8_xor(pBuf, &pAddr->addr.v6.addr[0], xorId);
         read_8_xor(pBuf, &pAddr->addr.v6.addr[1], xorId +1);
         read_8_xor(pBuf, &pAddr->addr.v6.addr[2], xorId +2);
@@ -1042,9 +1030,9 @@ static bool
 stunDecodeIntegrityAtr(StunAtrIntegrity *pIntg, const uint8_t **pBuf, int *nBufLen, int packetLen)
 {
     if (*nBufLen < 20) return false;
-    // Message Integrity is located offset bytes from the start of the packet.
-    // This is calulated by taking, whats left from this attribute value to end of packet(nBufLen),
-    // plus the 4 bytes attribute header, from the packet len.
+    /* Message Integrity is located offset bytes from the start of the packet.
+       This is calulated by taking, whats left from this attribute value to end of packet(nBufLen),
+       plus the 4 bytes attribute header, from the packet len.*/
 
     pIntg->offset = (packetLen -  (*nBufLen + 4));
     read_8n(pBuf, pIntg->hash, 20);
@@ -1229,7 +1217,6 @@ stun_printDoubleValue(FILE *stream, char const * szHead, const StunAtrDoubleValu
 {
 
     printError(stream, "  %s \t= ", szHead);
-    //printError(stream, "%" PRIu64, pVal->value);
     printError(stream, "0x%llx", pVal->value);
     printError(stream,"\n");
 }
@@ -1811,11 +1798,7 @@ bool stunlib_checkIntegrity(const uint8_t* buf,
                             int integrityKeyLen)
 
 {
-
-    //Check integrity attribute
-
     
-
     if (message->hasMessageIntegrity)
     {
         unsigned char bufCopy[STUN_MAX_PACKET_SIZE];
@@ -1825,9 +1808,9 @@ bool stunlib_checkIntegrity(const uint8_t* buf,
         uint8_t *pCurrPtr;
 
         len= 0;
-        //Lengt of message including integiryty lenght (Header and attribute)
-        //Fingerprint and any trailing attributes are dismissed.
-        //msgIntLength = message->messageIntegrity.offset+24;
+        /*Lengt of message including integiryty lenght (Header and attribute)
+          Fingerprint and any trailing attributes are dismissed.
+          msgIntLength = message->messageIntegrity.offset+24;*/
         msgIntLength = message->msgHdr.msgLength;
         if(message->hasFingerPrint){
             msgIntLength =  msgIntLength-8;
@@ -1835,7 +1818,7 @@ bool stunlib_checkIntegrity(const uint8_t* buf,
 
         memcpy(&bufCopy, buf, bufLen);
 
-        //Write new packet length in header
+        /*Write new packet length in header*/
         pCurrPtr = (uint8_t *)bufCopy;
         pCurrPtr+=2;
         write_16(&pCurrPtr, msgIntLength);
@@ -2256,7 +2239,7 @@ stunlib_encodeMessage(StunMessage* message,
 
     }
 
-    //DISCUSS NETWORK-STATUS Attribute is to be placed after integrity attribute
+    /*DISCUSS NETWORK-STATUS Attribute is to be placed after integrity attribute*/
     
     if (message->hasNetworkStatus && !stunEncodeNetworkStatus(&message->networkStatus,
                                                               &pCurrPtr,
@@ -2283,14 +2266,12 @@ stunlib_encodeMessage(StunMessage* message,
         CCHmac(kCCHmacAlgSHA1,
                md5key, keyLen,
                pCurrPtr, /*stunmsg string*/
-               //msglen-STUN_HEADER_SIZE-4,
                message->messageIntegrity.offset,
                &message->messageIntegrity.hash[0]);
 #else
         HMAC(EVP_sha1(),
              md5key, keyLen,
              pCurrPtr, /*stunmsg string*/
-             //msglen-STUN_HEADER_SIZE-4,
              message->messageIntegrity.offset,
              &message->messageIntegrity.hash[0], &length);
 #endif
