@@ -140,25 +140,32 @@ void gatherAll(struct turn_info *turnInfo, struct listenConfig *listenConfig, vo
 
 void releaseAll(struct turn_info *turnInfo)
 {
-    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_44.relAddr)){
+    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_44.relAddrIPv4) ||
+        sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_44.relAddrIPv6) 
+    ){
 
         TurnClient_Deallocate(turnInfo->turnAlloc_44.tInst);
     }
 
-    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_46.relAddr)){
-
+    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_46.relAddrIPv4) ||
+        sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_46.relAddrIPv6) 
+    ){
+        
         TurnClient_Deallocate(turnInfo->turnAlloc_46.tInst);
     }
-
-    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_64.relAddr)){
-
+    
+    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_64.relAddrIPv4) ||
+        sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_64.relAddrIPv6) 
+    ){
+        
         TurnClient_Deallocate(turnInfo->turnAlloc_64.tInst);
     }
-
-    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_66.relAddr)){
-
+    
+    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_66.relAddrIPv4) ||
+        sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_66.relAddrIPv6) 
+    ){
+        
         TurnClient_Deallocate(turnInfo->turnAlloc_66.tInst);
     }
-
-
+    
 }

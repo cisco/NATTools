@@ -455,12 +455,27 @@ typedef struct
     bool hasRealm;
     StunAtrString realm;
 
-    bool hasXorRelayAddress;
-    StunIPAddress  xorRelayAddress;
+    StunIPAddress  xorRelayAddressTMP;
 
-    bool hasRequestedAddrFamily;
-    StunAttrRequestedAddrFamily requestedAddrFamily;
+    bool hasXorRelayAddressIPv4;
+    StunIPAddress  xorRelayAddressIPv4;
 
+    bool hasXorRelayAddressIPv6;
+    StunIPAddress  xorRelayAddressIPv6;
+
+    bool hasXorRelayAddressSSODA;
+
+    //Used when parsing message 
+    StunAttrRequestedAddrFamily requestedAddrFamilyTMP;
+
+    bool hasRequestedAddrFamilyIPv4;
+    StunAttrRequestedAddrFamily requestedAddrFamilyIPv4;
+
+    bool hasRequestedAddrFamilyIPv6;
+    StunAttrRequestedAddrFamily requestedAddrFamilyIPv6;
+
+    bool hasRequestedAddrFamilySSODA;
+    
     bool hasChannelNumber;
     StunAtrChannelNumber channelNumber;
 

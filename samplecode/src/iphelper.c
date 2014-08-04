@@ -567,7 +567,7 @@ int sendKeepalive(struct turn_info *turnInfo)
     if (sockaddr_isSet((struct sockaddr *)&turnInfo->remoteIp4))
     {
 
-        if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_44.relAddr))
+        if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_44.relAddrIPv4))
         {
             len = sendRawUDP(turnInfo->turnAlloc_44.sockfd,
                              m,
@@ -576,8 +576,7 @@ int sendKeepalive(struct turn_info *turnInfo)
                              sizeof( struct sockaddr_storage));
         }
 
-        if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_46.relAddr))
-        {
+        if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_46.relAddrIPv6)){
             len = sendRawUDP(turnInfo->turnAlloc_46.sockfd,
                              m,
                              sizeof(m),
@@ -587,7 +586,7 @@ int sendKeepalive(struct turn_info *turnInfo)
     }
 
     if (sockaddr_isSet((struct sockaddr *)&turnInfo->remoteIp6)){
-        if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_64.relAddr))
+        if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_64.relAddrIPv4))
         {
             len = sendRawUDP(turnInfo->turnAlloc_64.sockfd,
                              m,
@@ -596,7 +595,7 @@ int sendKeepalive(struct turn_info *turnInfo)
                              sizeof( struct sockaddr_storage));
         }
 
-        if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_66.relAddr))
+        if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_66.relAddrIPv6))
         {
             len = sendRawUDP(turnInfo->turnAlloc_66.sockfd,
                              m,
@@ -622,8 +621,11 @@ void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData)
         sockaddr_copy((struct sockaddr *)&turnResult->rflxAddr, 
                       (struct sockaddr *)&retData->TurnResultData.AllocResp.srflxAddr);
 
-        sockaddr_copy((struct sockaddr *)&turnResult->relAddr, 
-                      (struct sockaddr *)&retData->TurnResultData.AllocResp.relAddr);
+        sockaddr_copy((struct sockaddr *)&turnResult->relAddrIPv4, 
+                      (struct sockaddr *)&retData->TurnResultData.AllocResp.relAddrIPv4);
+
+        sockaddr_copy((struct sockaddr *)&turnResult->relAddrIPv6, 
+                      (struct sockaddr *)&retData->TurnResultData.AllocResp.relAddrIPv6);
 
         
     }else if (retData->turnResult == TurnResult_CreatePermissionOk) {
@@ -637,7 +639,8 @@ void TurnStatusCallBack(void *ctx, TurnCallBackData_T *retData)
         memset(&turnResult->activeTurnServerAddr, 0,sizeof(struct sockaddr_storage));
         //memset(&turnResult->hostAddr, 0,sizeof(struct sockaddr_storage));
         memset(&turnResult->rflxAddr, 0,sizeof(struct sockaddr_storage));
-        memset(&turnResult->relAddr, 0,sizeof(struct sockaddr_storage));
+        memset(&turnResult->relAddrIPv4, 0,sizeof(struct sockaddr_storage));
+        memset(&turnResult->relAddrIPv6, 0,sizeof(struct sockaddr_storage));
         memset(&turnResult->turnPerm, 0,sizeof(struct turn_permissions));
         
         

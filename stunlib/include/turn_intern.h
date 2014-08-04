@@ -142,7 +142,8 @@ struct TURN_INSTANCE_DATA
     /* returned in allocate resp */
 
     struct sockaddr_storage  srflxAddr;
-    struct sockaddr_storage  relAddr;
+    struct sockaddr_storage  relAddr_IPv4;
+    struct sockaddr_storage  relAddr_IPv6;
 
     uint32_t lifetime;               /* Seconds */
     TurnChannelBindInfo_T      channelBindInfo;

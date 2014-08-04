@@ -494,8 +494,11 @@ void TurnClientGetStats(const TURN_INSTANCE_DATA *pInst, TurnStats_T *Stats)
         sockaddr_copy((struct sockaddr *)&Stats->AllocResp.srflxAddr,
                       (struct sockaddr *)&pInst->srflxAddr);
 
-        sockaddr_copy((struct sockaddr *)&Stats->AllocResp.relAddr,
-                      (struct sockaddr *)&pInst->relAddr);
+        sockaddr_copy((struct sockaddr *)&Stats->AllocResp.relAddrIPv4,
+                      (struct sockaddr *)&pInst->relAddr_IPv4);
+
+        sockaddr_copy((struct sockaddr *)&Stats->AllocResp.relAddrIPv6,
+                      (struct sockaddr *)&pInst->relAddr_IPv6);
 
         Stats->channelBound = pInst->channelBound;
         if (pInst->channelBound)
@@ -855,41 +858,83 @@ static bool StoreToken (TURN_INSTANCE_DATA *pInst, StunMessage *stunRespMsg)
 
 static bool StoreRelayAddressStd(TURN_INSTANCE_DATA *pInst, StunMessage *stunRespMsg)
 {
-    struct sockaddr_storage addr;
-    memset(&addr, 0, sizeof addr);
+    struct sockaddr_storage addr_v4;
+    struct sockaddr_storage addr_v6;
+    memset(&addr_v4, 0, sizeof addr_v4);
+    memset(&addr_v6, 0, sizeof addr_v6);
 
-    if (stunRespMsg->hasXorRelayAddress)
+    int  requested_ai_family = getAddrFamily(pInst);
+    if (stunRespMsg->hasXorRelayAddressSSODA)
     {
-        int  requested_ai_family = getAddrFamily(pInst);
-
-        if ((stunRespMsg->xorRelayAddress.familyType == STUN_ADDR_IPv4Family)
-        && (requested_ai_family != AF_INET6))
+        //
+        
+        if (stunRespMsg->xorRelayAddressIPv4.familyType == STUN_ADDR_IPv4Family)
         {
-            sockaddr_initFromIPv4Int((struct sockaddr_in *)&addr,
-                                     htonl(stunRespMsg->xorRelayAddress.addr.v4.addr),
-                                     htons(stunRespMsg->xorRelayAddress.addr.v4.port));
+            sockaddr_initFromIPv4Int((struct sockaddr_in *)&addr_v4,
+                                     htonl(stunRespMsg->xorRelayAddressIPv4.addr.v4.addr),
+                                     htons(stunRespMsg->xorRelayAddressIPv4.addr.v4.port));
         }
-        else if ((stunRespMsg->xorRelayAddress.familyType == STUN_ADDR_IPv6Family)
-        && (requested_ai_family != AF_INET))
+        
+        if (stunRespMsg->xorRelayAddressIPv6.familyType == STUN_ADDR_IPv6Family)
         {
-            sockaddr_initFromIPv6Int((struct sockaddr_in6 *)&addr,
-                                     stunRespMsg->xorRelayAddress.addr.v6.addr,
-                                     htons(stunRespMsg->xorRelayAddress.addr.v6.port));
+            sockaddr_initFromIPv6Int((struct sockaddr_in6 *)&addr_v6,
+                                     stunRespMsg->xorRelayAddressIPv6.addr.v6.addr,
+                                     htons(stunRespMsg->xorRelayAddressIPv6.addr.v6.port));
         }
-        else
-        {
-            TurnPrint(pInst, TurnInfoCategory_Error, "<TURNCLIENT:%d> Alocated relay has incorrect address family %s (%d:%d)",
-                      pInst->id,
-                      requested_ai_family == AF_INET ? "Requested: IPv4, Received IPv6" : "Requested: IPv6, Received IPv4",
-                      requested_ai_family,  stunRespMsg->xorRelayAddress.familyType);
-            return false;
-        }
+        
+        sockaddr_copy((struct sockaddr *)&pInst->relAddr_IPv4,
+                      (struct sockaddr *)&addr_v4);
 
-        sockaddr_copy((struct sockaddr *)&pInst->relAddr,
-                      (struct sockaddr *)&addr);
-
+        sockaddr_copy((struct sockaddr *)&pInst->relAddr_IPv6,
+                      (struct sockaddr *)&addr_v6);
+ 
         return true;
-    }
+    }else if(stunRespMsg->hasXorRelayAddressIPv4)
+        {
+            if (stunRespMsg->xorRelayAddressIPv4.familyType == STUN_ADDR_IPv4Family)
+                {
+                    sockaddr_initFromIPv4Int((struct sockaddr_in *)&addr_v4,
+                                             htonl(stunRespMsg->xorRelayAddressIPv4.addr.v4.addr),
+                                             htons(stunRespMsg->xorRelayAddressIPv4.addr.v4.port));
+
+
+                    sockaddr_copy((struct sockaddr *)&pInst->relAddr_IPv4,
+                      (struct sockaddr *)&addr_v4);
+                    return true;
+                }
+            else
+                {
+                    TurnPrint(pInst, TurnInfoCategory_Error, "<TURNCLIENT:%d> Alocated relay has incorrect address family %s (%d:%d)",
+                              pInst->id,
+                              requested_ai_family == AF_INET ? "Requested: IPv4, Received IPv6" : "Requested: IPv6, Received IPv4",
+                              requested_ai_family,  stunRespMsg->xorRelayAddressIPv4.familyType);
+                    return false;
+                }
+        
+        }else if(stunRespMsg->hasXorRelayAddressIPv6)
+        {
+            if (stunRespMsg->xorRelayAddressIPv6.familyType == STUN_ADDR_IPv6Family)
+                {
+
+                    sockaddr_initFromIPv6Int((struct sockaddr_in6 *)&addr_v6,
+                                     stunRespMsg->xorRelayAddressIPv6.addr.v6.addr,
+                                     htons(stunRespMsg->xorRelayAddressIPv6.addr.v6.port));
+       
+                    sockaddr_copy((struct sockaddr *)&pInst->relAddr_IPv6,
+                                  (struct sockaddr *)&addr_v6);
+                    
+                    return true;
+                }
+            else
+                {
+                    TurnPrint(pInst, TurnInfoCategory_Error, "<TURNCLIENT:%d> Alocated relay has incorrect address family %s (%d:%d)",
+                              pInst->id,
+                              requested_ai_family == AF_INET ? "Requested: IPv4, Received IPv6" : "Requested: IPv6, Received IPv4",
+                              requested_ai_family,  stunRespMsg->xorRelayAddressIPv6.familyType);
+                    return false;
+                }
+        
+        }
     else
     {
         TurnPrint(pInst, TurnInfoCategory_Error, "<TURNCLIENT:%d> Missing Xor RelayAddress AllocResp",pInst->id);
@@ -1243,6 +1288,8 @@ static void  AllocateResponseCallback(TURN_INSTANCE_DATA *pInst)
     TurnCallBackData_T *pRes = &pInst->turnCbData;
     TurnAllocResp      *pData;
 
+    printf("STUNLIB: AllocateResponseCallback(TURN_INSTANCE_DATA *pInst)\n");
+
     if (pRes)
     {
         char srflxaddr[SOCKADDR_MAX_STRLEN];
@@ -1251,28 +1298,38 @@ static void  AllocateResponseCallback(TURN_INSTANCE_DATA *pInst)
 
         pData = &pInst->turnCbData.TurnResultData.AllocResp;
         pRes->turnResult = TurnResult_AllocOk;
+        
         sockaddr_copy((struct sockaddr *)&pData->activeTurnServerAddr,
                       (struct sockaddr *)&pInst->turnAllocateReq.serverAddr);
-
-        sockaddr_copy((struct sockaddr *)&pData->relAddr,
-                      (struct sockaddr *)&pInst->relAddr);
-
+        
+        sockaddr_copy((struct sockaddr *)&pData->relAddrIPv4,
+                      (struct sockaddr *)&pInst->relAddr_IPv4);
+        
+        sockaddr_copy((struct sockaddr *)&pData->relAddrIPv6,
+                      (struct sockaddr *)&pInst->relAddr_IPv6);
+        
+        
         sockaddr_copy((struct sockaddr *)&pData->srflxAddr,
                       (struct sockaddr *)&pInst->srflxAddr);
 
+        sockaddr_toString((struct sockaddr *)&pData->relAddrIPv4, reladdr,SOCKADDR_MAX_STRLEN, true);
+        
+        sockaddr_toString((struct sockaddr *)&pData->relAddrIPv6, reladdr,SOCKADDR_MAX_STRLEN, true);
+
         TurnPrint(pInst,
                   TurnInfoCategory_Info,
-                  "<TURNCLIENT:%d> AllocResp Relay: %s  Srflx: %s lifetime %d sec from Server %s",
+                  "<TURNCLIENT:%d> AllocResp Relay: %s  (%s) Srflx: %s lifetime %d sec from Server %s",
                   pInst->id,
-                  sockaddr_toString((struct sockaddr *)&pData->relAddr, reladdr,SOCKADDR_MAX_STRLEN, true),
+                  sockaddr_toString((struct sockaddr *)&pData->relAddrIPv4, reladdr,SOCKADDR_MAX_STRLEN, true),
+                  sockaddr_toString((struct sockaddr *)&pData->relAddrIPv6, reladdr,SOCKADDR_MAX_STRLEN, true),
                   sockaddr_toString((struct sockaddr *)&pData->srflxAddr, srflxaddr, SOCKADDR_MAX_STRLEN, true),
                   pInst->lifetime,
                   sockaddr_toString((struct sockaddr *)&pData->activeTurnServerAddr,
                                     activeaddr, SOCKADDR_MAX_STRLEN, true));
-
+        
         pData->token = pInst->token;
     }
-
+    
     if (pInst->turnAllocateReq.turnCbFunc)
         (pInst->turnAllocateReq.turnCbFunc)(pInst->turnAllocateReq.userCtx, &pInst->turnCbData);
 }
