@@ -76,8 +76,8 @@ typedef struct {
     struct sockaddr_storage  serverAddr;
     struct sockaddr_storage  baseAddr;
     bool                     useRelay;
-    char                     ufrag[300];    //TBD  =  ICE_MAX_UFRAG_LENGTH
-    char                     password[300]; // TBD = ICE_MAX_PASSWD_LENGTH
+    char                     ufrag[300];    /* TBD  =  ICE_MAX_UFRAG_LENGTH*/
+    char                     password[300]; /* TBD = ICE_MAX_PASSWD_LENGTH*/
     uint32_t                 peerPriority;
     bool                     useCandidate;
     bool                     iceControlling;
@@ -86,7 +86,7 @@ typedef struct {
     uint32_t                 sockhandle;
     STUN_SENDFUNC            sendFunc;
     STUNCB                   stunCbFunc;
-    DiscussData             *discussData; //NULL allowd if none present
+    DiscussData             *discussData; /*NULL allowed if none present */
 } StunBindReqStuct;
 
 struct StunClientStats
@@ -138,7 +138,7 @@ struct STUN_CLIENT_DATA
 {
     STUN_TRANSACTION_DATA data [MAX_STUN_TRANSACTIONS];
 
-    // duplicated for logging on unknown transactions etc.
+    /*duplicated for logging on unknown transactions etc.*/
     STUN_INFO_FUNC_PTR   Log_cb;
     void * logUserData;
     struct StunClientStats stats;

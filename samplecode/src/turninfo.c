@@ -47,7 +47,13 @@ void printAllocationResult(struct turn_allocation_result *result)
                              true));
 
     printf("   RELAY addr: '%s'\n",
-           sockaddr_toString((struct sockaddr *)&result->relAddr,
+           sockaddr_toString((struct sockaddr *)&result->relAddrIPv4,
+                             addr,
+                             sizeof(addr),
+                             true));
+
+    printf("   RELAY addr: '%s'\n",
+           sockaddr_toString((struct sockaddr *)&result->relAddrIPv6,
                              addr,
                              sizeof(addr),
                              true));
@@ -119,9 +125,15 @@ int printAllocationResultw(WINDOW *win, int startx, int starty, struct turn_allo
                              true));
 
     mvwprintw(win, starty++, startx,"RELAY addr:         '%s'\n",
-           sockaddr_toString((struct sockaddr *)&alloc->relAddr,
-                             addr,
-                             sizeof(addr),
+              sockaddr_toString((struct sockaddr *)&alloc->relAddrIPv4,
+                                addr,
+                                sizeof(addr),
+                                true));
+    
+    mvwprintw(win, starty++, startx,"RELAY addr:         '%s'\n",
+              sockaddr_toString((struct sockaddr *)&alloc->relAddrIPv6,
+                                addr,
+                                sizeof(addr),
                              true));
 
     return starty;
@@ -264,8 +276,18 @@ char * getDefaultAddrAsString(char *string, struct turn_info *turnInfo)
         strcat(string, " ");
     }
 
-    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_44.relAddr)){
-        sockaddr_toString((struct sockaddr *)&turnInfo->turnAlloc_44.relAddr,
+    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_44.relAddrIPv4)){
+        sockaddr_toString((struct sockaddr *)&turnInfo->turnAlloc_44.relAddrIPv4,
+                          addr,
+                          sizeof(addr),
+                          true);
+        strcat(string, addr);
+        strcat(string, " ");
+    }
+
+
+    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_44.relAddrIPv6)){
+        sockaddr_toString((struct sockaddr *)&turnInfo->turnAlloc_44.relAddrIPv6,
                           addr,
                           sizeof(addr),
                           true);
@@ -284,8 +306,17 @@ char * getDefaultAddrAsString(char *string, struct turn_info *turnInfo)
         strcat(string, " ");
     }
 
-    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_66.relAddr)){
-        sockaddr_toString((struct sockaddr *)&turnInfo->turnAlloc_66.relAddr,
+    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_66.relAddrIPv4)){
+        sockaddr_toString((struct sockaddr *)&turnInfo->turnAlloc_66.relAddrIPv4,
+                          addr,
+                          sizeof(addr),
+                          true);
+        strcat(string, addr);
+        strcat(string, " ");
+    }
+
+    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_66.relAddrIPv6)){
+        sockaddr_toString((struct sockaddr *)&turnInfo->turnAlloc_66.relAddrIPv6,
                           addr,
                           sizeof(addr),
                           true);
@@ -333,22 +364,22 @@ void fillPermissions(struct turn_info *turnInfo, char *string)
                                     string) ){
 
             if(addr.ss_family == AF_INET){
-                if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_44.relAddr)){
+                if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_44.relAddrIPv4)){
                     sockaddr_copy((struct sockaddr *)&turnInfo->turnAlloc_44.turnPerm.permissions[turnInfo->turnAlloc_44.turnPerm.numPermissions++],
                                   (struct sockaddr *)&addr);
                 }
-
-                if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_64.relAddr)){
+                
+                if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_64.relAddrIPv4)){
                     sockaddr_copy((struct sockaddr *)&turnInfo->turnAlloc_64.turnPerm.permissions[turnInfo->turnAlloc_64.turnPerm.numPermissions++],
                                   (struct sockaddr *)&addr);
                 }
             }
             if (addr.ss_family == AF_INET6){
-                if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_46.relAddr)){
+                if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_46.relAddrIPv6)){
                     sockaddr_copy((struct sockaddr *)&turnInfo->turnAlloc_46.turnPerm.permissions[turnInfo->turnAlloc_46.turnPerm.numPermissions++],
                                   (struct sockaddr *)&addr);
                 }
-                if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_66.relAddr)){
+                if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_66.relAddrIPv6)){
                     sockaddr_copy((struct sockaddr *)&turnInfo->turnAlloc_66.turnPerm.permissions[turnInfo->turnAlloc_66.turnPerm.numPermissions++],
                                   (struct sockaddr *)&addr);
                 }

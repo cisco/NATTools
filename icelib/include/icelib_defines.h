@@ -33,9 +33,9 @@ or implied, of Cisco.
 
 #define ICE_MAX_DEBUG_STRING      200
 
-#define ICELIB_UFRAG_LENGTH       (4+1)     // includes zero ('\0') termination
-#define ICELIB_PASSWD_LENGTH      (22+1)    // includes zero ('\0') termination
-#define ICELIB_FOUNDATION_LENGTH  (1+1)     // includes zero ('\0') termination
+#define ICELIB_UFRAG_LENGTH       (4+1)     /* includes zero ('\0') termination */
+#define ICELIB_PASSWD_LENGTH      (22+1)    /* includes zero ('\0') termination */
+#define ICELIB_FOUNDATION_LENGTH  (1+1)     /* includes zero ('\0') termination */
 
 #define ICE_MAX_UFRAG_PAIR_LENGTH       ( ( ICE_MAX_UFRAG_LENGTH      * 2) + 1)
 #define ICE_MAX_FOUNDATION_PAIR_LENGTH  ( ( ICE_MAX_FOUNDATION_LENGTH * 2))
@@ -52,7 +52,7 @@ or implied, of Cisco.
 
 
 #define ICELIB_COMPLETE_WEIGHT              150
-//Warning. No equal values are allowed. (Used to ensure that RTP and RTCP has the same path)
+/*Warning. No equal values are allowed. (Used to ensure that RTP and RTCP has the same path)*/
 #define ICELIB_HOST_WEIGHT                   50
 #define ICELIB_SRFLX_WEIGHT                  25
 #define ICELIB_PRFLX_WEIGHT                  20

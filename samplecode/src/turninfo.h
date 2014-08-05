@@ -31,7 +31,8 @@ struct turn_allocation{
     struct sockaddr_storage activeTurnServerAddr;
     struct sockaddr_storage hostAddr;
     struct sockaddr_storage rflxAddr;
-    struct sockaddr_storage relAddr;
+    struct sockaddr_storage relAddrIPv4;
+    struct sockaddr_storage relAddrIPv6;
     struct turn_permissions turnPerm;
 
     void (*update_turninfo)(void);

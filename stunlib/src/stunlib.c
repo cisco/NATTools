@@ -376,10 +376,6 @@ stunEncodeIP6AddrAtr(StunAddress6 *pAddr, uint16_t attrtype, uint8_t **pBuf, int
     write_16(pBuf, 20);        /* Lenght */
     write_16(pBuf, STUN_ADDR_IPv6Family);      /* 8 bit non used, 8 bit for Family */
     write_16(pBuf, pAddr->port);
-    //write_32(pBuf, pAddr->addr[0]);
-    //write_32(pBuf, pAddr->addr[1]);
-    //write_32(pBuf, pAddr->addr[2]);
-    //write_32(pBuf, pAddr->addr[3]);
     write_8(pBuf, pAddr->addr[0]);
     write_8(pBuf, pAddr->addr[1]);
     write_8(pBuf, pAddr->addr[2]);
@@ -522,9 +518,9 @@ static bool
 stunEncodeIntegrityAtr(StunAtrIntegrity *pIntg, uint8_t **pBuf, int *nBufLen, int packetLen)
 {
     if (*nBufLen < 24) return false;
-    // Message Integrity is located offset bytes from the start of the packet.
-    // This is calculated by taking, whats left of packet(nBufLen), from the packet len.
-    //pIntg->offset = (packetLen - *nBufLen);
+    /*Message Integrity is located offset bytes from the start of the packet.
+     This is calculated by taking, whats left of packet(nBufLen), from the packet len.
+     pIntg->offset = (packetLen - *nBufLen);*/
     if (pIntg->offset == 0)
     {
         pIntg->offset = (packetLen - *nBufLen);
@@ -950,10 +946,6 @@ stunDecodeIPAddrAtr(StunIPAddress *pAddr, const uint8_t **pBuf, int *nBufLen)
     {
         if (*nBufLen < 18) return false;
         read_16(pBuf, &pAddr->addr.v6.port);
-        //read_32(pBuf, &pAddr->addr.v6.addr[0]);
-        //read_32(pBuf, &pAddr->addr.v6.addr[1]);
-        //read_32(pBuf, &pAddr->addr.v6.addr[2]);
-        //read_32(pBuf, &pAddr->addr.v6.addr[3]);
         read_8(pBuf, &pAddr->addr.v6.addr[0]);
         read_8(pBuf, &pAddr->addr.v6.addr[1]);
         read_8(pBuf, &pAddr->addr.v6.addr[2]);
@@ -1004,10 +996,6 @@ stunDecodeIPAddrAtrXOR(StunIPAddress *pAddr, const uint8_t **pBuf, int *nBufLen,
     {
         if (*nBufLen < 18) return false;
         read_16_xor(pBuf, &pAddr->addr.v6.port, xorId);
-        //read_32_xor(pBuf, &pAddr->addr.v6.addr[0], xorId);
-        //read_32_xor(pBuf, &pAddr->addr.v6.addr[1], (xorId+4));
-        //read_32_xor(pBuf, &pAddr->addr.v6.addr[2], (xorId+8));
-        //read_32_xor(pBuf, &pAddr->addr.v6.addr[3], (xorId+12));
         read_8_xor(pBuf, &pAddr->addr.v6.addr[0], xorId);
         read_8_xor(pBuf, &pAddr->addr.v6.addr[1], xorId +1);
         read_8_xor(pBuf, &pAddr->addr.v6.addr[2], xorId +2);
@@ -1042,9 +1030,9 @@ static bool
 stunDecodeIntegrityAtr(StunAtrIntegrity *pIntg, const uint8_t **pBuf, int *nBufLen, int packetLen)
 {
     if (*nBufLen < 20) return false;
-    // Message Integrity is located offset bytes from the start of the packet.
-    // This is calulated by taking, whats left from this attribute value to end of packet(nBufLen),
-    // plus the 4 bytes attribute header, from the packet len.
+    /* Message Integrity is located offset bytes from the start of the packet.
+       This is calulated by taking, whats left from this attribute value to end of packet(nBufLen),
+       plus the 4 bytes attribute header, from the packet len.*/
 
     pIntg->offset = (packetLen -  (*nBufLen + 4));
     read_8n(pBuf, pIntg->hash, 20);
@@ -1229,7 +1217,6 @@ stun_printDoubleValue(FILE *stream, char const * szHead, const StunAtrDoubleValu
 {
 
     printError(stream, "  %s \t= ", szHead);
-    //printError(stream, "%" PRIu64, pVal->value);
     printError(stream, "0x%llx", pVal->value);
     printError(stream,"\n");
 }
@@ -1316,8 +1303,11 @@ stun_printMessage(FILE *stream, const StunMessage *pMsg)
         stun_printString(stream, "softwareName", &message->software);
 
     /* TURN usage specific attributes */
-    if (message->hasXorRelayAddress)
-        stun_printIPAddress(stream, "xorRelayAddress", &pMsg->xorRelayAddress);
+    if (message->hasXorRelayAddressIPv4)
+        stun_printIPAddress(stream, "xorRelayAddressIPv4", &pMsg->xorRelayAddressIPv4);
+
+    if (message->hasXorRelayAddressIPv6)
+        stun_printIPAddress(stream, "xorRelayAddressIPv6", &pMsg->xorRelayAddressIPv6);
 
     if (message->hasLifetime)
         stun_printValue(stream, "lifetime", &message->lifetime);
@@ -1642,11 +1632,26 @@ stunlib_DecodeMessage(const uint8_t* buf,
                 message->hasRealm = true;
                 break;
             case STUN_ATTR_XorRelayAddress:
-                if (!stunDecodeIPAddrAtrXOR(&message->xorRelayAddress,
+                if (!stunDecodeIPAddrAtrXOR(&message->xorRelayAddressTMP,
                                             &pCurrPtr,
                                             &restlen,
                                             &message->msgHdr.id)) return false;
-                message->hasXorRelayAddress = true;
+                
+                if(message->xorRelayAddressTMP.familyType == STUN_ADDR_IPv4Family){
+                    message->hasXorRelayAddressIPv4 = true;
+                    memcpy(&message->xorRelayAddressIPv4,
+                           &message->xorRelayAddressTMP,
+                           sizeof(StunIPAddress));
+                }else if(message->xorRelayAddressTMP.familyType == STUN_ADDR_IPv6Family){
+                    message->hasXorRelayAddressIPv6 = true;
+                    memcpy(&message->xorRelayAddressIPv6,
+                           &message->xorRelayAddressTMP,
+                           sizeof(StunIPAddress));
+                }
+                if(message->hasXorRelayAddressIPv6 && message->hasXorRelayAddressIPv4){
+                    message->hasXorRelayAddressSSODA = true;
+                }
+                
                 break;
             case STUN_ATTR_Priority:
                 if (!stunDecodeValueAtr(&message->priority,
@@ -1661,10 +1666,27 @@ stunlib_DecodeMessage(const uint8_t* buf,
                 message->hasRequestedTransport = true;
                 break;
         case STUN_ATTR_RequestedAddrFamily:
-                if (!stunDecodeRequestedAddrFamilyAtr(&message->requestedAddrFamily,
+                if (!stunDecodeRequestedAddrFamilyAtr(&message->requestedAddrFamilyTMP,
                                                       &pCurrPtr,
                                                       &restlen)) return false;
-                message->hasRequestedAddrFamily = true;
+                
+                if(message->requestedAddrFamilyTMP.family == 0x01){
+                    message->hasRequestedAddrFamilyIPv4 = true;
+                    memcpy(&message->requestedAddrFamilyIPv4,
+                           &message->requestedAddrFamilyTMP, 
+                           sizeof(StunAttrRequestedAddrFamily));
+                }
+                if(message->requestedAddrFamilyTMP.family == 0x02){
+                    message->hasRequestedAddrFamilyIPv6 = true;
+                    memcpy(&message->requestedAddrFamilyIPv6,
+                           &message->requestedAddrFamilyTMP, 
+                           sizeof(StunAttrRequestedAddrFamily));
+                }
+
+                if(message->hasRequestedAddrFamilyIPv4 && message->hasRequestedAddrFamilyIPv6){
+                    message->hasRequestedAddrFamilySSODA = true;
+                }
+                
                 break;
 
 
@@ -1776,11 +1798,7 @@ bool stunlib_checkIntegrity(const uint8_t* buf,
                             int integrityKeyLen)
 
 {
-
-    //Check integrity attribute
-
     
-
     if (message->hasMessageIntegrity)
     {
         unsigned char bufCopy[STUN_MAX_PACKET_SIZE];
@@ -1790,9 +1808,9 @@ bool stunlib_checkIntegrity(const uint8_t* buf,
         uint8_t *pCurrPtr;
 
         len= 0;
-        //Lengt of message including integiryty lenght (Header and attribute)
-        //Fingerprint and any trailing attributes are dismissed.
-        //msgIntLength = message->messageIntegrity.offset+24;
+        /*Lengt of message including integiryty lenght (Header and attribute)
+          Fingerprint and any trailing attributes are dismissed.
+          msgIntLength = message->messageIntegrity.offset+24;*/
         msgIntLength = message->msgHdr.msgLength;
         if(message->hasFingerPrint){
             msgIntLength =  msgIntLength-8;
@@ -1800,7 +1818,7 @@ bool stunlib_checkIntegrity(const uint8_t* buf,
 
         memcpy(&bufCopy, buf, bufLen);
 
-        //Write new packet length in header
+        /*Write new packet length in header*/
         pCurrPtr = (uint8_t *)bufCopy;
         pCurrPtr+=2;
         write_16(&pCurrPtr, msgIntLength);
@@ -2035,7 +2053,15 @@ stunlib_encodeMessage(StunMessage* message,
         return 0;
     }
 
-    if (message->hasRequestedAddrFamily && !stunEncodeRequestedAddrFamily(&message->requestedAddrFamily,
+    if (message->hasRequestedAddrFamilyIPv4 && !stunEncodeRequestedAddrFamily(&message->requestedAddrFamilyIPv4,
+                                                                          &pCurrPtr,
+                                                                          &restlen))
+    {
+        if (stream != NULL) printError(stream, "Invalid RequestedAddressFamily attribute\n");
+        return 0;
+    }
+
+    if (message->hasRequestedAddrFamilyIPv6 && !stunEncodeRequestedAddrFamily(&message->requestedAddrFamilyIPv6,
                                                                           &pCurrPtr,
                                                                           &restlen))
     {
@@ -2116,13 +2142,23 @@ stunlib_encodeMessage(StunMessage* message,
             return 0;
         }
     }
-    if (message->hasXorRelayAddress && !stunEncodeIPAddrAtrXOR(&message->xorRelayAddress,
-                                                               STUN_ATTR_XorRelayAddress,
-                                                               &pCurrPtr,
-                                                               &restlen,
-                                                               &message->msgHdr.id))
+    if (message->hasXorRelayAddressIPv4 && !stunEncodeIPAddrAtrXOR(&message->xorRelayAddressIPv4,
+                                                                   STUN_ATTR_XorRelayAddress,
+                                                                   &pCurrPtr,
+                                                                   &restlen,
+                                                                   &message->msgHdr.id))
     {
-        if (stream != NULL) printError(stream, "xorRelayAddress failed \n");
+        if (stream != NULL) printError(stream, "xorRelayAddressIPv4 failed \n");
+        return 0;
+    }
+
+    if (message->hasXorRelayAddressIPv6 && !stunEncodeIPAddrAtrXOR(&message->xorRelayAddressIPv6,
+                                                                   STUN_ATTR_XorRelayAddress,
+                                                                   &pCurrPtr,
+                                                                   &restlen,
+                                                                   &message->msgHdr.id))
+    {
+        if (stream != NULL) printError(stream, "xorRelayAddressIPv6 failed \n");
         return 0;
     }
 
@@ -2203,7 +2239,7 @@ stunlib_encodeMessage(StunMessage* message,
 
     }
 
-    //DISCUSS NETWORK-STATUS Attribute is to be placed after integrity attribute
+    /*DISCUSS NETWORK-STATUS Attribute is to be placed after integrity attribute*/
     
     if (message->hasNetworkStatus && !stunEncodeNetworkStatus(&message->networkStatus,
                                                               &pCurrPtr,
@@ -2230,14 +2266,12 @@ stunlib_encodeMessage(StunMessage* message,
         CCHmac(kCCHmacAlgSHA1,
                md5key, keyLen,
                pCurrPtr, /*stunmsg string*/
-               //msglen-STUN_HEADER_SIZE-4,
                message->messageIntegrity.offset,
                &message->messageIntegrity.hash[0]);
 #else
         HMAC(EVP_sha1(),
              md5key, keyLen,
              pCurrPtr, /*stunmsg string*/
-             //msglen-STUN_HEADER_SIZE-4,
              message->messageIntegrity.offset,
              &message->messageIntegrity.hash[0], &length);
 #endif
@@ -2343,16 +2377,26 @@ stunlib_addRequestedTransport(StunMessage *stunMsg, uint8_t protocol)
 bool
 stunlib_addRequestedAddrFamily(StunMessage *stunMsg, int sa_family)
 {
-    memset(stunMsg->requestedAddrFamily.rffu, 0, sizeof(stunMsg->requestedAddrFamily.rffu));
+    memset(stunMsg->requestedAddrFamilyIPv4.rffu, 0, sizeof(stunMsg->requestedAddrFamilyIPv4.rffu));
+    memset(stunMsg->requestedAddrFamilyIPv6.rffu, 0, sizeof(stunMsg->requestedAddrFamilyIPv6.rffu));
+
     if (sa_family == AF_INET){
-        stunMsg->hasRequestedAddrFamily    = true;
-        stunMsg->requestedAddrFamily.family = 0x01;
+        stunMsg->hasRequestedAddrFamilyIPv4    = true;
+        stunMsg->requestedAddrFamilyIPv4.family = 0x01;
         return true;
     }else if (sa_family == AF_INET6){
-        stunMsg->hasRequestedAddrFamily    = true;
-        stunMsg->requestedAddrFamily.family = 0x02;
+        stunMsg->hasRequestedAddrFamilyIPv6    = true;
+        stunMsg->requestedAddrFamilyIPv6.family = 0x02;
+        return true;
+    }else if (sa_family == (AF_INET6 + AF_INET)){
+        stunMsg->hasRequestedAddrFamilyIPv4    = true;
+        stunMsg->requestedAddrFamilyIPv4.family = 0x01;
+        stunMsg->hasRequestedAddrFamilyIPv6    = true;
+        stunMsg->requestedAddrFamilyIPv6.family = 0x02;
+        stunMsg->hasRequestedAddrFamilySSODA    = true;
         return true;
     }
+
     return false;
 }
 

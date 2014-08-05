@@ -3,6 +3,8 @@
 
 #include <check.h>
 
+#include <sockaddr_util.h>
+
 #include "stunlib.h"
 
 Suite * turnmessage_suite (void);
@@ -109,8 +111,8 @@ START_TEST(encode_integrity)
     memcpy(&stunMsg.msgHdr.id.octet,&idOctet,12);
 
     /*Relay Address*/
-    stunMsg.hasXorRelayAddress = true;
-    stunlib_setIP4Address(&stunMsg.xorRelayAddress,
+    stunMsg.hasXorRelayAddressIPv4 = true;
+    stunlib_setIP4Address(&stunMsg.xorRelayAddressIPv4,
                           htonl(((struct sockaddr_in *)&b)->sin_addr.s_addr),
                           htons(((struct sockaddr_in *)&b)->sin_port));
 
@@ -149,7 +151,7 @@ START_TEST(encode_integrity)
     fail_unless(  stunlib_checkIntegrity(stunBuf,
                                          120,
                                          &decodeStunMsg,
-                                         password,
+                                         (unsigned char*)password,
                                          sizeof(password)) );
 
 
@@ -176,7 +178,7 @@ START_TEST(decode_integrity)
     fail_unless(  stunlib_checkIntegrity(allocate_resp,
                                          sizeof(allocate_resp),
                                          &stunMsg,
-                                         md5,
+                                         (unsigned char*)md5,
                                          keyLen) );
 
 }
@@ -247,8 +249,8 @@ START_TEST(decode_requestedAddrFamily)
                                         NULL,
                                         NULL ));
 
-    fail_unless( stunMsg.hasRequestedAddrFamily );
-    fail_unless( stunMsg.requestedAddrFamily.family == 0x1 );
+    fail_unless( stunMsg.hasRequestedAddrFamilyIPv4 );
+    fail_unless( stunMsg.requestedAddrFamilyIPv4.family == 0x1 );
 
 }
 END_TEST
@@ -264,8 +266,8 @@ START_TEST(decode_requestedAddrFamily_IPv6)
                                         NULL,
                                         NULL ));
 
-    fail_unless( stunMsg.hasRequestedAddrFamily );
-    fail_unless( stunMsg.requestedAddrFamily.family == 0x2 );
+    fail_unless( stunMsg.hasRequestedAddrFamilyIPv6 );
+    fail_unless( stunMsg.requestedAddrFamilyIPv6.family == 0x2 );
 
 }
 END_TEST

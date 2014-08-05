@@ -10,7 +10,6 @@
 
 Suite * turnclient_suite (void);
 
-
 #define  MAX_INSTANCES  5
 #define  TEST_THREAD_CTX 1
 
@@ -94,6 +93,33 @@ static int StartAllocateTransaction(int n)
 
 }
 
+
+static int StartSSODAAllocateTransaction(int n)
+{
+    n = 0; // ntot sure we need n... TODO: fixme
+    //struct sockaddr_storage addr;
+
+    CurrAppCtx.a =  AppCtx[n].a = 100+n;
+    CurrAppCtx.b =  AppCtx[n].b = 200+n;
+    
+
+    /* kick off turn */
+    return TurnClient_StartAllocateTransaction(&pInst,
+                                               50,
+                                               NULL,
+                                               "test",
+                                               NULL,
+                                               (struct sockaddr *)&turnServerAddr,
+                                               "pem",
+                                               "pem",
+                                               AF_INET + AF_INET6,
+                                               SendRawStun,             /* send func */
+                                               TurnStatusCallBack,
+                                               false,
+                                               0);
+
+}
+
 static void SimAllocResp(int ctx, bool relay, bool xorMappedAddr, bool lifetime, bool IPv6)
 {
     StunMessage m;
@@ -107,15 +133,15 @@ static void SimAllocResp(int ctx, bool relay, bool xorMappedAddr, bool lifetime,
     {
         if(IPv6){
             uint8_t addr[16] = {0x20, 0x1, 0x4, 0x70, 0xdc, 0x88, 0x0, 0x2, 0x2, 0x26, 0x18, 0xff, 0xfe, 0x92, 0x6d, 0x53};
-            m.hasXorRelayAddress = true;
-            stunlib_setIP6Address(&m.xorRelayAddress, addr, 0x4200);
+            m.hasXorRelayAddressIPv6 = true;
+            stunlib_setIP6Address(&m.xorRelayAddressIPv6, addr, 0x4200);
 
             
         }else{
-            m.hasXorRelayAddress = true;
-            m.xorRelayAddress.familyType = STUN_ADDR_IPv4Family;
-            m.xorRelayAddress.addr.v4.addr = 3251135384UL;// "193.200.99.152"
-            m.xorRelayAddress.addr.v4.port = 42000;
+            m.hasXorRelayAddressIPv4 = true;
+            m.xorRelayAddressIPv4.familyType = STUN_ADDR_IPv4Family;
+            m.xorRelayAddressIPv4.addr.v4.addr = 3251135384UL;// "193.200.99.152"
+            m.xorRelayAddressIPv4.addr.v4.port = 42000;
         }
     }
 
@@ -134,6 +160,52 @@ static void SimAllocResp(int ctx, bool relay, bool xorMappedAddr, bool lifetime,
             m.xorMappedAddress.addr.v4.addr = 1009527574UL;// "60.44.43.22");
             m.xorMappedAddress.addr.v4.port = 43000;
         }
+    }
+
+    /* lifetime */
+    if (lifetime)
+    {
+        m.hasLifetime = true;
+        m.lifetime.value = 60;
+    }
+
+    TurnClient_HandleIncResp(pInst, &m, NULL);
+
+}
+
+static void SimSSODAAllocResp(int ctx, bool relay, bool xorMappedAddr, bool lifetime)
+{
+    StunMessage m;
+    memset(&m, 0, sizeof(m));
+    memcpy(&m.msgHdr.id, &LastTransId, STUN_MSG_ID_SIZE);  
+    memcpy(&m.msgHdr.cookie, StunCookie, sizeof(m.msgHdr.cookie));
+    m.msgHdr.msgType = STUN_MSG_AllocateResponseMsg;
+
+    /* relay */
+    if (relay)
+    {
+        uint8_t addr[16] = {0x20, 0x1, 0x4, 0x70, 0xdc, 0x88, 0x0, 0x2, 0x2, 0x26, 0x18, 0xff, 0xfe, 0x92, 0x6d, 0x53};
+        m.hasXorRelayAddressIPv6 = true;
+        stunlib_setIP6Address(&m.xorRelayAddressIPv6, addr, 0x4200);
+
+            
+        
+        m.hasXorRelayAddressIPv4 = true;
+        m.xorRelayAddressIPv4.familyType = STUN_ADDR_IPv4Family;
+        m.xorRelayAddressIPv4.addr.v4.addr = 3251135384UL;// "193.200.99.152"
+        m.xorRelayAddressIPv4.addr.v4.port = 42000;
+        
+    }
+
+    /* XOR mapped addr*/
+    if (xorMappedAddr)
+    {
+        
+        m.hasXorMappedAddress = true;
+        m.xorMappedAddress.familyType = STUN_ADDR_IPv4Family;
+        m.xorMappedAddress.addr.v4.addr = 1009527574UL;// "60.44.43.22");
+        m.xorMappedAddress.addr.v4.port = 43000;
+        
     }
 
     /* lifetime */
@@ -521,6 +593,22 @@ START_TEST (WaitAllocResp_AllocRespOk)
 {
     int ctx;
     ctx = StartAllocateTransaction(9);
+    TurnClient_HandleTick(pInst);
+    SimInitialAllocRespErr(ctx, true, 4, 1, true, true, false); /* 401, has realm and nonce */
+    TurnClient_HandleTick(pInst);
+    SimAllocResp(ctx, true, true, true, runningAsIPv6);
+    fail_unless (turnResult == TurnResult_AllocOk);
+    TurnClient_Deallocate(pInst);
+    Sim_RefreshResp(ctx);
+    fail_unless (turnResult == TurnResult_RelayReleaseComplete);
+    
+}
+END_TEST
+
+START_TEST (WaitAllocResp_SSODA_AllocRespOk)
+{
+    int ctx;
+    ctx = StartSSODAAllocateTransaction(9);
     TurnClient_HandleTick(pInst);
     SimInitialAllocRespErr(ctx, true, 4, 1, true, true, false); /* 401, has realm and nonce */
     TurnClient_HandleTick(pInst);

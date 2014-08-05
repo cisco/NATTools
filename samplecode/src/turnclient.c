@@ -33,7 +33,8 @@ int sockfd;
 char realm[STUN_MAX_STRING];
 
 static void turnInfoFunc(void *userCtx, TurnInfoCategory_T category, char *ErrStr) {
-
+    printf("TurnInfoCB");
+    printf("%s\n", ErrStr);
 }
 
 static void turnSendFunc(const uint8_t         *buffer,
@@ -53,6 +54,7 @@ void turnCbFunc(void *userCtx, TurnCallBackData_T *turnCbData)
         char addr[SOCKADDR_MAX_STRLEN];
 
         printf("Successfull Allocation: \n");
+        
         printf("   Active TURN server: '%s'\n",
                sockaddr_toString((struct sockaddr *)&turnCbData->TurnResultData.AllocResp.activeTurnServerAddr,
                                  addr,
@@ -66,11 +68,17 @@ void turnCbFunc(void *userCtx, TurnCallBackData_T *turnCbData)
                                  true));
 
         printf("   RELAY addr: '%s'\n",
-               sockaddr_toString((struct sockaddr *)&turnCbData->TurnResultData.AllocResp.relAddr,
+               sockaddr_toString((struct sockaddr *)&turnCbData->TurnResultData.AllocResp.relAddrIPv4,
                                  addr,
                                  sizeof(addr),
                                  true));
 
+        
+        printf("   RELAY addr: '%s'\n",
+               sockaddr_toString((struct sockaddr *)&turnCbData->TurnResultData.AllocResp.relAddrIPv6,
+                                 addr,
+                                 sizeof(addr),
+                                 true));
 
     } else if (turnCbData->turnResult == TurnResult_AllocUnauthorised) {
         printf("Unable to authorize. Wrong user/pass?\n");
@@ -88,7 +96,6 @@ static void *tickTurn( void *ptr)
 
     for(;;) {
         nanosleep(&timer, &remaining);
-        printf("Tick\n");
         TurnClient_HandleTick(instData);
     }
 
@@ -128,6 +135,7 @@ void listenAndHandleResponse(char *user, char *password)
          TurnClient_HandleIncResp(instData,
                                   &stunResponse,
                                   buf);
+         printf("           Response sent...(And hopefully handled)\n");
     }
 
 }
@@ -165,12 +173,12 @@ int main(int argc, char *argv[])
     TurnClient_StartAllocateTransaction(&instData,
                                         50,
                                         turnInfoFunc,
-                                        "malice",
+                                        "turnCLient",
                                         NULL, // *userCtx
                                         p->ai_addr,
                                         argv[2],
                                         argv[3],
-                                        AF_INET,
+                                        (AF_INET + AF_INET6),
                                         turnSendFunc,
                                         turnCbFunc,
                                         false,

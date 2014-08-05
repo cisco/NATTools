@@ -45,10 +45,10 @@ extern "C" {
 #endif
 
 
-#define ICE_MAX_UFRAG_LENGTH                (256+1) //zero terminated
-#define ICE_MAX_PASSWD_LENGTH               (256+1) //zero terminated
+#define ICE_MAX_UFRAG_LENGTH                (256+1) /*zero terminated*/
+#define ICE_MAX_PASSWD_LENGTH               (256+1) /*zero terminated*/
 #define ICE_MAX_CANDIDATES                  12
-#define ICE_MAX_FOUNDATION_LENGTH           (32+1)  //zero terminated
+#define ICE_MAX_FOUNDATION_LENGTH           (32+1)  /*zero terminated*/
 #define ICE_MAX_MEDIALINES                  6
 #define ICE_MAX_COMPONENTS                  2
 

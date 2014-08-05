@@ -302,13 +302,13 @@ bool sockaddr_isAddrLoopBack(const struct sockaddr * sa)
 
 bool sockaddr_isAddrPrivate(const struct sockaddr * sa)
 {
-    //192.168.0.0/16 network
+    /*192.168.0.0/16 network*/
     uint32_t private_192 = 0xC0A80000;
     uint32_t mask_16 = 0xFFFF0000;
-    //172.16.0.0/20 network
+    /*172.16.0.0/20 network*/
     uint32_t private_172 = 0xAC100000;
     uint32_t mask_12 = 0xFFF00000;
-    //10.0.0.0/24 network
+    /*10.0.0.0/24 network*/
     uint32_t private_10 = 0x0A000000;
     uint32_t mask_8 = 0xFF000000;
 
@@ -446,7 +446,7 @@ const char *sockaddr_toString( const struct sockaddr *sa,
                                bool addport)
 {
     if (sa->sa_family == AF_INET) {
-        if (destlen < INET_ADDRSTRLEN + 8) { // 8 is enough for :port and termination
+        if (destlen < INET_ADDRSTRLEN + 8) { /* 8 is enough for :port and termination */
                  dest[0] = '\0';
                  return dest;
         }
