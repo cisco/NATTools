@@ -176,6 +176,25 @@ bool sockaddr_isAddrSiteLocal(const struct sockaddr * sa);
 bool sockaddr_isAddrULA(const struct sockaddr * sa);
 
 /*
+ * Get IPv6 Flags. 
+ * Will return 0 in case if failure or IPv4 addr
+ */
+int sockaddr_getIPv6Flags(const struct sockaddr * sa, const char* ifa_name, int ifa_len);
+
+/*
+ * Checks if a sockaddr is a IPv6 temporary address
+ * Will return false if it is a IPv4 addr
+ */
+bool sockaddr_isAddrTemporary(const struct sockaddr * sa, const char* ifa_name, int ifa_len);
+
+
+/*
+ * Checks if a sockaddr is a IPv6 deprecated address
+ * Will return false if it is a IPv4 addr
+ */
+bool sockaddr_isAddrDeprecated(const struct sockaddr * sa, const char* ifa_name, int ifa_len);
+
+/*
  * Converts a sockaddr to string
  * If add port is true the IPv6 string will contain [],
  * if not the IPv6 address is printed without[]

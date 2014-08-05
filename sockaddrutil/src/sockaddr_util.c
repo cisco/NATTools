@@ -30,6 +30,21 @@ or implied, of Cisco.
 #include <stdio.h>
 #include <arpa/inet.h>
 
+#include <net/if.h>
+#include <net/if_var.h>
+#include <net/if_dl.h>
+#include <net/if_types.h>
+
+/* IP */
+#include <netinet/in.h>
+#include <netinet/in_var.h>
+#include <netdb.h>
+
+
+#include <sys/ioctl.h>
+#include <unistd.h>
+
+
 
 #include "sockaddr_util.h"
 
@@ -348,6 +363,69 @@ bool sockaddr_isAddrULA(const struct sockaddr * sa)
     }
     return false;
 }
+
+int sockaddr_getIPv6Flags(const struct sockaddr * sa, const char* ifa_name, int ifa_len)
+{
+    struct sockaddr_in6 *sin;
+    struct in6_ifreq ifr6;
+    int s6;
+    
+    sin = (struct sockaddr_in6 *)sa;
+    strncpy(ifr6.ifr_name, ifa_name, ifa_len);
+    
+    if ((s6 = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
+        return 0;
+    }
+    ifr6.ifr_addr = *sin;
+    if (ioctl(s6, SIOCGIFAFLAG_IN6, &ifr6) < 0) {
+        close(s6);
+        return 0;
+    }
+    
+    return ifr6.ifr_ifru.ifru_flags6;
+}
+
+
+bool sockaddr_isAddrTemporary(const struct sockaddr * sa, const char* ifa_name, int ifa_len)
+{
+    int flags6;
+
+    if (sa->sa_family == AF_INET) {
+        return false;
+    }else if (sa->sa_family == AF_INET6) {
+        flags6 = sockaddr_getIPv6Flags(sa, ifa_name,ifa_len);
+            
+        if(flags6 == 0)
+            return false;
+        
+        if ((flags6 & IN6_IFF_TEMPORARY) != 0){
+            return true;
+        }
+    }
+    return false;
+}
+
+
+bool sockaddr_isAddrDeprecated(const struct sockaddr * sa, const char* ifa_name, int ifa_len)
+{
+    int flags6;
+
+    if (sa->sa_family == AF_INET) {
+        return false;
+    }else if (sa->sa_family == AF_INET6) {
+        flags6 = sockaddr_getIPv6Flags(sa, ifa_name,ifa_len);
+            
+        if(flags6 == 0)
+            return false;
+        
+        if ((flags6 & IN6_IFF_DEPRECATED) != 0){
+            return true;
+        }
+    }
+    return false;
+}
+
+
 
 
 const char *sockaddr_toString( const struct sockaddr *sa,

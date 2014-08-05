@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
 
 
     if (argc != 5) {
-        fprintf(stderr,"usage: testice  iface turnserver user pass\n");
+        fprintf(stderr,"usage: testturn  iface turnserver user pass\n");
         exit(1);
     }
 

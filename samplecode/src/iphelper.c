@@ -6,6 +6,7 @@
 #define _OPEN_SYS_SOCK_IPV6
 #include <netinet/in.h>
 
+
 #include <sockaddr_util.h>
 
 #include "gather.h"
@@ -113,12 +114,15 @@ bool getLocalInterFaceAddrs(struct sockaddr *addr, char *iface, int ai_family){
     struct ifaddrs *ifaddr, *ifa;
     int family, s;
     char host[NI_MAXHOST];
+    int rc;
 
     if (getifaddrs(&ifaddr) == -1) {
         perror("getifaddrs");
         exit(EXIT_FAILURE);
     }
 
+
+    
     /* Walk through linked list, maintaining head pointer so we
        can free list later */
 
@@ -142,6 +146,13 @@ bool getLocalInterFaceAddrs(struct sockaddr *addr, char *iface, int ai_family){
             if (sockaddr_isAddrULA(ifa->ifa_addr)){
                 continue;
             }
+            if( !sockaddr_isAddrTemporary(ifa->ifa_addr, ifa->ifa_name, sizeof(ifa->ifa_name)) ){
+                continue;
+            }
+            if( !sockaddr_isAddrDeprecated(ifa->ifa_addr, ifa->ifa_name, sizeof(ifa->ifa_name)) ){
+                continue;
+            }
+
         }
         family = ifa->ifa_addr->sa_family;
 
@@ -260,12 +271,7 @@ int createLocalUDPSocket(int ai_family,
             continue;
 
         }
-        if(p->ai_family==AF_INET6){
-            //if(!inet6_is_srcaddr((struct sockaddr_in6 *)p, IPV6_PREFER_SRC_TMP)){
-            //    continue;
-            //}
-        }
-
+        
         if ((sockfd = socket(p->ai_family, p->ai_socktype,
                              p->ai_protocol)) == -1) {
             perror("client: socket");
