@@ -31,15 +31,10 @@ or implied, of Cisco.
 #include <arpa/inet.h>
 
 #include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_dl.h>
-#include <net/if_types.h>
 
 /* IP */
 #include <netinet/in.h>
 #include <netinet/in_var.h>
-#include <netdb.h>
-
 
 #include <sys/ioctl.h>
 #include <unistd.h>
