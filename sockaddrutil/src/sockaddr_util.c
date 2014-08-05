@@ -35,23 +35,8 @@ or implied, of Cisco.
 /* IP */
 #include <netinet/in.h>
 
-#if defined(__linux__)
 
-  #if HAVE_AFINET6
-
-  #ifndef _LINUX_IN6_H
-  /*
-   *    This is in linux/include/net/ipv6.h.
-   */
-struct in6_ifreq {
-    struct in6_addr ifr6_addr;
-    __u32 ifr6_prefixlen;
-    unsigned int ifr6_ifindex;
-};
-#endif
-
-#endif				/* HAVE_AFINET6 */
-#else  /* Hopefully Running OSX or BSD... */
+#if defined(__APPLE__)
 #include <netinet/in_var.h>
 #endif
 
@@ -381,6 +366,7 @@ bool sockaddr_isAddrULA(const struct sockaddr * sa)
 
 int sockaddr_getIPv6Flags(const struct sockaddr * sa, const char* ifa_name, int ifa_len)
 {
+#if defined(__APPLE__)
     struct sockaddr_in6 *sin;
     struct in6_ifreq ifr6;
     int s6;
@@ -398,11 +384,15 @@ int sockaddr_getIPv6Flags(const struct sockaddr * sa, const char* ifa_name, int 
     }
     
     return ifr6.ifr_ifru.ifru_flags6;
+#else
+return 0;
+#endif
 }
 
 
 bool sockaddr_isAddrTemporary(const struct sockaddr * sa, const char* ifa_name, int ifa_len)
 {
+#if defined(__APPLE__)
     int flags6;
 
     if (sa->sa_family == AF_INET) {
@@ -418,11 +408,15 @@ bool sockaddr_isAddrTemporary(const struct sockaddr * sa, const char* ifa_name, 
         }
     }
     return false;
+#else
+    return false;
+#endif
 }
 
 
 bool sockaddr_isAddrDeprecated(const struct sockaddr * sa, const char* ifa_name, int ifa_len)
 {
+#if defined(__APPLE__)
     int flags6;
 
     if (sa->sa_family == AF_INET) {
@@ -438,6 +432,9 @@ bool sockaddr_isAddrDeprecated(const struct sockaddr * sa, const char* ifa_name,
         }
     }
     return false;
+#else
+    return false;
+#endif
 }
 
 
