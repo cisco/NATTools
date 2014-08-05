@@ -33,9 +33,9 @@ struct listenConfig{
 
 int getRemoteTurnServerIp(struct turn_info *turnInfo, char *fqdn);
 
-int getLocalIPaddresses(struct turn_info *turnInfo, int type, char *iface);
+int getLocalIPaddresses(struct turn_info *turnInfo, int type, char *iface, bool privacy);
 
-bool getLocalInterFaceAddrs(struct sockaddr *addr, char *iface, int ai_family);
+bool getLocalInterFaceAddrs(struct sockaddr *addr, char *iface, int ai_family, bool privacy);
 
 int createLocalTCPSocket(int ai_family,
                          struct turn_info *turnInfo,

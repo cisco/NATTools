@@ -69,10 +69,10 @@ int getRemoteTurnServerIp(struct turn_info *turnInfo, char *fqdn)
     return 0;
 }
 
-int getLocalIPaddresses(struct turn_info *turnInfo, int type, char *iface)
+int getLocalIPaddresses(struct turn_info *turnInfo, int type, char *iface, bool privacy)
 {
 
-    if (!getLocalInterFaceAddrs( (struct sockaddr *)&turnInfo->localIp4, iface, AF_INET) ){
+    if (!getLocalInterFaceAddrs( (struct sockaddr *)&turnInfo->localIp4, iface, AF_INET, privacy) ){
         //fprintf(stderr,"Unable to find local IPv4 interface addresses\n");
     }else{
         turnInfo->turnAlloc_44.sockfd = createLocalUDPSocket(AF_INET,
@@ -94,7 +94,7 @@ int getLocalIPaddresses(struct turn_info *turnInfo, int type, char *iface)
         
     }
 
-    if (!getLocalInterFaceAddrs((struct sockaddr *)&turnInfo->localIp6, iface, AF_INET6) ){
+    if (!getLocalInterFaceAddrs((struct sockaddr *)&turnInfo->localIp6, iface, AF_INET6, privacy) ){
         //fprintf(stderr,"Unable to find local IPv6 interface addresses\n");
     }else{
         turnInfo->turnAlloc_64.sockfd = createLocalUDPSocket(AF_INET6,
@@ -110,7 +110,7 @@ int getLocalIPaddresses(struct turn_info *turnInfo, int type, char *iface)
 }
 
 
-bool getLocalInterFaceAddrs(struct sockaddr *addr, char *iface, int ai_family){
+bool getLocalInterFaceAddrs(struct sockaddr *addr, char *iface, int ai_family, bool privacy){
     struct ifaddrs *ifaddr, *ifa;
     int family, s;
     char host[NI_MAXHOST];
@@ -136,7 +136,9 @@ bool getLocalInterFaceAddrs(struct sockaddr *addr, char *iface, int ai_family){
         if( strcmp(iface, ifa->ifa_name)!=0 )
             continue;
 
-        if (ai_family == AF_INET6 ){
+        family = ifa->ifa_addr->sa_family;
+
+        if (family == AF_INET6 ){
             if (sockaddr_isAddrLinkLocal(ifa->ifa_addr)){
                 continue;
             }
@@ -146,15 +148,17 @@ bool getLocalInterFaceAddrs(struct sockaddr *addr, char *iface, int ai_family){
             if (sockaddr_isAddrULA(ifa->ifa_addr)){
                 continue;
             }
-            if( !sockaddr_isAddrTemporary(ifa->ifa_addr, ifa->ifa_name, sizeof(ifa->ifa_name)) ){
-                continue;
-            }
-            if( !sockaddr_isAddrDeprecated(ifa->ifa_addr, ifa->ifa_name, sizeof(ifa->ifa_name)) ){
-                continue;
-            }
 
+            if(privacy){
+                if( !sockaddr_isAddrTemporary(ifa->ifa_addr, ifa->ifa_name, sizeof(ifa->ifa_name)) ){
+                continue;
+                }
+                if( !sockaddr_isAddrDeprecated(ifa->ifa_addr, ifa->ifa_name, sizeof(ifa->ifa_name)) ){
+                    continue;
+                }
+            }
         }
-        family = ifa->ifa_addr->sa_family;
+        
 
         if (family == ai_family) {
 

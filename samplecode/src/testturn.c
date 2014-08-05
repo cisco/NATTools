@@ -93,8 +93,9 @@ int main(int argc, char *argv[])
     addCredentials(&turnInfo, argv[2], argv[3], argv[4]);
     
     getRemoteTurnServerIp(&turnInfo, argv[2]);
-
-    getLocalIPaddresses(&turnInfo, SOCK_DGRAM, argv[1]);
+    
+    //Getting privacy adresses. Set to false if not.
+    getLocalIPaddresses(&turnInfo, SOCK_DGRAM, argv[1], true);
 
     //Turn setup
     //TurnClient_Init(TEST_THREAD_CTX, 50, 50, NULL, false, "TestTurn");
