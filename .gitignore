@@ -36,6 +36,8 @@ check_icelib
 check_stunlib
 check_sockaddrutil
 
+simple_proxy_server
+
 #other
 natlib.info
 *.swp
