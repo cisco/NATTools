@@ -34,7 +34,27 @@ or implied, of Cisco.
 
 /* IP */
 #include <netinet/in.h>
+
+#if defined(__linux__)
+
+  #if HAVE_AFINET6
+
+  #ifndef _LINUX_IN6_H
+  /*
+   *    This is in linux/include/net/ipv6.h.
+   */
+struct in6_ifreq {
+    struct in6_addr ifr6_addr;
+    __u32 ifr6_prefixlen;
+    unsigned int ifr6_ifindex;
+};
+#endif
+
+#endif				/* HAVE_AFINET6 */
+#else  /* Hopefully Running OSX or BSD... */
 #include <netinet/in_var.h>
+#endif
+
 
 #include <sys/ioctl.h>
 #include <unistd.h>
