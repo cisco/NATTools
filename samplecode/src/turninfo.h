@@ -52,6 +52,8 @@ struct turn_info{
     //Local IP adresses
     struct sockaddr_storage localIp4;
     struct sockaddr_storage localIp6;
+    struct sockaddr_storage localIp6_ula;
+
     
     //Socket stuff
     //int numSockets;
@@ -69,9 +71,10 @@ void addCredentials(struct turn_info *turnInfod, char *fqdn, char *user, char *p
 
 void printAllocationResult(struct turn_allocation *result);
 void printTurnInfo( struct turn_info *turnInfo );
-void wprintTurnInfow( WINDOW *win, struct turn_info *turnInfo );
+//void wprintTurnInfow( WINDOW *win, struct turn_info *turnInfo );
 
 void fillPermissions(struct turn_info *turnInfo, char *string);
+void fillRflxPermissions(struct turn_info *turnInfo);
 
 void turnInfoFunc(void *userCtx, TurnInfoCategory_T category, char *ErrStr);
 

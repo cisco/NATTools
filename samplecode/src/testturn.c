@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
     int choice = 0;
     int c;
 
-    setbuf(stdout, NULL);
+    //setbuf(stdout, NULL);
 
 
     if (argc != 5) {
@@ -95,18 +95,9 @@ int main(int argc, char *argv[])
     getRemoteTurnServerIp(&turnInfo, argv[2]);
     
     //Getting privacy adresses. Set to false if not.
-    getLocalIPaddresses(&turnInfo, SOCK_DGRAM, argv[1], true);
-
-    //Turn setup
-    //TurnClient_Init(TEST_THREAD_CTX, 50, 50, NULL, false, "TestTurn");
-    
-    //gatherAll(&turnInfo, &listenConfig);
-    //pthread_create( &turnTickThread, NULL, tickTurn, (void*) &turnInfo);
-    //pthread_create( &turnListenThread, NULL, stunListen, (void*)&listenConfig);
-    
-    //for(;;){
-    //    sleep(2);
-    //}
+    getLocalIPaddresses(&turnInfo, SOCK_DGRAM, argv[1]);
+        
+    //for(;;){ sleep(2); }
     //Ncurses view
     
     init_view();
@@ -219,12 +210,14 @@ void doChoice(int choice)
         break;
 
     case 2:
-        mvwprintw(input_win,1, 1, "Enter Ip adresses (enter for rflx): ");
-        wrefresh(input_win);
-        echo();
-        wgetstr(input_win, permission_ip);
-        noecho();
-        fillPermissions(&turnInfo, permission_ip);
+        permission_ip[0]='\0';
+
+        //mvwprintw(input_win,1, 1, "Enter Ip adresses (enter for rflx): ");
+        //wrefresh(input_win);
+        //echo();
+        //wgetstr(input_win, permission_ip);
+        //noecho();
+        fillRflxPermissions(&turnInfo);
         sendPermissionsAll(&turnInfo);
         print_status(status_win, &turnInfo);
         break;

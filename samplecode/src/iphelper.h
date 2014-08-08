@@ -28,14 +28,14 @@ struct listenConfig{
 };
 
 
-
+typedef enum IPv6_ADDR_TYPES {IPv6_ADDR_NONE, IPv6_ADDR_ULA, IPv6_ADDR_PRIVACY, IPv6_ADDR_NORMAL} IPv6_ADDR_TYPE; 
 
 
 int getRemoteTurnServerIp(struct turn_info *turnInfo, char *fqdn);
 
-int getLocalIPaddresses(struct turn_info *turnInfo, int type, char *iface, bool privacy);
+int getLocalIPaddresses(struct turn_info *turnInfo, int type, char *iface);
 
-bool getLocalInterFaceAddrs(struct sockaddr *addr, char *iface, int ai_family, bool privacy);
+bool getLocalInterFaceAddrs(struct sockaddr *addr, char *iface, int ai_family, IPv6_ADDR_TYPE ipv6_addr_type, bool force_privacy);
 
 int createLocalTCPSocket(int ai_family,
                          struct turn_info *turnInfo,

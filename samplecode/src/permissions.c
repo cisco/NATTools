@@ -21,7 +21,7 @@ void sendPermissionsAll(struct turn_info *turnInfo)
 
     }
 
-
+    
     if(turnInfo->turnAlloc_46.turnPerm.numPermissions > 0){
         for (i=0;i<turnInfo->turnAlloc_46.turnPerm.numPermissions;i++){
             perm[i] = (struct sockaddr *)&turnInfo->turnAlloc_46.turnPerm.permissions[i];
@@ -34,20 +34,21 @@ void sendPermissionsAll(struct turn_info *turnInfo)
                                             perm);
 
     }
-
+    
     if(turnInfo->turnAlloc_64.turnPerm.numPermissions > 0){
+        
         for (i=0;i<turnInfo->turnAlloc_64.turnPerm.numPermissions;i++){
             perm[i] = (struct sockaddr *)&turnInfo->turnAlloc_64.turnPerm.permissions[i];
         }
         turnInfo->turnAlloc_64.turnPerm.ok = false;
-
         TurnClient_StartCreatePermissionReq(turnInfo->turnAlloc_64.tInst,
                                             turnInfo->turnAlloc_64.turnPerm.numPermissions,
                                             perm);
-
+        
     }
-
+    
     if(turnInfo->turnAlloc_66.turnPerm.numPermissions > 0){
+        
         for (i=0;i<turnInfo->turnAlloc_66.turnPerm.numPermissions;i++){
             perm[i] = (struct sockaddr *)&turnInfo->turnAlloc_66.turnPerm.permissions[i];
         }
@@ -56,8 +57,8 @@ void sendPermissionsAll(struct turn_info *turnInfo)
         TurnClient_StartCreatePermissionReq(turnInfo->turnAlloc_66.tInst,
                                             turnInfo->turnAlloc_66.turnPerm.numPermissions,
                                             perm);
-
-    }
         
+    }
+      
 
 }

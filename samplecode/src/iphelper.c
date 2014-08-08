@@ -69,10 +69,10 @@ int getRemoteTurnServerIp(struct turn_info *turnInfo, char *fqdn)
     return 0;
 }
 
-int getLocalIPaddresses(struct turn_info *turnInfo, int type, char *iface, bool privacy)
+int getLocalIPaddresses(struct turn_info *turnInfo, int type, char *iface)
 {
 
-    if (!getLocalInterFaceAddrs( (struct sockaddr *)&turnInfo->localIp4, iface, AF_INET, privacy) ){
+    if (!getLocalInterFaceAddrs( (struct sockaddr *)&turnInfo->localIp4, iface, AF_INET, IPv6_ADDR_NONE, false)){
         //fprintf(stderr,"Unable to find local IPv4 interface addresses\n");
     }else{
         turnInfo->turnAlloc_44.sockfd = createLocalUDPSocket(AF_INET,
@@ -94,9 +94,26 @@ int getLocalIPaddresses(struct turn_info *turnInfo, int type, char *iface, bool 
         
     }
 
-    if (!getLocalInterFaceAddrs((struct sockaddr *)&turnInfo->localIp6, iface, AF_INET6, privacy) ){
+    if (!getLocalInterFaceAddrs((struct sockaddr *)&turnInfo->localIp6_ula, iface, AF_INET6, IPv6_ADDR_ULA, true) &&
+        !getLocalInterFaceAddrs((struct sockaddr *)&turnInfo->localIp6_ula, iface, AF_INET6, IPv6_ADDR_ULA, false) ){
+        fprintf(stderr,"Unable to find local IPv6 Privacy interface addresses\n");
+    }else{
+        //TODO: Revrite... sockets overwite each other...
+        turnInfo->turnAlloc_64.sockfd = createLocalUDPSocket(AF_INET6,
+                                                             (struct sockaddr *)&turnInfo->localIp6_ula,
+                                                             (struct sockaddr *)&turnInfo->turnAlloc_64.hostAddr,
+                                                             0);
+        turnInfo->turnAlloc_66.sockfd = createLocalUDPSocket(AF_INET6,
+                                                             (struct sockaddr *)&turnInfo->localIp6_ula,
+                                                             (struct sockaddr *)&turnInfo->turnAlloc_66.hostAddr,
+                                                             0);
+    }
+
+    if (!getLocalInterFaceAddrs((struct sockaddr *)&turnInfo->localIp6, iface, AF_INET6, IPv6_ADDR_NORMAL, true) &&
+        !getLocalInterFaceAddrs((struct sockaddr *)&turnInfo->localIp6, iface, AF_INET6, IPv6_ADDR_NORMAL, false) ){
         //fprintf(stderr,"Unable to find local IPv6 interface addresses\n");
     }else{
+        //TODO: Revrite... sockets overwite each other...
         turnInfo->turnAlloc_64.sockfd = createLocalUDPSocket(AF_INET6,
                                                              (struct sockaddr *)&turnInfo->localIp6,
                                                              (struct sockaddr *)&turnInfo->turnAlloc_64.hostAddr,
@@ -110,7 +127,7 @@ int getLocalIPaddresses(struct turn_info *turnInfo, int type, char *iface, bool 
 }
 
 
-bool getLocalInterFaceAddrs(struct sockaddr *addr, char *iface, int ai_family, bool privacy){
+bool getLocalInterFaceAddrs(struct sockaddr *addr, char *iface, int ai_family, IPv6_ADDR_TYPE ipv6_addr_type, bool force_privacy){
     struct ifaddrs *ifaddr, *ifa;
     int family, s;
     char host[NI_MAXHOST];
@@ -120,8 +137,6 @@ bool getLocalInterFaceAddrs(struct sockaddr *addr, char *iface, int ai_family, b
         perror("getifaddrs");
         exit(EXIT_FAILURE);
     }
-
-
     
     /* Walk through linked list, maintaining head pointer so we
        can free list later */
@@ -129,6 +144,10 @@ bool getLocalInterFaceAddrs(struct sockaddr *addr, char *iface, int ai_family, b
     for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
         if (ifa->ifa_addr == NULL)
             continue;
+
+        if(ifa->ifa_addr->sa_family != ai_family){
+            continue;
+        }
 
         if (sockaddr_isAddrLoopBack(ifa->ifa_addr))
             continue;
@@ -139,39 +158,61 @@ bool getLocalInterFaceAddrs(struct sockaddr *addr, char *iface, int ai_family, b
         family = ifa->ifa_addr->sa_family;
 
         if (family == AF_INET6 ){
+            if( sockaddr_isAddrDeprecated(ifa->ifa_addr, ifa->ifa_name, sizeof(ifa->ifa_name)) ){
+                continue;
+            }
             if (sockaddr_isAddrLinkLocal(ifa->ifa_addr)){
                 continue;
             }
             if (sockaddr_isAddrSiteLocal(ifa->ifa_addr)){
                 continue;
             }
-            if (sockaddr_isAddrULA(ifa->ifa_addr)){
-                continue;
-            }
 
-            if(privacy){
-                if( !sockaddr_isAddrTemporary(ifa->ifa_addr, ifa->ifa_name, sizeof(ifa->ifa_name)) ){
-                continue;
-                }
-                if( !sockaddr_isAddrDeprecated(ifa->ifa_addr, ifa->ifa_name, sizeof(ifa->ifa_name)) ){
+            if(force_privacy){
+                if( !sockaddr_isAddrTemporary(ifa->ifa_addr, 
+                                                  ifa->ifa_name, 
+                                                  sizeof(ifa->ifa_name)) ){
                     continue;
                 }
             }
+
+            switch(ipv6_addr_type){
+                case IPv6_ADDR_NONE:
+                    //huh
+                    break;
+                case IPv6_ADDR_ULA:
+                    if (!sockaddr_isAddrULA(ifa->ifa_addr)){
+                        continue;
+                    }
+                        
+                    break;
+                case IPv6_ADDR_PRIVACY:
+                    if( !sockaddr_isAddrTemporary(ifa->ifa_addr, 
+                                                  ifa->ifa_name, 
+                                                  sizeof(ifa->ifa_name)) ){
+                        continue;
+                    }
+                    break;
+                case IPv6_ADDR_NORMAL:
+                    if (sockaddr_isAddrULA(ifa->ifa_addr)){
+                        continue;
+                    }
+                    break;
+            }//switch
+                        
+        }//IPv6
+                
+        s = getnameinfo(ifa->ifa_addr,
+                        (family == AF_INET) ? sizeof(struct sockaddr_in) :
+                        sizeof(struct sockaddr_in6),
+                        host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
+        if (s != 0) {
+            //printf("getnameinfo() failed: %s\n", gai_strerror(s));
+            exit(EXIT_FAILURE);
         }
+        break; //for
         
-
-        if (family == ai_family) {
-
-            s = getnameinfo(ifa->ifa_addr,
-                            (family == AF_INET) ? sizeof(struct sockaddr_in) :
-                            sizeof(struct sockaddr_in6),
-                            host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
-            if (s != 0) {
-                printf("getnameinfo() failed: %s\n", gai_strerror(s));
-                exit(EXIT_FAILURE);
-            }
-        }
-    }
+    }//for
     freeifaddrs(ifaddr);
 
     if (sockaddr_initFromString(addr, host))

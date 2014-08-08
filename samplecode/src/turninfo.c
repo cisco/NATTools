@@ -62,82 +62,6 @@ void printAllocationResult(struct turn_allocation_result *result)
 }
 #endif
 
-int printPermissionsw(WINDOW *win, int startx, int starty, struct turn_permissions *perm)
-{
-    char addr[SOCKADDR_MAX_STRLEN];
-    int i;
-
-    init_pair(1, COLOR_CYAN, COLOR_BLACK);
-
-    mvwprintw(win, starty, startx,"Permissions:");
-    startx = startx +13;
-
-    for (i=0;i<perm->numPermissions;i++){
-        sockaddr_toString((struct sockaddr *)&perm->permissions[i],
-                          addr,
-                          sizeof(addr),
-                          false);
-
-        mvwprintw(win, starty, startx, "'%s'",
-                  addr);
-
-        startx = startx + strlen(addr) + 3;
-
-    }
-
-
-
-
-
-
-    if(perm->ok){
-        mvwchgat(win, starty, 0, -1, A_BLINK, 1, NULL);
-    }
-
-
-    return ++starty;
-
-
-}
-
-int printAllocationResultw(WINDOW *win, int startx, int starty, struct turn_allocation *alloc)
-{
-
-    char addr[SOCKADDR_MAX_STRLEN];
-
-    mvwprintw(win, starty++, startx,"Active TURN server: '%s'\n",
-           sockaddr_toString((struct sockaddr *)&alloc->activeTurnServerAddr,
-                             addr,
-                             sizeof(addr),
-                             true));
-
-    mvwprintw(win, starty++, startx,"HOST addr:          '%s'\n",
-              sockaddr_toString((struct sockaddr *)&alloc->hostAddr,
-                                addr,
-                                sizeof(addr),
-                                true));
-
-
-    mvwprintw(win, starty++, startx,"RFLX addr:          '%s'\n",
-           sockaddr_toString((struct sockaddr *)&alloc->rflxAddr,
-                             addr,
-                             sizeof(addr),
-                             true));
-
-    mvwprintw(win, starty++, startx,"RELAY addr:         '%s'\n",
-              sockaddr_toString((struct sockaddr *)&alloc->relAddrIPv4,
-                                addr,
-                                sizeof(addr),
-                                true));
-    
-    mvwprintw(win, starty++, startx,"RELAY addr:         '%s'\n",
-              sockaddr_toString((struct sockaddr *)&alloc->relAddrIPv6,
-                                addr,
-                                sizeof(addr),
-                             true));
-
-    return starty;
-}
 
 #if 0
 void printTurnInfo( struct turn_info *turnInfo )
@@ -184,69 +108,6 @@ void printTurnInfo( struct turn_info *turnInfo )
 }
 #endif
 
-void wprintTurnInfow( WINDOW *win, struct turn_info *turnInfo )
-{
-    char addr[SOCKADDR_MAX_STRLEN];
-    int starty = 1;
-    int startx = 2;
-
-    mvwprintw(win,
-              starty++,
-              startx,
-              "TURN Server     : '%s'\n",
-              turnInfo->fqdn);
-    mvwprintw(win,
-              starty++,
-              startx,
-              "TURN Server IPv4: '%s'\n",
-              sockaddr_toString((struct sockaddr *)&turnInfo->remoteIp4,
-                                addr,
-                                sizeof(addr),
-                                true));
-
-    mvwprintw(win,
-              starty++,
-              startx,"TURN Server IPv6: '%s'\n",
-              sockaddr_toString((struct sockaddr *)&turnInfo->remoteIp6,
-                                addr,
-                                sizeof(addr),
-                                true));
-
-
-    mvwprintw(win,
-              starty++,
-              startx,"Local IPv4      : '%s'\n",
-              sockaddr_toString((struct sockaddr *)&turnInfo->localIp4,
-                                addr,
-                                sizeof(addr),
-                                false));
-
-    mvwprintw(win,
-              starty++,
-              startx,
-              "Local IPv6      : '%s'\n",
-              sockaddr_toString((struct sockaddr *)&turnInfo->localIp6,
-                                addr,
-                                sizeof(addr),
-                                false));
-
-    mvwprintw(win, starty++, startx,"TURN 44 Result");
-    starty = printAllocationResultw(win, startx+5, starty, &turnInfo->turnAlloc_44);
-    starty = printPermissionsw(win, startx+5, starty, &turnInfo->turnAlloc_44.turnPerm);
-
-    mvwprintw(win, starty++, startx,"TURN 46 Result");
-    starty = printAllocationResultw(win, startx+5, starty, &turnInfo->turnAlloc_46);
-    starty = printPermissionsw(win, startx+5, starty, &turnInfo->turnAlloc_46.turnPerm);
-
-    mvwprintw(win, starty++, startx,"TURN 64 Result");
-    starty = printAllocationResultw(win, startx+5, starty, &turnInfo->turnAlloc_64);
-    starty = printPermissionsw(win, startx+5, starty, &turnInfo->turnAlloc_64.turnPerm);
-
-    mvwprintw(win, starty++, startx,"TURN 66 Result");
-    starty = printAllocationResultw(win, startx+5, starty, &turnInfo->turnAlloc_66);
-    starty = printPermissionsw(win, startx+5, starty, &turnInfo->turnAlloc_66.turnPerm);
-
-}
 
 
 char * getDefaultAddrAsString(char *string, struct turn_info *turnInfo)
@@ -324,8 +185,8 @@ char * getDefaultAddrAsString(char *string, struct turn_info *turnInfo)
         strcat(string, " ");
     }
 
-
-
+    strcat(string, "\0");
+    //printf("Addrs: %s\n", string);
     return string;
 }
 
@@ -343,9 +204,6 @@ void fillPermissions(struct turn_info *turnInfo, char *string)
         //We fill it with reflexive adresses
         //Makes it easy to test with netcat from the same machine
         getDefaultAddrAsString(string, turnInfo);
-
-
-
     }
 
 
@@ -364,6 +222,7 @@ void fillPermissions(struct turn_info *turnInfo, char *string)
                                     string) ){
 
             if(addr.ss_family == AF_INET){
+                
                 if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_44.relAddrIPv4)){
                     sockaddr_copy((struct sockaddr *)&turnInfo->turnAlloc_44.turnPerm.permissions[turnInfo->turnAlloc_44.turnPerm.numPermissions++],
                                   (struct sockaddr *)&addr);
@@ -373,6 +232,7 @@ void fillPermissions(struct turn_info *turnInfo, char *string)
                     sockaddr_copy((struct sockaddr *)&turnInfo->turnAlloc_64.turnPerm.permissions[turnInfo->turnAlloc_64.turnPerm.numPermissions++],
                                   (struct sockaddr *)&addr);
                 }
+                
             }
             if (addr.ss_family == AF_INET6){
                 if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_46.relAddrIPv6)){
@@ -386,8 +246,44 @@ void fillPermissions(struct turn_info *turnInfo, char *string)
             }
         }
 
-        if(moreAddr)
+        if(moreAddr){
             string = idx+1;
-
+        }
     }
+}
+
+void fillRflxPermissions(struct turn_info *turnInfo)
+{
+    int n;
+    int i;
+
+    struct sockaddr_storage addr;
+    bool moreAddr = true;
+    char *idx;
+        
+    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_44.relAddrIPv4)){
+        sockaddr_copy((struct sockaddr *)&turnInfo->turnAlloc_44.turnPerm.permissions[turnInfo->turnAlloc_44.turnPerm.numPermissions++],
+                                  (struct sockaddr *)&turnInfo->turnAlloc_44.rflxAddr);
+        sockaddr_copy((struct sockaddr *)&turnInfo->turnAlloc_44.turnPerm.permissions[turnInfo->turnAlloc_44.turnPerm.numPermissions++],
+                      (struct sockaddr *)&turnInfo->turnAlloc_44.hostAddr);
+    
+    }
+    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_64.relAddrIPv4)){
+        sockaddr_copy((struct sockaddr *)&turnInfo->turnAlloc_64.turnPerm.permissions[turnInfo->turnAlloc_64.turnPerm.numPermissions++],
+                                  (struct sockaddr *)&turnInfo->turnAlloc_44.rflxAddr);
+        sockaddr_copy((struct sockaddr *)&turnInfo->turnAlloc_64.turnPerm.permissions[turnInfo->turnAlloc_64.turnPerm.numPermissions++],
+                      (struct sockaddr *)&turnInfo->turnAlloc_44.hostAddr);
+    
+    }
+
+    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_46.relAddrIPv6)){
+        sockaddr_copy((struct sockaddr *)&turnInfo->turnAlloc_46.turnPerm.permissions[turnInfo->turnAlloc_46.turnPerm.numPermissions++],
+                                  (struct sockaddr *)&turnInfo->turnAlloc_66.hostAddr);
+    }
+
+    if (sockaddr_isSet((struct sockaddr *)&turnInfo->turnAlloc_66.relAddrIPv6)){
+        sockaddr_copy((struct sockaddr *)&turnInfo->turnAlloc_66.turnPerm.permissions[turnInfo->turnAlloc_66.turnPerm.numPermissions++],
+                                  (struct sockaddr *)&turnInfo->turnAlloc_66.hostAddr);
+    }
+              
 }
