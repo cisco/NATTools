@@ -1289,8 +1289,6 @@ static void  AllocateResponseCallback(TURN_INSTANCE_DATA *pInst)
     TurnCallBackData_T *pRes = &pInst->turnCbData;
     TurnAllocResp      *pData;
 
-    printf("STUNLIB: AllocateResponseCallback(TURN_INSTANCE_DATA *pInst)\n");
-
     if (pRes)
     {
         char srflxaddr[SOCKADDR_MAX_STRLEN];
