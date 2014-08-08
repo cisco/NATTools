@@ -58,7 +58,10 @@ TURN_INSTANCE_DATA *gather(TURN_INSTANCE_DATA *tInst,
 
 
 
-void gatherAll(struct turn_info *turnInfo, struct listenConfig *listenConfig, void(*update_turninfo)(void))
+void gatherAll(struct turn_info *turnInfo, 
+               void(*update_turninfo)(void),
+               struct listenConfig *listenConfig,
+               void (*data_handler)(unsigned char *))
 {
     int idx = 0;
 
@@ -134,6 +137,7 @@ void gatherAll(struct turn_info *turnInfo, struct listenConfig *listenConfig, vo
     }
         
     listenConfig->numSockets = idx;
+    listenConfig->data_handler = data_handler;
 }
 
 

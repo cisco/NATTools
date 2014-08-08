@@ -22,7 +22,7 @@ static pthread_t turnTickThread;
 
 static char permission_ip[1000];
 static char message[100];
-static char rcv_message[100];
+static char rcv_message[1000];
 static char message_dst[50];
 static int highlight = 1;
 
@@ -41,7 +41,7 @@ void update_turnInfo(){
 void init_view();
 void cleanup();
 void doChoice(int choice);
-void messageCB(char *message);
+void messageCB(unsigned char *message);
 
 
 static void *tickTurn(void *ptr){
@@ -197,6 +197,7 @@ void cleanup(){
     close(turnInfo.turnAlloc_46.sockfd);
     close(turnInfo.turnAlloc_64.sockfd);
     close(turnInfo.turnAlloc_66.sockfd);
+    system("reset");
 }
 
 
@@ -204,7 +205,7 @@ void doChoice(int choice)
 {
     switch(choice){
     case 1:
-        gatherAll(&turnInfo, &listenConfig, &update_turnInfo);
+        gatherAll(&turnInfo,  &update_turnInfo, &listenConfig, &messageCB);
         pthread_create( &turnTickThread, NULL, tickTurn, (void*) &turnInfo);
         pthread_create( &turnListenThread, NULL, stunListen, (void*)&listenConfig);
         break;
@@ -243,10 +244,10 @@ void doChoice(int choice)
     }
 }
 
-void messageCB(char *message)
+void messageCB(unsigned char *message)
 {
     int n = sizeof(rcv_message);
-    strncpy(rcv_message, message, n);
+    memcpy(rcv_message, message, n);
     if (n > 0)
         rcv_message[n - 1]= '\0';
 

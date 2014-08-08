@@ -493,6 +493,7 @@ void *stunListen(void *ptr){
                         if (stunResponse.msgHdr.msgType == STUN_MSG_DataIndicationMsg) {
                             if (stunResponse.hasData) {
                                 //Decode and do something with the data?
+                                config->data_handler(&buf[stunResponse.data.offset]);
                             }
                         }
                         if (stunResponse.hasRealm) {
@@ -511,11 +512,12 @@ void *stunListen(void *ptr){
                                 printf("     - Integrity check NOT OK\n");
                             }
                         }
-                        //printf("   Sending Response to TURN library");
-                        //printf("  %p\n", config->socketConfig[i].tInst);
+                        
                         TurnClient_HandleIncResp(config->socketConfig[i].tInst,
                                                  &stunResponse,
                                                  buf);
+                    }else{
+                        config->data_handler(buf);
                     }
                 }
             }

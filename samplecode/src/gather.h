@@ -26,8 +26,10 @@ TURN_INSTANCE_DATA *gather(TURN_INSTANCE_DATA *tInst,
            char *pass,
            struct turn_allocation *turnAlloc);
 
-void gatherAll(struct turn_info *turnInfo, struct listenConfig *listenConfig, void(*update_turninfo)(void));
-
+void gatherAll(struct turn_info *turnInfo, 
+               void(*update_turninfo)(void),
+               struct listenConfig *listenConfig,
+               void (*data_handler)(unsigned char *));
 
 void releaseAll(struct turn_info *turnInfo);
 

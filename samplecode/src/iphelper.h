@@ -18,13 +18,13 @@ struct socketConfig{
     char* user;
     char* pass;
     char* realm;
-
 };
 
 
 struct listenConfig{
     struct socketConfig socketConfig[MAX_LISTEN_SOCKETS];
     int numSockets;
+    void (*data_handler)(unsigned char *);
 };
 
 
