@@ -66,6 +66,7 @@ typedef enum
     StunResult_BindFailNoAnswer,         /* Bind Req failed - no contact with stun server */
     StunResult_BindFailUnauthorised,     /* passwd/username is incorrect */
     StunResult_CancelComplete,           /* Request is cancelled and timed out */
+    StunResult_ICMPResp,                 /* Received ICMP */
     StunResult_InternalError,
     StunResult_MalformedResp
 } StunResult_T;
@@ -81,6 +82,10 @@ typedef struct
     struct sockaddr_storage rflxAddr;
     struct sockaddr_storage srcAddr;
     struct sockaddr_storage dstBaseAddr;  /* The destination seen from the sender of the response */
+    uint32_t                rtt;          /* Rtt in microseconds */
+    uint32_t                retransmits;
+    uint32_t                ICMPtype;
+    uint32_t                ttl;
 } StunCallBackData_T;
 
 /* for output of managment info (optional) */
@@ -175,6 +180,20 @@ int  StunClient_startBindTransaction(STUN_CLIENT_DATA      *clientData,
                                      STUNCB                 stunCbFunc,
                                      DiscussData        *discussData); /* nullptr if no malicedata should be sent. */
 
+int StunClient_startSTUNTrace(STUN_CLIENT_DATA      *clientData,
+                              void                  *userCtx,
+                              const struct sockaddr *serverAddr,
+                              const struct sockaddr *baseAddr,
+                              bool                   useRelay,
+                              uint8_t                ttl,
+                              StunMsgId              transactionId,
+                              uint32_t               sockhandle,
+                              STUN_SENDFUNC          sendFunc,
+                              STUNCB                 stunCbFunc,
+                              DiscussData           *discussData); /*NULL if none*/
+
+
+
 /*
  * This function must be called by the application every N msec. N must be same as in StunClientBind_Init(instances, N)
  */
@@ -188,6 +207,11 @@ void StunClient_HandleTick(STUN_CLIENT_DATA *clientData, uint32_t TimerResMsec);
 void StunClient_HandleIncResp(STUN_CLIENT_DATA *clientData, const StunMessage *msg,
 			      const struct sockaddr *srcAddr);
 
+
+void StunClient_HandleICMP(STUN_CLIENT_DATA * clientData, StunMsgId transactionId,
+                           const struct sockaddr *srcAddr,
+                           uint32_t ICMPType,
+                           uint32_t ttl);
 
 /*
  * Cancel a transaction with  matching  transaction id

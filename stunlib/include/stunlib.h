@@ -112,7 +112,9 @@ extern "C" {
 #define STUN_ATTR_StreamType         0x8050
 #define STUN_ATTR_NetworkStatus      0x8051
 
-
+/*STUNTrace Attributes (Experimental) */
+#define STUN_ATTR_TTL                0x8055
+#define STUN_ATTR_TTLString          0x8056
 
 /* STUN attributes (TURN extensions) */
 #define STUN_ATTR_ChannelNumber       0x000c
@@ -369,6 +371,14 @@ StunAtrNetworkStatus;
 
 typedef struct
 {
+    uint8_t ttl;
+    uint8_t pad_8;
+    uint16_t pad_16;
+}    
+StunAtrTTL;
+
+typedef struct
+{
     char stunUserName[STUN_MSG_MAX_USERNAME_LENGTH];
     char stunPassword[STUN_MSG_MAX_PASSWORD_LENGTH];
     char realm[STUN_MSG_MAX_REALM_LENGTH];
@@ -500,6 +510,12 @@ typedef struct
     bool hasStreamType;
     StunAtrStreamType streamType;
 
+    bool hasTTL;
+    StunAtrTTL ttl;
+    
+    bool hasTTLString;
+    StunAtrString TTLString;
+
     /*After Integrity attr*/
     bool hasNetworkStatus;
     StunAtrNetworkStatus networkStatus;
@@ -518,8 +534,8 @@ typedef void (*STUN_SENDFUNC)(int                    sockHandle,    /* context -
                               const uint8_t         *buffer,        /* ptr to buffer to send */
                               int                    bufLen,        /* length of send buffer */
                               const struct sockaddr *dstAddr,       /* Optional, if connected to socket */
-                              bool                   useRelay);     /* User context data. Optional */
-
+                              bool                   useRelay,      /* User context data. Optional */
+                              const uint8_t          ttl);          /* TTL to set on IP packet, 0 is ignored */
 
 /* Defines how errors are reported */
 typedef void  (*STUN_ERR_FUNC)(const char *fmt, va_list ap);
@@ -757,6 +773,8 @@ bool     stunlib_addError(StunMessage *stunMsg, const char *reasonStr, uint16_t 
 bool     stunlib_addChannelNumber(StunMessage *stunMsg,  uint16_t channelNumber);
 uint32_t stunlib_calculateFingerprint(const uint8_t *buf, size_t len);
 bool     stunlib_checkFingerPrint(const uint8_t *buf, uint32_t fpOffset);
+
+bool stunlib_addTTLString(StunMessage *stunMsg, const char *TTLString, char padChar);
 
 
 /* Concat  username+realm+passwd into string "<username>:<realm>:<password>" then run the MD5 alg.
