@@ -711,6 +711,20 @@ stunEncodeNetworkStatus(StunAtrNetworkStatus *pNetworkStatus, uint8_t **pBuf, in
     return true;
 }
 
+static bool
+stunEncodeTTL(StunAtrTTL *pTTL, uint8_t **pBuf, int *nBufLen)
+{
+    if (*nBufLen < 32) return false;
+    write_16(pBuf, STUN_ATTR_TTL); /* Attr type */
+    write_16(pBuf, 4);                  /* Length */
+    write_8(pBuf, pTTL->ttl);
+    write_8(pBuf, pTTL->pad_8);
+    write_16(pBuf, pTTL->pad_16);
+    
+    *nBufLen -= 8;
+    return true;
+}
+
 
 static uint32_t stunlib_EncodeIndication(
     uint8_t    msgType,
@@ -1133,6 +1147,19 @@ stunDecodeNetworkStatus(StunAtrNetworkStatus *networkStatusAtr, const uint8_t **
     read_16(pBuf, &networkStatusAtr->downMaxBandwidth);
 
 
+    *nBufLen -= 8;
+    return true;
+}
+
+static bool
+stunDecodeTTL(StunAtrTTL *ttl, const uint8_t **pBuf, int *nBufLen)
+{
+    if (*nBufLen < 4) return false;
+
+    read_8(pBuf, &ttl->ttl);
+    read_8(pBuf, &ttl->pad_8);
+    read_16(pBuf, &ttl->pad_16);
+    
     *nBufLen -= 8;
     return true;
 }
@@ -1712,6 +1739,21 @@ stunlib_DecodeMessage(const uint8_t* buf,
                 message->hasReservationToken = true;
                 break;
 
+            case STUN_ATTR_TTL:
+                if (!stunDecodeTTL(&message->ttl,
+                                          &pCurrPtr,
+                                          &restlen)) return false;
+                message->hasTTL = true;
+                break;
+
+            case STUN_ATTR_TTLString:
+                if (!stunDecodeStringAtr(&message->TTLString,
+                                         &pCurrPtr,
+                                         &restlen,
+                                         sAtr.length)) return false;
+                message->hasTTLString = true;
+                break;
+                                
             case STUN_ATTR_StreamType:
                 if (!stunDecodeStreamType(&message->streamType,
                                           &pCurrPtr,
@@ -1953,6 +1995,9 @@ addFingerPrint (StunMessage* message)
     ||  (type == STUN_PathDiscoveryRequestMsg)
         ||  (type == STUN_PathDiscoveryResponseMsg))
     {
+        return false;
+    }
+    if(message->hasTTL){
         return false;
     }
     return true;
@@ -2204,6 +2249,24 @@ stunlib_encodeMessage(StunMessage* message,
         return 0;
     }
 
+    if (message->hasTTL && !stunEncodeTTL(&message->ttl,
+                                          &pCurrPtr,
+                                          &restlen))
+    {
+        if (stream != NULL) printError(stream, "Invalid TTL attribute\n");
+        return 0;
+    }
+
+    if (message->hasTTLString && !stunEncodeStringAtr(&message->TTLString,
+                                                      STUN_ATTR_TTLString,
+                                                      &pCurrPtr,
+                                                      &restlen))
+    {
+        if (stream != NULL) printError(stream, "Invalid TTLString\n");
+        return 0;
+    }
+
+
     if (message->hasNetworkStatusResp && !stunEncodeNetworkStatus(&message->networkStatusResp,
                                                                   &pCurrPtr,
                                                                   &restlen))
@@ -2224,7 +2287,7 @@ stunlib_encodeMessage(StunMessage* message,
 
     
 
-    if (md5key)
+    if (md5key!=NULL)
     {
         message->hasMessageIntegrity = true;
         memset(&message->messageIntegrity,0,sizeof(message->messageIntegrity));
@@ -2256,7 +2319,7 @@ stunlib_encodeMessage(StunMessage* message,
     pCurrPtr = (uint8_t*)buf;
     restlen = bufLen;
     stunEncodeHeader(&message->msgHdr, &pCurrPtr, &restlen);
-    if (md5key)
+    if (md5key!=NULL)
     {
         uint32_t length;
         length = 0;
@@ -2287,7 +2350,6 @@ stunlib_encodeMessage(StunMessage* message,
     if (addFingerprint)
     {
         uint32_t crc;
-
         message->msgHdr.msgLength += 8;
 
         pCurrPtr = (uint8_t*)buf;
@@ -2350,6 +2412,20 @@ stunlib_addUserName(StunMessage *stunMsg, const char *userName, char padChar)
     stunSetString(&stunMsg->username, userName, padChar);
     return true;
 }
+
+bool
+stunlib_addTTLString(StunMessage *stunMsg, const char *TTLString, char padChar)
+{
+    if ( strlen(TTLString) > STUN_MSG_MAX_USERNAME_LENGTH )
+    {
+        return false;
+    }
+
+    stunMsg->hasTTLString = true;
+    stunSetString(&stunMsg->TTLString, TTLString, padChar);
+    return true;
+}
+
 
 bool
 stunlib_addRealm(StunMessage *stunMsg, const char *realm, char padChar)
