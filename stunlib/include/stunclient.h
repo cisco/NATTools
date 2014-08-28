@@ -185,14 +185,14 @@ int StunClient_startSTUNTrace(STUN_CLIENT_DATA      *clientData,
                               const struct sockaddr *serverAddr,
                               const struct sockaddr *baseAddr,
                               bool                   useRelay,
+                              const char            *ufrag,
+                              const char            *password,
                               uint8_t                ttl,
                               StunMsgId              transactionId,
                               uint32_t               sockhandle,
                               STUN_SENDFUNC          sendFunc,
                               STUNCB                 stunCbFunc,
                               DiscussData           *discussData); /*NULL if none*/
-
-
 
 /*
  * This function must be called by the application every N msec. N must be same as in StunClientBind_Init(instances, N)

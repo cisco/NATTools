@@ -125,6 +125,83 @@ static bool TransIdIsEqual(const StunMsgId *a, const StunMsgId *b)
 }
 
 
+
+static void StoreStunBindReq(STUN_TRANSACTION_DATA *trans, StunBindReqStuct *pMsgIn)
+{
+    /* copy whole msg */
+    memcpy(&trans->stunBindReq, pMsgIn, sizeof(StunBindReqStuct));
+}
+
+
+static void BuildStunBindReq(STUN_TRANSACTION_DATA *trans, StunMessage  *stunReqMsg)
+{
+    memset(stunReqMsg, 0, sizeof *stunReqMsg);
+    stunReqMsg->msgHdr.msgType = STUN_MSG_BindRequestMsg;
+
+    /* transaction id */
+    memcpy(&stunReqMsg->msgHdr.id, &trans->stunBindReq.transactionId, sizeof(StunMsgId));
+    /* Username */
+    if(strlen(trans->stunBindReq.ufrag)>0){
+        stunReqMsg->hasUsername = true;
+        strncpy(stunReqMsg->username.value, trans->stunBindReq.ufrag, STUN_MAX_STRING - 1);
+        stunReqMsg->username.sizeValue = min(STUN_MAX_STRING, strlen(trans->stunBindReq.ufrag));
+    }
+    /* Priority */
+    if(trans->stunBindReq.peerPriority > 0){
+        stunReqMsg->hasPriority    = true;
+        stunReqMsg->priority.value = trans->stunBindReq.peerPriority;
+    }
+    /* useCandidate */
+    stunReqMsg->hasUseCandidate = trans->stunBindReq.useCandidate;
+
+    /* controlling */
+    if(trans->stunBindReq.tieBreaker > 0){
+        stunReqMsg->hasControlling = trans->stunBindReq.iceControlling;
+        stunReqMsg->controlling.value = trans->stunBindReq.tieBreaker;
+        if (!trans->stunBindReq.iceControlling)
+            {
+                stunReqMsg->hasControlled = true;
+                stunReqMsg->controlled.value = trans->stunBindReq.tieBreaker;
+            }
+    }
+    /* ttl */
+    if(trans->stunBindReq.ttl > 0 ){
+        char ttlString[200];
+        char iTTL[5] ="0000\0";
+        int i;
+        stunReqMsg->hasTTL = true;
+        stunReqMsg->ttl.ttl = trans->stunBindReq.ttl;
+
+        sprintf(iTTL, "%.4i", trans->stunBindReq.ttl);
+        ttlString[0]='\0';
+        for(i=0;i<trans->stunBindReq.ttl;i++){
+            strncat(ttlString,iTTL, 4);            
+        }
+        
+        stunlib_addTTLString(stunReqMsg, ttlString, 'a');
+    }
+   
+
+    /*Adding DISCUSS attributes if present*/
+    if (trans->stunBindReq.discussData != NULL)
+    {
+        stunReqMsg->hasStreamType = true;
+        stunReqMsg->streamType.type = trans->stunBindReq.discussData->streamType;
+        stunReqMsg->streamType.interactivity = trans->stunBindReq.discussData->interactivity;
+        
+        stunReqMsg->hasNetworkStatus = true;
+        stunReqMsg->networkStatus.flags = trans->stunBindReq.discussData->networkStatus_flags;
+        stunReqMsg->networkStatus.nodeCnt = trans->stunBindReq.discussData->networkStatus_nodeCnt;
+        stunReqMsg->networkStatus.upMaxBandwidth = trans->stunBindReq.discussData->networkStatus_upMaxBandwidth;
+        stunReqMsg->networkStatus.downMaxBandwidth = trans->stunBindReq.discussData->networkStatus_downMaxBandwidth;
+    }
+
+    if(trans->stunBindReq.addSoftware){
+        stunlib_addSoftware(stunReqMsg, SoftwareVersionStr, STUN_DFLT_PAD);
+    }
+}
+
+
 /*************************************************************************/
 /************************ API ********************************************/
 /*************************************************************************/
@@ -255,6 +332,8 @@ int StunClient_startSTUNTrace(STUN_CLIENT_DATA      *clientData,
                               const struct sockaddr *serverAddr,
                               const struct sockaddr *baseAddr,
                               bool                   useRelay,
+                              const char            *ufrag,
+                              const char            *password,
                               uint8_t                ttl,
                               StunMsgId              transactionId,
                               uint32_t               sockhandle,
@@ -264,20 +343,24 @@ int StunClient_startSTUNTrace(STUN_CLIENT_DATA      *clientData,
                                    
 {
     StunBindReqStuct m;
-
+    STUN_TRANSACTION_DATA trans;
+    StunMessage  stunMsg;
+    uint8_t stunBuff[STUN_MAX_PACKET_SIZE];
+    
     if (clientData == NULL)
     {
         StunPrint(clientData->logUserData, clientData->Log_cb,
                 StunInfoCategory_Error, "<STUNCLIENT> startBindTransaction() failed,  Not initialised or no memory");
-        return STUNCLIENT_CTX_UNKNOWN;
+        return 0;
     }
     
-
     memset(&m, 0, sizeof(m));
     m.userCtx        = userCtx;
     sockaddr_copy((struct sockaddr *)&m.serverAddr, serverAddr);
     sockaddr_copy((struct sockaddr *)&m.baseAddr, baseAddr);
     m.useRelay = useRelay;
+    strncpy(m.ufrag, ufrag, sizeof(m.ufrag)-1);
+    strncpy(m.password,   password, sizeof(m.password)-1);
     m.ttl = ttl;
     m.transactionId = transactionId;
     m.sockhandle     = sockhandle;
@@ -289,7 +372,17 @@ int StunClient_startSTUNTrace(STUN_CLIENT_DATA      *clientData,
     m.stunCbFunc = stunCbFunc;
     StunClientMain(clientData, STUNCLIENT_CTX_UNKNOWN, STUN_SIGNAL_BindReq, (uint8_t*)&m);
 
-    return 0;
+    StoreStunBindReq(&trans, &m);
+    BuildStunBindReq(&trans, &stunMsg);
+    
+    return stunlib_encodeMessage(&stunMsg,
+                                 (uint8_t*)stunBuff,
+                                 STUN_MAX_PACKET_SIZE,
+                                 (unsigned char*)password,         /* md5key */
+                                 password ? strlen(password) : 0,  /* keyLen */
+                                 NULL);
+    
+
 }
 
 
@@ -766,80 +859,6 @@ static void InitInstData(STUN_TRANSACTION_DATA *trans)
 }
 
 
-static void StoreStunBindReq(STUN_TRANSACTION_DATA *trans, StunBindReqStuct *pMsgIn)
-{
-    /* copy whole msg */
-    memcpy(&trans->stunBindReq, pMsgIn, sizeof(StunBindReqStuct));
-}
-
-
-static void BuildStunBindReq(STUN_TRANSACTION_DATA *trans, StunMessage  *stunReqMsg)
-{
-    memset(stunReqMsg, 0, sizeof *stunReqMsg);
-    stunReqMsg->msgHdr.msgType = STUN_MSG_BindRequestMsg;
-
-    /* transaction id */
-    memcpy(&stunReqMsg->msgHdr.id, &trans->stunBindReq.transactionId, sizeof(StunMsgId));
-    /* Username */
-    if(strlen(trans->stunBindReq.ufrag)>0){
-        stunReqMsg->hasUsername = true;
-        strncpy(stunReqMsg->username.value, trans->stunBindReq.ufrag, STUN_MAX_STRING - 1);
-        stunReqMsg->username.sizeValue = min(STUN_MAX_STRING, strlen(trans->stunBindReq.ufrag));
-    }
-    /* Priority */
-    if(trans->stunBindReq.peerPriority > 0){
-        stunReqMsg->hasPriority    = true;
-        stunReqMsg->priority.value = trans->stunBindReq.peerPriority;
-    }
-    /* useCandidate */
-    stunReqMsg->hasUseCandidate = trans->stunBindReq.useCandidate;
-
-    /* controlling */
-    if(trans->stunBindReq.tieBreaker > 0){
-        stunReqMsg->hasControlling = trans->stunBindReq.iceControlling;
-        stunReqMsg->controlling.value = trans->stunBindReq.tieBreaker;
-        if (!trans->stunBindReq.iceControlling)
-            {
-                stunReqMsg->hasControlled = true;
-                stunReqMsg->controlled.value = trans->stunBindReq.tieBreaker;
-            }
-    }
-    /* ttl */
-    if(trans->stunBindReq.ttl > 0 ){
-        char ttlString[200];
-        char iTTL[5] ="0000\0";
-        int i;
-        stunReqMsg->hasTTL = true;
-        stunReqMsg->ttl.ttl = trans->stunBindReq.ttl;
-
-        sprintf(iTTL, "%.4i", trans->stunBindReq.ttl);
-        ttlString[0]='\0';
-        for(i=0;i<trans->stunBindReq.ttl;i++){
-            strncat(ttlString,iTTL, 4);            
-        }
-        
-        stunlib_addTTLString(stunReqMsg, ttlString, 'a');
-    }
-   
-
-    /*Adding DISCUSS attributes if present*/
-    if (trans->stunBindReq.discussData != NULL)
-    {
-        stunReqMsg->hasStreamType = true;
-        stunReqMsg->streamType.type = trans->stunBindReq.discussData->streamType;
-        stunReqMsg->streamType.interactivity = trans->stunBindReq.discussData->interactivity;
-        
-        stunReqMsg->hasNetworkStatus = true;
-        stunReqMsg->networkStatus.flags = trans->stunBindReq.discussData->networkStatus_flags;
-        stunReqMsg->networkStatus.nodeCnt = trans->stunBindReq.discussData->networkStatus_nodeCnt;
-        stunReqMsg->networkStatus.upMaxBandwidth = trans->stunBindReq.discussData->networkStatus_upMaxBandwidth;
-        stunReqMsg->networkStatus.downMaxBandwidth = trans->stunBindReq.discussData->networkStatus_downMaxBandwidth;
-    }
-
-    if(trans->stunBindReq.addSoftware){
-        stunlib_addSoftware(stunReqMsg, SoftwareVersionStr, STUN_DFLT_PAD);
-    }
-}
 
 
 /* encode and send */

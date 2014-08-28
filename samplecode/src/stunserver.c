@@ -16,7 +16,7 @@
 #include <stunclient.h>
 #include "utils.h"
 
-#define MYPORT "4950"    // the port users will be connecting to
+#define MYPORT "3478"    // the port users will be connecting to
 #define PASSWORD "VOkJxbRl1RmTxUk/WvJxBt"
 #define MAXBUFLEN 500
 
@@ -53,7 +53,7 @@ int main(void)
     while(1) {
         printf("stunserver: waiting to recvfrom...\n");
         if((numbytes = recvStunMsg(sockfd, &their_addr, &stunRequest, buf, MAXBUFLEN-1)) != -1) {
-
+            printf("Got bytes: %i\n", numbytes);
             if(stunlib_checkIntegrity(buf, numbytes, &stunRequest, (unsigned char*)PASSWORD, sizeof(PASSWORD)) ) {
                 printf("   Integrity OK\n");
 

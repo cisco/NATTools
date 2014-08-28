@@ -82,6 +82,7 @@ uint32_t stunlib_calculateFingerprint(const uint8_t *buf, size_t len);
 static void printError(FILE *stream, const char *fmt, ...)
 {
     va_list ap;
+    if(stream == NULL) return;
     va_start(ap,fmt);
 
     vfprintf(stream, fmt, ap);
@@ -846,13 +847,13 @@ static bool stunDecodeStringAtrAlligned(StunAtrString *pStr, const uint8_t **pBu
 {
     int len;
     uint32_t padLen = calcPadLen(atrLen, allignment);
-
+    
     if (*nBufLen < atrLen)
     {
         printError(stderr, "stunDecodeStringAtr: failed nBufLen %d atrLen %d\n", *nBufLen, atrLen);
         return false;
     }
-
+    
     len = min(STUN_MAX_STRING, atrLen);
     pStr->sizeValue = len;
     read_8n(pBuf, (uint8_t*)pStr->value, len);
@@ -1160,7 +1161,7 @@ stunDecodeTTL(StunAtrTTL *ttl, const uint8_t **pBuf, int *nBufLen)
     read_8(pBuf, &ttl->pad_8);
     read_16(pBuf, &ttl->pad_16);
     
-    *nBufLen -= 8;
+    *nBufLen -= 4;
     return true;
 }
 
@@ -1559,7 +1560,7 @@ stunlib_DecodeMessage(const uint8_t* buf,
         {
             case STUN_ATTR_FingerPrint:
                 /* Length of message + header(20) - rest of message */
-                if (!stunlib_checkFingerPrint(buf, message->msgHdr.msgLength+20-restlen))
+                if (!stunlib_checkFingerPrint(buf, message->msgHdr.msgLength+STUN_HEADER_SIZE-restlen))
                 {
                     printError(stream, "stunlib_DecodeMessage: --Fingerprint CRC error");
                 }
@@ -1741,8 +1742,8 @@ stunlib_DecodeMessage(const uint8_t* buf,
 
             case STUN_ATTR_TTL:
                 if (!stunDecodeTTL(&message->ttl,
-                                          &pCurrPtr,
-                                          &restlen)) return false;
+                                   &pCurrPtr,
+                                   &restlen)) return false;
                 message->hasTTL = true;
                 break;
 
@@ -1798,7 +1799,7 @@ stunlib_DecodeMessage(const uint8_t* buf,
 
                 
         default:
-                if (! (sAtr.type & 0x8000) )
+            if (! (sAtr.type & 0x8000) )
                 {
                     /* Set unknowns.....*/
                     if (unknowns && unknowns->numAttributes < STUN_MAX_UNKNOWN_ATTRIBUTES)
@@ -1810,6 +1811,7 @@ stunlib_DecodeMessage(const uint8_t* buf,
                 break;
         }
     }
+
     if(restlen != 0)
     {
         if (stream != NULL)
@@ -1840,6 +1842,10 @@ bool stunlib_checkIntegrity(const uint8_t* buf,
                             int integrityKeyLen)
 
 {
+    if(integrityKey==NULL){
+        return false;
+    }
+
     
     if (message->hasMessageIntegrity)
     {
@@ -1989,15 +1995,13 @@ uint32_t stunlib_encodeStunKeepAliveResp(StunMsgId     *transId,
 static bool
 addFingerPrint (StunMessage* message)
 {
+
     uint16_t type = message->msgHdr.msgType;
     if ((type == STUN_MSG_SendIndicationMsg)
     ||  (type == STUN_MSG_DataIndicationMsg)
     ||  (type == STUN_PathDiscoveryRequestMsg)
         ||  (type == STUN_PathDiscoveryResponseMsg))
     {
-        return false;
-    }
-    if(message->hasTTL){
         return false;
     }
     return true;
@@ -2534,7 +2538,7 @@ void stunlib_setIP4Address(StunIPAddress *pIpAddr, uint32_t addr, uint16_t port)
 }
 
 
-void stunlib_setIP6Address(StunIPAddress *pIpAddr, uint8_t addr[16], uint16_t port)
+void stunlib_setIP6Address(StunIPAddress *pIpAddr, const uint8_t addr[16], const uint16_t port)
 {
     if (pIpAddr)
     {
@@ -2581,9 +2585,8 @@ bool stunlib_checkFingerPrint(const uint8_t *buf, uint32_t fpOffset){
     uint32_t val;
     const uint8_t *pos = buf+fpOffset;
     read_32(&pos, &val);
-
     if (crc == val) return true;
-
+    
     return false;
 }
 
