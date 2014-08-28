@@ -15,11 +15,11 @@ Suite * stunserver_suite (void);
 int main(void){
 
     int number_failed;
-    Suite *s = stunlib_suite ();
-    SRunner *sr = srunner_create (turnmessage_suite ());
+    //SRunner *sr = srunner_create (turnmessage_suite ());
+    SRunner *sr = srunner_create (stunlib_suite ());
     //SRunner *sr = srunner_create (s);
     srunner_add_suite (sr, turnclient_suite ());
-    srunner_add_suite (sr, stunlib_suite ());
+    srunner_add_suite (sr, turnmessage_suite ());
     srunner_add_suite (sr, realworldmsg_suite ());
     srunner_add_suite (sr, stunclient_suite ());
     srunner_add_suite (sr, stunserver_suite ());

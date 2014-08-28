@@ -61,11 +61,12 @@ static void  PrintStunInfo(void *userData, StunInfoCategory_T category, char *In
     //fprintf(stderr, "%s\n", ErrStr);
 }
 
-static int SendRawStun(int sockfd, 
-                       uint8_t *buf, 
-                       int len, 
-                       struct sockaddr *addr,
-                       bool useRelay)
+static void SendRawStun(int sockfd, 
+                        const uint8_t *buf, 
+                        int len, 
+                        const struct sockaddr *addr,
+                        bool useRelay,
+                        const uint8_t ttl)
 {
     char addr_str[SOCKADDR_MAX_STRLEN];
     /* find the transaction id  so we can use this in the simulated resp */
@@ -77,7 +78,7 @@ static int SendRawStun(int sockfd,
     sockaddr_toString(addr, addr_str, SOCKADDR_MAX_STRLEN, true);
                       
     //printf("Sendto: '%s'\n", addr_str);
-
+   
 }
 
 static int StartBindTransaction(int n)

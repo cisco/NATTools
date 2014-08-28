@@ -154,6 +154,7 @@ struct STUN_CLIENT_DATA
 {
     STUN_TRANSACTION_DATA data [MAX_STUN_TRANSACTIONS];
 
+
     /*duplicated for logging on unknown transactions etc.*/
     STUN_INFO_FUNC_PTR   Log_cb;
     void * logUserData;
