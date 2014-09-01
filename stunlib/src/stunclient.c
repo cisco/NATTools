@@ -370,11 +370,12 @@ int StunClient_startSTUNTrace(STUN_CLIENT_DATA      *clientData,
 
     /* callback and data (owned by caller) */
     m.stunCbFunc = stunCbFunc;
-    StunClientMain(clientData, STUNCLIENT_CTX_UNKNOWN, STUN_SIGNAL_BindReq, (uint8_t*)&m);
+    
 
     StoreStunBindReq(&trans, &m);
     BuildStunBindReq(&trans, &stunMsg);
     
+    StunClientMain(clientData, STUNCLIENT_CTX_UNKNOWN, STUN_SIGNAL_BindReq, (uint8_t*)&m);
     return stunlib_encodeMessage(&stunMsg,
                                  (uint8_t*)stunBuff,
                                  STUN_MAX_PACKET_SIZE,
@@ -891,6 +892,7 @@ static bool SendStunReq(STUN_TRANSACTION_DATA *trans, StunMessage  *stunReqMsg)
         return false;
     }
 
+    
     /*Store Time so we can messure RTT */
     gettimeofday(&trans->start, NULL);
     
@@ -957,6 +959,7 @@ static void CallBack(STUN_TRANSACTION_DATA *trans, StunResult_T stunResult)
 
     memcpy(&res.msgId, &trans->stunBindReq.transactionId, sizeof(StunMsgId));
     res.stunResult = stunResult;
+    res.ttl = trans->stunBindReq.ttl;
 
     if (trans->stunBindReq.stunCbFunc)
        (trans->stunBindReq.stunCbFunc)(trans->stunBindReq.userCtx, &res);
@@ -1067,6 +1070,7 @@ static void BindRespCallback(STUN_TRANSACTION_DATA *trans, const struct sockaddr
                   (struct sockaddr*)&trans->stunBindReq.baseAddr);
 
     res.rtt = (trans->stop.tv_sec*1000000+trans->stop.tv_usec) - (trans->start.tv_sec*1000000+trans->start.tv_usec);
+    res.ttl = trans->stunBindReq.ttl;
 
     StunPrint(client->logUserData, client->Log_cb, StunInfoCategory_Info,
                 "<STUNCLIENT:%02d> BindResp from src: %s",
@@ -1177,6 +1181,7 @@ static void  StunState_WaitBindResp(STUN_TRANSACTION_DATA *trans, STUN_SIGNAL si
             StunMessage *pResp = &pMsgIn->stunRespMessage;
 
             StopTimer(trans, STUN_SIGNAL_TimerRetransmit);
+            trans->ttl = pMsgIn->ttl;
             if (StoreBindResp(trans, pResp))
             {
                 BindRespCallback(trans, (struct sockaddr *)&pMsgIn->srcAddr);
@@ -1251,6 +1256,7 @@ static void  StunState_Cancelled(STUN_TRANSACTION_DATA *trans, STUN_SIGNAL sig, 
             StunMessage *pResp = &pMsgIn->stunRespMessage;
 
             StopTimer(trans, STUN_SIGNAL_TimerRetransmit);
+            trans->ttl = pMsgIn->ttl;
             if (StoreBindResp(trans, pResp))
             {
                 BindRespCallback(trans, (struct sockaddr *)&pMsgIn->srcAddr);
