@@ -101,6 +101,7 @@ or implied, of Cisco.
 
 
 #define TURN_MAX_ERR_STRLEN    256  /* max size of string in TURN_INFO_FUNC */
+#define TURN_TRANSID_BUFFER_SIZE 36
 
 
 static const uint32_t stunTimeoutList[STUNCLIENT_MAX_RETRANSMITS] = { STUNCLIENT_RETRANSMIT_TIMEOUT_LIST};
@@ -188,6 +189,16 @@ static void TurnPrint(TURN_INSTANCE_DATA * pInst, TurnInfoCategory_T category, c
 
   va_end(ap);
 
+}
+
+static void TurnTransactionIdString(char * dst, uint32_t buffersize, uint8_t * src) {
+    if (buffersize >= TURN_TRANSID_BUFFER_SIZE) { /* (2 * 12) + 11 + 1*/
+        sprintf(dst,
+                "%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x",
+                src[0], src[1], src[2], src[3],
+                src[4], src[5], src[6], src[7],
+                src[8], src[9], src[10], src[11]);
+    }
 }
 
 static int TurnRand(void)
@@ -430,11 +441,13 @@ bool TurnClient_HandleIncResp(TURN_INSTANCE_DATA *pInst, StunMessage *msg, uint8
     if (TransIdIsEqual(&msg->msgHdr.id, &pInst->PrevRespTransId))
     {
         /* silent discard duplicate msg */
+        char tmp[TURN_TRANSID_BUFFER_SIZE];
+        TurnTransactionIdString(tmp, TURN_TRANSID_BUFFER_SIZE, &msg->msgHdr.id.octet[0]);
         TurnPrint(pInst,
                   TurnInfoCategory_Trace,
-                  "<TURNCLIENT:%d> %02x..%02x %s silent discard duplicate",
-                  pInst->id, msg->msgHdr.id.octet[0],
-                  msg->msgHdr.id.octet[11],
+                  "<TURNCLIENT:%d> %s %s silent discard duplicate",
+                  pInst->id,
+                  tmp,
                   stunlib_getMessageName(msg->msgHdr.msgType));
         return true;
     }
@@ -442,12 +455,13 @@ bool TurnClient_HandleIncResp(TURN_INSTANCE_DATA *pInst, StunMessage *msg, uint8
     /* context known, just check transId matches last sent request on this instance */
     if (TransIdIsEqual(&msg->msgHdr.id, &pInst->StunReqTransId))
     {
+        char tmp[TURN_TRANSID_BUFFER_SIZE];
+        TurnTransactionIdString(tmp, TURN_TRANSID_BUFFER_SIZE, &msg->msgHdr.id.octet[0]);
         TurnPrint(pInst,
                   TurnInfoCategory_Trace,
-                  "<TURNCLIENT:%d> %02x..%02x %s",
+                  "<TURNCLIENT:%d> %s %s",
                   pInst->id,
-                  msg->msgHdr.id.octet[0],
-                  msg->msgHdr.id.octet[11],
+                  tmp,
                   stunlib_getMessageName(msg->msgHdr.msgType));
 
         StorePrevRespTransId(pInst, msg);
@@ -456,13 +470,15 @@ bool TurnClient_HandleIncResp(TURN_INSTANCE_DATA *pInst, StunMessage *msg, uint8
     }
     else
     {
+        char tmp1[TURN_TRANSID_BUFFER_SIZE];
+        char tmp2[TURN_TRANSID_BUFFER_SIZE];
+        TurnTransactionIdString(tmp1, TURN_TRANSID_BUFFER_SIZE, &msg->msgHdr.id.octet[0]);
+        TurnTransactionIdString(tmp2, TURN_TRANSID_BUFFER_SIZE, &pInst->StunReqTransId.octet[0]);
         TurnPrint(pInst,
                   TurnInfoCategory_Error,
-                  "<TURNCLIENT:%d> mismatched transId rec: %02x..%02x, exp: %02x..%02x discarding, msgType %s", pInst->id,
-                  msg->msgHdr.id.octet[0],
-                  msg->msgHdr.id.octet[11],
-                  pInst->StunReqTransId.octet[0],
-                  pInst->StunReqTransId.octet[11],
+                  "<TURNCLIENT:%d> mismatched transId rec: %s, exp: %s discarding, msgType %s", pInst->id,
+                  tmp1,
+                  tmp2,
                   stunlib_getMessageName(msg->msgHdr.msgType));
 
         return false;
@@ -1352,6 +1368,7 @@ static bool  SendTurnReq(TURN_INSTANCE_DATA *pInst, StunMessage  *stunReqMsg)
 {
     int len;
     char addrStr[SOCKADDR_MAX_STRLEN];
+    char tmp[TURN_TRANSID_BUFFER_SIZE];
 
     len = stunlib_encodeMessage(stunReqMsg,
                             (unsigned char*) (pInst->stunReqMsgBuf),
@@ -1367,19 +1384,28 @@ static bool  SendTurnReq(TURN_INSTANCE_DATA *pInst, StunMessage  *stunReqMsg)
                   TurnInfoCategory_Error,
                   "<TURNCLIENT:%d>  SendTurnReq(), failed encode",
                   pInst->id);
+
+
+
         return false;
     }
     sockaddr_toString ((struct sockaddr *)&pInst->turnAllocateReq.serverAddr,
                         addrStr,
                         SOCKADDR_MAX_STRLEN,
                         true);
-    TurnPrint(pInst, TurnInfoCategory_Trace,
-              "<TURNCLIENT:%d> %02x..%02x OUT-->STUN: %s Len=%i to %s\n",
-              pInst->id,
-              stunReqMsg->msgHdr.id.octet[0], stunReqMsg->msgHdr.id.octet[11],
-              stunlib_getMessageName(stunReqMsg->msgHdr.msgType),
-              len, addrStr);
 
+    
+    TurnTransactionIdString(tmp, TURN_TRANSID_BUFFER_SIZE, &stunReqMsg->msgHdr.id.octet[0]);
+    TurnPrint(pInst,
+              TurnInfoCategory_Trace,
+              "<TURNCLIENT:%d> %s OUT-->STUN: %s Len=%i to %s",
+              pInst->id,
+              tmp,
+              stunlib_getMessageName(stunReqMsg->msgHdr.msgType),
+              len,
+              addrStr);
+    
+    
     pInst->turnAllocateReq.sendFunc(pInst->stunReqMsgBuf,
                                     pInst->stunReqMsgBufLen,
                                     (struct sockaddr *)&pInst->turnAllocateReq.serverAddr,
@@ -1550,20 +1576,24 @@ static void  TurnClientFsm(TURN_INSTANCE_DATA *pInst,
     }
 }
 
-static void  CommonRetryTimeoutHandler(TURN_INSTANCE_DATA *pInst, TurnResult_T turnResult, const char *errStr, TURN_STATE FailedState)
+static void  CommonRetryTimeoutHandler(TURN_INSTANCE_DATA * pInst,
+                                       TurnResult_T turnResult,
+                                       const char * errStr,
+                                       TURN_STATE FailedState)
 {
 
     if ((pInst->retransmits < STUNCLIENT_MAX_RETRANSMITS)
         && (stunTimeoutList[pInst->retransmits] != 0))  /* can be 0 terminated if using fewer retransmits */
     {
+        char tmp[TURN_TRANSID_BUFFER_SIZE];
+        TurnTransactionIdString(tmp, TURN_TRANSID_BUFFER_SIZE, &pInst->stunReqMsgBuf[8]);
         TurnPrint(pInst,
                   TurnInfoCategory_Trace,
-                  "<TURNCLIENT:%d> %02x..%02x Retransmit %s Retry: %d",
+                  "<TURNCLIENT:%d> %s Retransmit %s Retry: %d",
                   pInst->id,
-                  pInst->stunReqMsgBuf[8],
-                  pInst->stunReqMsgBuf[19],
+                  tmp,
                   errStr,
-                  pInst->retransmits+1);
+                  pInst->retransmits + 1);
 
         RetransmitLastReq(pInst);
         StartNextRetransmitTimer(pInst);
@@ -2291,8 +2321,14 @@ static void  TurnState_WaitReleaseResp(TURN_INSTANCE_DATA *pInst,
         {
             if (pInst->retransmits < TURN_RETRIES_RELEASE)
             {
-                TurnPrint(pInst, TurnInfoCategory_Trace, "<TURNCLIENT:%d> %02x..%02x Retransmit Refresh(0) Retry: %d",
-                          pInst->id, pInst->stunReqMsgBuf[8], pInst->stunReqMsgBuf[19], pInst->retransmits+1);
+                char tmp[TURN_TRANSID_BUFFER_SIZE];
+                TurnTransactionIdString(tmp, TURN_TRANSID_BUFFER_SIZE, &pInst->stunReqMsgBuf[8]);
+                TurnPrint(pInst,
+                          TurnInfoCategory_Trace,
+                          "<TURNCLIENT:%d> %s Retransmit Refresh(0) Retry: %d",
+                          pInst->id,
+                          tmp,
+                          pInst->retransmits + 1);
                 RetransmitLastReq(pInst);
                 pInst->retransmits++;
                 StartTimer(pInst, TURN_SIGNAL_TimerRetransmit, TURN_RETRANS_TIMEOUT_RELEASE_MSEC);
