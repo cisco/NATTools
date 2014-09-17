@@ -273,26 +273,26 @@ void StunClient_HandleTick(STUN_CLIENT_DATA *clientData, uint32_t TimerResMsec)
 }
 
 
-int StunClient_startBindTransaction(STUN_CLIENT_DATA      *clientData,
-                                    void                  *userCtx,
-                                    const struct sockaddr *serverAddr,
-                                    const struct sockaddr *baseAddr,
-                                    bool                   useRelay,
-                                    const char            *ufrag,
-                                    const char            *password,
-                                    uint32_t               peerPriority,
-                                    bool                   useCandidate,
-                                    bool                   iceControlling,
-                                    uint64_t               tieBreaker,
-                                    StunMsgId              transactionId,
-                                    uint32_t               sockhandle,
-                                    STUN_SENDFUNC          sendFunc,
-                                    STUNCB                 stunCbFunc,
-                                    DiscussData           *discussData) /*NULL if none*/
+uint32_t StunClient_startBindTransaction(STUN_CLIENT_DATA      *clientData,
+                                         void                  *userCtx,
+                                         const struct sockaddr *serverAddr,
+                                         const struct sockaddr *baseAddr,
+                                         bool                   useRelay,
+                                         const char            *ufrag,
+                                         const char            *password,
+                                         uint32_t               peerPriority,
+                                         bool                   useCandidate,
+                                         bool                   iceControlling,
+                                         uint64_t               tieBreaker,
+                                         StunMsgId              transactionId,
+                                         uint32_t               sockhandle,
+                                         STUN_SENDFUNC          sendFunc,
+                                         STUNCB                 stunCbFunc,
+                                         DiscussData           *discussData) /*NULL if none*/
                                    
 {
     StunBindReqStuct m;
-
+    
     if (clientData == NULL)
     {
         StunPrint(clientData->logUserData, clientData->Log_cb,
@@ -327,25 +327,26 @@ int StunClient_startBindTransaction(STUN_CLIENT_DATA      *clientData,
 }
 
 
-int StunClient_startSTUNTrace(STUN_CLIENT_DATA      *clientData,
-                              void                  *userCtx,
-                              const struct sockaddr *serverAddr,
-                              const struct sockaddr *baseAddr,
-                              bool                   useRelay,
-                              const char            *ufrag,
-                              const char            *password,
-                              uint8_t                ttl,
-                              StunMsgId              transactionId,
-                              uint32_t               sockhandle,
-                              STUN_SENDFUNC          sendFunc,
-                              STUNCB                 stunCbFunc,
-                              DiscussData           *discussData) /*NULL if none*/
-                                   
+uint32_t StunClient_startSTUNTrace(STUN_CLIENT_DATA      *clientData,
+                                   void                  *userCtx,
+                                   const struct sockaddr *serverAddr,
+                                   const struct sockaddr *baseAddr,
+                                   bool                   useRelay,
+                                   const char            *ufrag,
+                                   const char            *password,
+                                   uint8_t                ttl,
+                                   StunMsgId              transactionId,
+                                   uint32_t               sockhandle,
+                                   STUN_SENDFUNC          sendFunc,
+                                   STUNCB                 stunCbFunc,
+                                   DiscussData           *discussData) /*NULL if none*/
+
 {
     StunBindReqStuct m;
     STUN_TRANSACTION_DATA trans;
     StunMessage  stunMsg;
     uint8_t stunBuff[STUN_MAX_PACKET_SIZE];
+    uint32_t len;
     
     if (clientData == NULL)
     {
@@ -353,7 +354,6 @@ int StunClient_startSTUNTrace(STUN_CLIENT_DATA      *clientData,
                 StunInfoCategory_Error, "<STUNCLIENT> startBindTransaction() failed,  Not initialised or no memory");
         return 0;
     }
-    
     memset(&m, 0, sizeof(m));
     m.userCtx        = userCtx;
     sockaddr_copy((struct sockaddr *)&m.serverAddr, serverAddr);
@@ -367,7 +367,7 @@ int StunClient_startSTUNTrace(STUN_CLIENT_DATA      *clientData,
     m.sendFunc       = sendFunc;
     m.discussData = discussData;
     m.addSoftware = false;
-
+    
     /* callback and data (owned by caller) */
     m.stunCbFunc = stunCbFunc;
     
@@ -376,13 +376,15 @@ int StunClient_startSTUNTrace(STUN_CLIENT_DATA      *clientData,
     BuildStunBindReq(&trans, &stunMsg);
     
     StunClientMain(clientData, STUNCLIENT_CTX_UNKNOWN, STUN_SIGNAL_BindReq, (uint8_t*)&m);
-    return stunlib_encodeMessage(&stunMsg,
-                                 (uint8_t*)stunBuff,
-                                 STUN_MAX_PACKET_SIZE,
-                                 (unsigned char*)password,         /* md5key */
-                                 password ? strlen(password) : 0,  /* keyLen */
-                                 NULL);
     
+    len = stunlib_encodeMessage(&stunMsg,
+                                (uint8_t*)stunBuff,
+                                STUN_MAX_PACKET_SIZE,
+                                (unsigned char*)password,         /* md5key */
+                                password ? strlen(password) : 0,  /* keyLen */
+                                NULL);
+    return len;
+
 
 }
 
