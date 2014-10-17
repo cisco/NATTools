@@ -142,6 +142,10 @@ typedef struct
     uint32_t ICMPtype;
     uint32_t ttl;
 
+    /* DISCUSS */
+    bool hasDiscuss;
+    DiscussData discussData;
+
     struct StunClientStats stats;
 
     STUN_CLIENT_DATA *client;

@@ -86,6 +86,8 @@ typedef struct
     uint32_t                retransmits;
     uint32_t                ICMPtype;
     uint32_t                ttl;
+    bool                    hasDiscuss;
+    DiscussData             discussData;
 } StunCallBackData_T;
 
 /* for output of managment info (optional) */

@@ -1026,6 +1026,15 @@ static bool StoreBindResp(STUN_TRANSACTION_DATA *trans, StunMessage *resp)
 {
     STUN_CLIENT_DATA *client = trans->client;
 
+    if(resp->hasNetworkStatusResp){
+        trans->hasDiscuss = true;
+        trans->discussData.networkStatusResp_flags = resp->networkStatusResp.flags;
+        trans->discussData.networkStatusResp_nodeCnt = resp->networkStatusResp.nodeCnt;
+        trans->discussData.networkStatusResp_upMaxBandwidth = resp->networkStatusResp.upMaxBandwidth;
+        trans->discussData.networkStatusResp_downMaxBandwidth = resp->networkStatusResp.downMaxBandwidth;
+    }
+
+
     if (resp->hasXorMappedAddress)
     {
         if (resp->xorMappedAddress.familyType == STUN_ADDR_IPv4Family){
@@ -1073,7 +1082,10 @@ static void BindRespCallback(STUN_TRANSACTION_DATA *trans, const struct sockaddr
 
     res.rtt = (trans->stop.tv_sec*1000000+trans->stop.tv_usec) - (trans->start.tv_sec*1000000+trans->start.tv_usec);
     res.ttl = trans->stunBindReq.ttl;
-
+    if(trans->hasDiscuss){
+        res.hasDiscuss = true;
+        res.discussData = trans->discussData;
+    }
     StunPrint(client->logUserData, client->Log_cb, StunInfoCategory_Info,
                 "<STUNCLIENT:%02d> BindResp from src: %s",
                 trans->inst,
