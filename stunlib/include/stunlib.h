@@ -111,6 +111,7 @@ extern "C" {
 /*DISCUSS Draft Attributes */
 #define STUN_ATTR_StreamType         0x8050
 #define STUN_ATTR_NetworkStatus      0x8051
+#define STUN_ATTR_BandwidthUsage     0x8052
 
 
 
@@ -369,6 +370,14 @@ StunAtrNetworkStatus;
 
 typedef struct
 {
+    uint16_t average;
+    uint16_t max;
+}    
+StunAtrBandwidthUsage;
+
+
+typedef struct
+{
     char stunUserName[STUN_MSG_MAX_USERNAME_LENGTH];
     char stunPassword[STUN_MSG_MAX_PASSWORD_LENGTH];
     char realm[STUN_MSG_MAX_REALM_LENGTH];
@@ -385,6 +394,9 @@ typedef struct
     uint16_t streamType;
     uint8_t interactivity;
     
+    uint16_t bandwidthUsage_average;
+    uint16_t bandwidthUsage_max;
+
     uint8_t networkStatus_flags;
     uint8_t networkStatus_nodeCnt;
     uint16_t networkStatus_tbd;
@@ -499,6 +511,9 @@ typedef struct
 
     bool hasStreamType;
     StunAtrStreamType streamType;
+
+    bool hasBandwidthUsage;
+    StunAtrBandwidthUsage bandwidthUsage;
 
     /*After Integrity attr*/
     bool hasNetworkStatus;

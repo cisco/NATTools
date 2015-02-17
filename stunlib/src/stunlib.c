@@ -711,6 +711,19 @@ stunEncodeNetworkStatus(StunAtrNetworkStatus *pNetworkStatus, uint8_t **pBuf, in
     return true;
 }
 
+static bool
+stunEncodeBandwidthUsage(StunAtrBandwidthUsage *pBandwidthUsage, uint8_t **pBuf, int *nBufLen)
+{
+    if (*nBufLen < 4) return false;
+    write_16(pBuf, STUN_ATTR_BandwidthUsage); /* Attr type */
+    write_16(pBuf, 4);                  /* Length */
+    write_16(pBuf, pBandwidthUsage->average);
+    write_16(pBuf, pBandwidthUsage->max);
+
+    *nBufLen -= 8;
+    return true;
+}
+
 
 static uint32_t stunlib_EncodeIndication(
     uint8_t    msgType,
@@ -1134,6 +1147,16 @@ stunDecodeNetworkStatus(StunAtrNetworkStatus *networkStatusAtr, const uint8_t **
 
 
     *nBufLen -= 8;
+    return true;
+}
+
+static bool
+stunDecodeBandwidthUsage(StunAtrBandwidthUsage *bandwidthUsageAtr, const uint8_t **pBuf, int *nBufLen)
+{
+    if (*nBufLen < 1) return false;
+    read_16(pBuf, &bandwidthUsageAtr->average);
+    read_16(pBuf, &bandwidthUsageAtr->max);
+    *nBufLen -= 4;
     return true;
 }
 
@@ -1719,6 +1742,13 @@ stunlib_DecodeMessage(const uint8_t* buf,
                 message->hasStreamType = true;
                 break;
 
+            case STUN_ATTR_BandwidthUsage:
+                if (!stunDecodeBandwidthUsage(&message->bandwidthUsage,
+                                      &pCurrPtr,
+                                      &restlen)) return false;
+                message->hasBandwidthUsage = true;
+                break;
+
             case STUN_ATTR_NetworkStatus:
                 if(message->hasMessageIntegrity){
                     if (!stunDecodeNetworkStatus(&message->networkStatus,
@@ -2201,6 +2231,14 @@ stunlib_encodeMessage(StunMessage* message,
                                                         &restlen))
     {
         if (stream != NULL) printError(stream, "Invalid StreamType attribute\n");
+        return 0;
+    }
+
+    if (message->hasBandwidthUsage && !stunEncodeBandwidthUsage(&message->bandwidthUsage,
+                                                        &pCurrPtr,
+                                                        &restlen))
+    {
+        if (stream != NULL) printError(stream, "Invalid BandwidthUsage attribute\n");
         return 0;
     }
 

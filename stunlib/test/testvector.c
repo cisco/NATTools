@@ -865,12 +865,14 @@ START_TEST (discuss_encode_decode)
     discussData.streamType=0x004;
     discussData.interactivity=0x01;
 
+    discussData.bandwidthUsage_average = 34;
+    discussData.bandwidthUsage_max = 56;
+
     discussData.networkStatus_flags = 0;
     discussData.networkStatus_nodeCnt = 0;
     discussData.networkStatus_tbd = 0;
     discussData.networkStatus_upMaxBandwidth = 0;
     discussData.networkStatus_downMaxBandwidth = 0;
-
 
     memset(&stunMsg, 0, sizeof(StunMessage));
     stunMsg.msgHdr.msgType = STUN_MSG_AllocateRequestMsg;
@@ -880,6 +882,12 @@ START_TEST (discuss_encode_decode)
     stunMsg.streamType.type = discussData.streamType;
     stunMsg.streamType.interactivity = discussData.interactivity;
     
+    stunMsg.hasBandwidthUsage = true;
+    stunMsg.bandwidthUsage.average = discussData.bandwidthUsage_average;
+    stunMsg.bandwidthUsage.max = discussData.bandwidthUsage_max;
+    
+    
+
     stunMsg.hasNetworkStatus = true;
     stunMsg.networkStatus.flags = 0;
     stunMsg.networkStatus.nodeCnt = 0;
@@ -914,6 +922,10 @@ START_TEST (discuss_encode_decode)
     
     fail_unless( stunMsg.streamType.type == discussData.streamType);
     fail_unless( stunMsg.streamType.interactivity == discussData.interactivity);
+    
+    fail_unless( stunMsg.bandwidthUsage.average == discussData.bandwidthUsage_average);
+    fail_unless( stunMsg.bandwidthUsage.max == discussData.bandwidthUsage_max);
+
     fail_unless( stunMsg.networkStatusResp.flags == discussData.networkStatusResp_flags);
     fail_unless( stunMsg.networkStatusResp.nodeCnt == discussData.networkStatusResp_nodeCnt);
     fail_unless( stunMsg.networkStatusResp.upMaxBandwidth == discussData.networkStatusResp_upMaxBandwidth);
