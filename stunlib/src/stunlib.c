@@ -711,6 +711,21 @@ stunEncodeNetworkStatus(StunAtrNetworkStatus *pNetworkStatus, uint8_t **pBuf, in
     return true;
 }
 
+
+static bool
+stunEncodeCiscoNetworkFeedback(StunAtrCiscoNetworkFeedback *ciscoNetFeed, uint8_t **pBuf, int *nBufLen)
+{
+    if (*nBufLen < 32) return false;
+    write_16(pBuf, STUN_ATTR_Cisco_Network_Feedback); /* Attr type */
+    write_16(pBuf, 12);                  /* Length */
+    write_32(pBuf, ciscoNetFeed->first);
+    write_32(pBuf, ciscoNetFeed->second);
+    write_32(pBuf, ciscoNetFeed->third);
+
+    *nBufLen -= 16;
+    return true;
+}
+
 static bool
 stunEncodeBandwidthUsage(StunAtrBandwidthUsage *pBandwidthUsage, uint8_t **pBuf, int *nBufLen)
 {
@@ -1149,6 +1164,20 @@ stunDecodeNetworkStatus(StunAtrNetworkStatus *networkStatusAtr, const uint8_t **
     *nBufLen -= 8;
     return true;
 }
+
+static bool
+stunDecodeCiscoNetworkFeedback(StunAtrCiscoNetworkFeedback *ciscoNetFeed, const uint8_t **pBuf, int *nBufLen)
+{
+    if (*nBufLen < 4) return false;
+
+    read_32(pBuf, &ciscoNetFeed->first);
+    read_32(pBuf, &ciscoNetFeed->second);
+    read_32(pBuf, &ciscoNetFeed->third);
+
+    *nBufLen -= 12;
+    return true;
+}
+
 
 static bool
 stunDecodeBandwidthUsage(StunAtrBandwidthUsage *bandwidthUsageAtr, const uint8_t **pBuf, int *nBufLen)
@@ -1763,6 +1792,20 @@ stunlib_DecodeMessage(const uint8_t* buf,
                 }
                 break;
                 
+            case STUN_ATTR_Cisco_Network_Feedback:
+                if(message->hasMessageIntegrity){
+                    if (!stunDecodeCiscoNetworkFeedback(&message->ciscoNetFeed,
+                                                        &pCurrPtr,
+                                                        &restlen)) return false;
+                    message->hasCiscoNetFeed = true;
+                }else {
+                    if (!stunDecodeCiscoNetworkFeedback(&message->ciscoNetFeedResp,
+                                                        &pCurrPtr,
+                                                        &restlen)) return false;
+                    message->hasCiscoNetFeedResp = true;
+                }
+                break;
+
             case STUN_ATTR_ICEControlling:
                 if (!stunDecodeDoubleValueAtr(&message->controlling,
                                               &pCurrPtr,
@@ -2246,10 +2289,18 @@ stunlib_encodeMessage(StunMessage* message,
                                                                   &pCurrPtr,
                                                                   &restlen))
     {
-        if (stream != NULL) printError(stream, "Invalid StreamType attribute\n");
+        if (stream != NULL) printError(stream, "Invalid Network Status attribute\n");
         return 0;
     }
-    
+
+    if (message->hasCiscoNetFeedResp && !stunEncodeCiscoNetworkFeedback(&message->ciscoNetFeedResp,
+                                                                  &pCurrPtr,
+                                                                  &restlen))
+    {
+        if (stream != NULL) printError(stream, "Invalid Cisco Network Feedback attribute\n");
+        return 0;
+    }
+
 
     /* note: DATA should be the last attribute */
     if (message->hasData && !stunEncodeDataAtr(&message->data,
@@ -2283,7 +2334,15 @@ stunlib_encodeMessage(StunMessage* message,
                                                               &pCurrPtr,
                                                               &restlen))
     {
-        if (stream != NULL) printError(stream, "Invalid StreamType attribute\n");
+        if (stream != NULL) printError(stream, "Invalid Network Status attribute\n");
+        return 0;
+    }
+
+    if (message->hasCiscoNetFeed && !stunEncodeCiscoNetworkFeedback(&message->ciscoNetFeed,
+                                                                    &pCurrPtr,
+                                                                    &restlen))
+    {
+        if (stream != NULL) printError(stream, "Invalid Cisco Network Feedback attribute\n");
         return 0;
     }
     

@@ -935,6 +935,66 @@ START_TEST (discuss_encode_decode)
 END_TEST
 
 
+START_TEST (cisco_network_feedback_enc_dec)
+{
+    StunMessage stunMsg;
+    unsigned char stunBuf[STUN_MAX_PACKET_SIZE];
+
+    uint32_t first_val = 42;
+    uint32_t second_val = 0x0;
+    uint32_t third_val = 5678923;
+
+
+    memset(&stunMsg, 0, sizeof(StunMessage));
+    stunMsg.msgHdr.msgType = STUN_MSG_AllocateRequestMsg;
+    memcpy(&stunMsg.msgHdr.id.octet,&idOctet,12);
+
+    //After Integrity attribute
+    stunMsg.hasCiscoNetFeed = true;
+    stunMsg.ciscoNetFeed.first = first_val;
+    stunMsg.ciscoNetFeed.second = second_val;
+    stunMsg.ciscoNetFeed.third = third_val;
+
+    //This is Integrity protected
+    stunMsg.hasCiscoNetFeedResp = true;
+    stunMsg.ciscoNetFeedResp.first = first_val;
+    stunMsg.ciscoNetFeedResp.second = second_val;
+    stunMsg.ciscoNetFeedResp.third = third_val;
+
+    fail_unless( stunlib_encodeMessage(&stunMsg,
+                                       stunBuf,
+                                       sizeof(stunBuf),
+                                       (unsigned char*)password,
+                                       strlen(password),
+                                       NULL));
+
+    memset(&stunMsg, 0, sizeof(StunMessage));
+
+    fail_unless( stunlib_DecodeMessage(stunBuf,
+                                       sizeof(stunBuf),
+                                       &stunMsg,
+                                       NULL,
+                                       NULL));
+
+    fail_unless(  stunlib_checkIntegrity(stunBuf,
+                                         sizeof(stunBuf),
+                                         &stunMsg,
+                                         password,
+                                         sizeof(password)) );
+
+    fail_unless( stunMsg.hasCiscoNetFeed );
+    fail_unless( stunMsg.ciscoNetFeed.first == first_val);
+    fail_unless( stunMsg.ciscoNetFeed.second == second_val);
+    fail_unless( stunMsg.ciscoNetFeed.third == third_val);
+
+    fail_unless( stunMsg.hasCiscoNetFeedResp );
+    fail_unless( stunMsg.ciscoNetFeedResp.first == first_val);
+    fail_unless( stunMsg.ciscoNetFeedResp.second == second_val);
+    fail_unless( stunMsg.ciscoNetFeedResp.third == third_val);
+}
+END_TEST
+
+
 
 Suite * stunlib_suite (void)
 {
@@ -986,7 +1046,7 @@ Suite * stunlib_suite (void)
   {
       TCase *tc_discuss = tcase_create ("Discuss");
       tcase_add_test (tc_discuss, discuss_encode_decode);
-      
+      tcase_add_test (tc_discuss, cisco_network_feedback_enc_dec);
       suite_add_tcase (s, tc_discuss);
   }
 

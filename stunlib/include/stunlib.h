@@ -113,6 +113,8 @@ extern "C" {
 #define STUN_ATTR_NetworkStatus      0x8051
 #define STUN_ATTR_BandwidthUsage     0x8052
 
+/* STUN CISCO Extensions */
+#define STUN_ATTR_Cisco_Network_Feedback 0xC001
 
 
 /* STUN attributes (TURN extensions) */
@@ -370,6 +372,14 @@ StunAtrNetworkStatus;
 
 typedef struct
 {
+    uint32_t first;
+    uint32_t second;
+    uint32_t third;
+}
+StunAtrCiscoNetworkFeedback;
+
+typedef struct
+{
     uint16_t average;
     uint16_t max;
 }    
@@ -519,9 +529,17 @@ typedef struct
     bool hasNetworkStatus;
     StunAtrNetworkStatus networkStatus;
 
+    bool hasCiscoNetFeed;
+    StunAtrCiscoNetworkFeedback ciscoNetFeed;
+
     /*Integrity protected*/
     bool hasNetworkStatusResp;
     StunAtrNetworkStatus networkStatusResp;
+
+    bool hasCiscoNetFeedResp;
+    StunAtrCiscoNetworkFeedback ciscoNetFeedResp;
+
+
 
     /* No value, only flaged */
     bool hasUseCandidate;
