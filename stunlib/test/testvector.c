@@ -865,12 +865,14 @@ START_TEST (discuss_encode_decode)
     discussData.streamType=0x004;
     discussData.interactivity=0x01;
 
+    discussData.bandwidthUsage_average = 34;
+    discussData.bandwidthUsage_max = 56;
+
     discussData.networkStatus_flags = 0;
     discussData.networkStatus_nodeCnt = 0;
     discussData.networkStatus_tbd = 0;
     discussData.networkStatus_upMaxBandwidth = 0;
     discussData.networkStatus_downMaxBandwidth = 0;
-
 
     memset(&stunMsg, 0, sizeof(StunMessage));
     stunMsg.msgHdr.msgType = STUN_MSG_AllocateRequestMsg;
@@ -880,6 +882,12 @@ START_TEST (discuss_encode_decode)
     stunMsg.streamType.type = discussData.streamType;
     stunMsg.streamType.interactivity = discussData.interactivity;
     
+    stunMsg.hasBandwidthUsage = true;
+    stunMsg.bandwidthUsage.average = discussData.bandwidthUsage_average;
+    stunMsg.bandwidthUsage.max = discussData.bandwidthUsage_max;
+    
+    
+
     stunMsg.hasNetworkStatus = true;
     stunMsg.networkStatus.flags = 0;
     stunMsg.networkStatus.nodeCnt = 0;
@@ -914,11 +922,75 @@ START_TEST (discuss_encode_decode)
     
     fail_unless( stunMsg.streamType.type == discussData.streamType);
     fail_unless( stunMsg.streamType.interactivity == discussData.interactivity);
+    
+    fail_unless( stunMsg.bandwidthUsage.average == discussData.bandwidthUsage_average);
+    fail_unless( stunMsg.bandwidthUsage.max == discussData.bandwidthUsage_max);
+
     fail_unless( stunMsg.networkStatusResp.flags == discussData.networkStatusResp_flags);
     fail_unless( stunMsg.networkStatusResp.nodeCnt == discussData.networkStatusResp_nodeCnt);
     fail_unless( stunMsg.networkStatusResp.upMaxBandwidth == discussData.networkStatusResp_upMaxBandwidth);
     fail_unless( stunMsg.networkStatusResp.downMaxBandwidth == discussData.networkStatusResp_downMaxBandwidth);       
     
+}
+END_TEST
+
+
+START_TEST (cisco_network_feedback_enc_dec)
+{
+    StunMessage stunMsg;
+    unsigned char stunBuf[STUN_MAX_PACKET_SIZE];
+
+    uint32_t first_val = 42;
+    uint32_t second_val = 0x0;
+    uint32_t third_val = 5678923;
+
+
+    memset(&stunMsg, 0, sizeof(StunMessage));
+    stunMsg.msgHdr.msgType = STUN_MSG_AllocateRequestMsg;
+    memcpy(&stunMsg.msgHdr.id.octet,&idOctet,12);
+
+    //After Integrity attribute
+    stunMsg.hasCiscoNetFeed = true;
+    stunMsg.ciscoNetFeed.first = first_val;
+    stunMsg.ciscoNetFeed.second = second_val;
+    stunMsg.ciscoNetFeed.third = third_val;
+
+    //This is Integrity protected
+    stunMsg.hasCiscoNetFeedResp = true;
+    stunMsg.ciscoNetFeedResp.first = first_val;
+    stunMsg.ciscoNetFeedResp.second = second_val;
+    stunMsg.ciscoNetFeedResp.third = third_val;
+
+    fail_unless( stunlib_encodeMessage(&stunMsg,
+                                       stunBuf,
+                                       sizeof(stunBuf),
+                                       (unsigned char*)password,
+                                       strlen(password),
+                                       NULL));
+
+    memset(&stunMsg, 0, sizeof(StunMessage));
+
+    fail_unless( stunlib_DecodeMessage(stunBuf,
+                                       sizeof(stunBuf),
+                                       &stunMsg,
+                                       NULL,
+                                       NULL));
+
+    fail_unless(  stunlib_checkIntegrity(stunBuf,
+                                         sizeof(stunBuf),
+                                         &stunMsg,
+                                         password,
+                                         sizeof(password)) );
+
+    fail_unless( stunMsg.hasCiscoNetFeed );
+    fail_unless( stunMsg.ciscoNetFeed.first == first_val);
+    fail_unless( stunMsg.ciscoNetFeed.second == second_val);
+    fail_unless( stunMsg.ciscoNetFeed.third == third_val);
+
+    fail_unless( stunMsg.hasCiscoNetFeedResp );
+    fail_unless( stunMsg.ciscoNetFeedResp.first == first_val);
+    fail_unless( stunMsg.ciscoNetFeedResp.second == second_val);
+    fail_unless( stunMsg.ciscoNetFeedResp.third == third_val);
 }
 END_TEST
 
@@ -974,7 +1046,7 @@ Suite * stunlib_suite (void)
   {
       TCase *tc_discuss = tcase_create ("Discuss");
       tcase_add_test (tc_discuss, discuss_encode_decode);
-      
+      tcase_add_test (tc_discuss, cisco_network_feedback_enc_dec);
       suite_add_tcase (s, tc_discuss);
   }
 

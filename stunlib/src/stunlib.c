@@ -753,7 +753,6 @@ stunEncodeBandwidthUsage(StunAtrBandwidthUsage *pBandwidthUsage, uint8_t **pBuf,
     return true;
 }
 
-
 static uint32_t stunlib_EncodeIndication(
     uint8_t    msgType,
     uint8_t   *stunBuf,
@@ -1199,8 +1198,8 @@ stunDecodeBandwidthUsage(StunAtrBandwidthUsage *bandwidthUsageAtr, const uint8_t
     if (*nBufLen < 1) return false;
     read_16(pBuf, &bandwidthUsageAtr->average);
     read_16(pBuf, &bandwidthUsageAtr->max);
-    *nBufLen -= 4;
 
+    *nBufLen -= 4;
     return true;
 }
 
@@ -2418,7 +2417,7 @@ stunlib_encodeMessage(StunMessage* message,
     stunEncodeHeader(&message->msgHdr, &pCurrPtr, &restlen);
     if (md5key!=NULL)
     {
-        
+
         /*calculate and insert integrity hash*/
         pCurrPtr = (uint8_t*)buf;
 #if defined(__APPLE__)
