@@ -111,6 +111,11 @@ extern "C" {
 /*DISCUSS Draft Attributes */
 #define STUN_ATTR_StreamType         0x8050
 #define STUN_ATTR_NetworkStatus      0x8051
+#define STUN_ATTR_BandwidthUsage     0x8052
+
+
+/* STUN CISCO Extensions */
+#define STUN_ATTR_Cisco_Network_Feedback 0xC001
 
 /*STUNTrace Attributes (Experimental) */
 #define STUN_ATTR_TTL                0x8055
@@ -371,6 +376,21 @@ StunAtrNetworkStatus;
 
 typedef struct
 {
+    uint32_t first;
+    uint32_t second;
+    uint32_t third;
+}
+StunAtrCiscoNetworkFeedback;
+
+typedef struct
+{
+    uint16_t average;
+    uint16_t max;
+}    
+StunAtrBandwidthUsage;
+
+typedef struct
+{
     uint8_t ttl;
     uint8_t pad_8;
     uint16_t pad_16;
@@ -395,6 +415,9 @@ typedef struct
     uint16_t streamType;
     uint8_t interactivity;
     
+    uint16_t bandwidthUsage_average;
+    uint16_t bandwidthUsage_max;
+
     uint8_t networkStatus_flags;
     uint8_t networkStatus_nodeCnt;
     uint16_t networkStatus_tbd;
@@ -510,6 +533,9 @@ typedef struct
     bool hasStreamType;
     StunAtrStreamType streamType;
 
+    bool hasBandwidthUsage;
+    StunAtrBandwidthUsage bandwidthUsage;
+
     bool hasTTL;
     StunAtrTTL ttl;
     
@@ -520,9 +546,17 @@ typedef struct
     bool hasNetworkStatus;
     StunAtrNetworkStatus networkStatus;
 
+    bool hasCiscoNetFeed;
+    StunAtrCiscoNetworkFeedback ciscoNetFeed;
+
     /*Integrity protected*/
     bool hasNetworkStatusResp;
     StunAtrNetworkStatus networkStatusResp;
+
+    bool hasCiscoNetFeedResp;
+    StunAtrCiscoNetworkFeedback ciscoNetFeedResp;
+
+
 
     /* No value, only flaged */
     bool hasUseCandidate;

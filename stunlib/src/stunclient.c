@@ -1,28 +1,28 @@
 /*
-Copyright 2014 Cisco. All rights reserved. 
+Copyright 2014 Cisco. All rights reserved.
 
-Redistribution and use in source and binary forms, with or without modification, are 
-permitted provided that the following conditions are met: 
+Redistribution and use in source and binary forms, with or without modification, are
+permitted provided that the following conditions are met:
 
-   1. Redistributions of source code must retain the above copyright notice, this list of 
-      conditions and the following disclaimer. 
+   1. Redistributions of source code must retain the above copyright notice, this list of
+      conditions and the following disclaimer.
 
-   2. Redistributions in binary form must reproduce the above copyright notice, this list 
-      of conditions and the following disclaimer in the documentation and/or other materials 
-      provided with the distribution. 
+   2. Redistributions in binary form must reproduce the above copyright notice, this list
+      of conditions and the following disclaimer in the documentation and/or other materials
+      provided with the distribution.
 
-THIS SOFTWARE IS PROVIDED BY CISCO ''AS IS'' AND ANY EXPRESS OR IMPLIED 
-WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND 
-FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL OR CONTRIBUTORS BE 
-LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
-WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING 
-IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH 
-DAMAGE. 
+THIS SOFTWARE IS PROVIDED BY CISCO ''AS IS'' AND ANY EXPRESS OR IMPLIED
+WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGE.
 
-The views and conclusions contained in the software and documentation are those of the 
-authors and should not be interpreted as representing official policies, either expressed 
+The views and conclusions contained in the software and documentation are those of the
+authors and should not be interpreted as representing official policies, either expressed
 or implied, of Cisco.
 */
 
@@ -175,12 +175,12 @@ static void BuildStunBindReq(STUN_TRANSACTION_DATA *trans, StunMessage  *stunReq
         sprintf(iTTL, "%.4i", trans->stunBindReq.ttl);
         ttlString[0]='\0';
         for(i=0;i<trans->stunBindReq.ttl;i++){
-            strncat(ttlString,iTTL, 4);            
+            strncat(ttlString,iTTL, 4);
         }
-        
+
         stunlib_addTTLString(stunReqMsg, ttlString, 'a');
     }
-   
+
 
     /*Adding DISCUSS attributes if present*/
     if (trans->stunBindReq.discussData != NULL)
@@ -188,7 +188,7 @@ static void BuildStunBindReq(STUN_TRANSACTION_DATA *trans, StunMessage  *stunReq
         stunReqMsg->hasStreamType = true;
         stunReqMsg->streamType.type = trans->stunBindReq.discussData->streamType;
         stunReqMsg->streamType.interactivity = trans->stunBindReq.discussData->interactivity;
-        
+
         stunReqMsg->hasNetworkStatus = true;
         stunReqMsg->networkStatus.flags = trans->stunBindReq.discussData->networkStatus_flags;
         stunReqMsg->networkStatus.nodeCnt = trans->stunBindReq.discussData->networkStatus_nodeCnt;
@@ -206,7 +206,7 @@ static void BuildStunBindReq(STUN_TRANSACTION_DATA *trans, StunMessage  *stunReq
 /************************ API ********************************************/
 /*************************************************************************/
 
-	
+
 bool
 StunClient_Alloc(STUN_CLIENT_DATA **clientDataPtr)
 {
@@ -250,7 +250,7 @@ void StunClient_free(STUN_CLIENT_DATA *clientData)
 
 void
 StunClient_RegisterLogger(STUN_CLIENT_DATA *clientData, STUN_INFO_FUNC_PTR logPtr,
-			  void * userData)
+                          void * userData)
 {
     clientData->Log_cb = logPtr;
     clientData->logUserData = userData;
@@ -289,10 +289,10 @@ uint32_t StunClient_startBindTransaction(STUN_CLIENT_DATA      *clientData,
                                          STUN_SENDFUNC          sendFunc,
                                          STUNCB                 stunCbFunc,
                                          DiscussData           *discussData) /*NULL if none*/
-                                   
+
 {
     StunBindReqStuct m;
-    
+
     if (clientData == NULL)
     {
         StunPrint(clientData->logUserData, clientData->Log_cb,
@@ -318,14 +318,12 @@ uint32_t StunClient_startBindTransaction(STUN_CLIENT_DATA      *clientData,
     m.discussData = discussData;
     m.addSoftware = true;
 
-
     /* callback and data (owned by caller) */
     m.stunCbFunc = stunCbFunc;
     StunClientMain(clientData, STUNCLIENT_CTX_UNKNOWN, STUN_SIGNAL_BindReq, (uint8_t*)&m);
 
     return 0;
 }
-
 
 uint32_t StunClient_startSTUNTrace(STUN_CLIENT_DATA      *clientData,
                                    void                  *userCtx,
@@ -347,7 +345,7 @@ uint32_t StunClient_startSTUNTrace(STUN_CLIENT_DATA      *clientData,
     StunMessage  stunMsg;
     uint8_t stunBuff[STUN_MAX_PACKET_SIZE];
     uint32_t len;
-    
+
     if (clientData == NULL)
     {
         StunPrint(clientData->logUserData, clientData->Log_cb,
@@ -367,16 +365,16 @@ uint32_t StunClient_startSTUNTrace(STUN_CLIENT_DATA      *clientData,
     m.sendFunc       = sendFunc;
     m.discussData = discussData;
     m.addSoftware = false;
-    
+
     /* callback and data (owned by caller) */
     m.stunCbFunc = stunCbFunc;
-    
+
 
     StoreStunBindReq(&trans, &m);
     BuildStunBindReq(&trans, &stunMsg);
-    
+
     StunClientMain(clientData, STUNCLIENT_CTX_UNKNOWN, STUN_SIGNAL_BindReq, (uint8_t*)&m);
-    
+
     len = stunlib_encodeMessage(&stunMsg,
                                 (uint8_t*)stunBuff,
                                 STUN_MAX_PACKET_SIZE,
@@ -384,13 +382,11 @@ uint32_t StunClient_startSTUNTrace(STUN_CLIENT_DATA      *clientData,
                                 password ? strlen(password) : 0,  /* keyLen */
                                 NULL);
     return len;
-
-
 }
 
 
 void StunClient_HandleIncResp(STUN_CLIENT_DATA * clientData, const StunMessage *msg,
-			      const struct sockaddr *srcAddr)
+                              const struct sockaddr *srcAddr)
 {
     int i;
     if (clientData == NULL)
@@ -523,18 +519,18 @@ static bool CreateConnectivityBindingResp(StunMessage *stunMsg,
         stunMsg->hasStreamType = true;
         stunMsg->streamType.type = discussData->streamType;
         stunMsg->streamType.interactivity = discussData->interactivity;
-        
+
         stunMsg->hasNetworkStatus = true;
         stunMsg->networkStatus.flags = 0;
         stunMsg->networkStatus.nodeCnt = 0;
         stunMsg->networkStatus.upMaxBandwidth = 0;
         stunMsg->networkStatus.downMaxBandwidth = 0;
-        
+
         stunMsg->hasNetworkStatusResp = true;
         stunMsg->networkStatusResp.flags = discussData->networkStatusResp_flags;
         stunMsg->networkStatusResp.nodeCnt = discussData->networkStatusResp_nodeCnt;
         stunMsg->networkStatusResp.upMaxBandwidth = discussData->networkStatusResp_upMaxBandwidth;
-        stunMsg->networkStatusResp.downMaxBandwidth = discussData->networkStatusResp_downMaxBandwidth;       
+        stunMsg->networkStatusResp.downMaxBandwidth = discussData->networkStatusResp_downMaxBandwidth;
     }
 
     return true;
@@ -737,7 +733,7 @@ static void SetNextState(STUN_TRANSACTION_DATA *trans, STUN_STATE NextState)
     {
         StunPrint(client->logUserData, client->Log_cb, StunInfoCategory_Trace,
                 "<STUNCLIENT:%02d> State (%s -> %s)", trans->inst,
-		  StateTable[trans->state].StateStr, StateTable[NextState].StateStr);
+                  StateTable[trans->state].StateStr, StateTable[NextState].StateStr);
         trans->state = NextState;
     }
 
@@ -784,7 +780,7 @@ static void StartTimer(STUN_TRANSACTION_DATA *trans, STUN_SIGNAL sig, uint32_t d
             trans->TimerRetransmit = durationMsec;
             break;
 
-	      default:
+              default:
             StunPrint(client->logUserData, client->Log_cb, StunInfoCategory_Error,
                     "<STUNCLIENT:%02d> illegal StartTimer %d, duration %d",
                     trans->inst,  sig, durationMsec);
@@ -806,7 +802,7 @@ static void StopTimer(STUN_TRANSACTION_DATA *trans, STUN_SIGNAL sig)
             trans->TimerRetransmit = 0;
             break;
 
-	default:
+        default:
             StunPrint(client->logUserData, client->Log_cb, StunInfoCategory_Error,
                     "<STUNCLIENT:%02d> illegal StopTimer %d", trans->inst,  sig);
             break;
@@ -861,9 +857,6 @@ static void InitInstData(STUN_TRANSACTION_DATA *trans)
     trans->client      = orig.client;
 }
 
-
-
-
 /* encode and send */
 static bool SendStunReq(STUN_TRANSACTION_DATA *trans, StunMessage  *stunReqMsg)
 {
@@ -884,7 +877,7 @@ static bool SendStunReq(STUN_TRANSACTION_DATA *trans, StunMessage  *stunReqMsg)
                                                         NULL,  /* key */
                                                         0 ,     /* keyLen  */
                                                         NULL);
-   
+
     }
 
     if (!trans->stunReqMsgBufLen)
@@ -894,10 +887,9 @@ static bool SendStunReq(STUN_TRANSACTION_DATA *trans, StunMessage  *stunReqMsg)
         return false;
     }
 
-    
     /*Store Time so we can messure RTT */
     gettimeofday(&trans->start, NULL);
-    
+
     trans->stunBindReq.sendFunc(trans->stunBindReq.sockhandle,
                                 trans->stunReqMsgBuf,
                                 trans->stunReqMsgBufLen,
@@ -1026,15 +1018,6 @@ static bool StoreBindResp(STUN_TRANSACTION_DATA *trans, StunMessage *resp)
 {
     STUN_CLIENT_DATA *client = trans->client;
 
-    if(resp->hasNetworkStatusResp){
-        trans->hasDiscuss = true;
-        trans->discussData.networkStatusResp_flags = resp->networkStatusResp.flags;
-        trans->discussData.networkStatusResp_nodeCnt = resp->networkStatusResp.nodeCnt;
-        trans->discussData.networkStatusResp_upMaxBandwidth = resp->networkStatusResp.upMaxBandwidth;
-        trans->discussData.networkStatusResp_downMaxBandwidth = resp->networkStatusResp.downMaxBandwidth;
-    }
-
-
     if (resp->hasXorMappedAddress)
     {
         if (resp->xorMappedAddress.familyType == STUN_ADDR_IPv4Family){
@@ -1081,12 +1064,8 @@ static void BindRespCallback(STUN_TRANSACTION_DATA *trans, const struct sockaddr
                   (struct sockaddr*)&trans->stunBindReq.baseAddr);
 
     res.rtt = (trans->stop.tv_sec*1000000+trans->stop.tv_usec) - (trans->start.tv_sec*1000000+trans->start.tv_usec);
-    res.ttl = trans->stunBindReq.ttl;
 
-    if(trans->hasDiscuss){
-        res.hasDiscuss = true;
-        res.discussData = trans->discussData;
-    }
+    res.ttl = trans->stunBindReq.ttl;
 
     StunPrint(client->logUserData, client->Log_cb, StunInfoCategory_Info,
                 "<STUNCLIENT:%02d> BindResp from src: %s",
@@ -1119,7 +1098,7 @@ static void ICMPRespCallback(STUN_TRANSACTION_DATA *trans, const struct sockaddr
     res.retransmits = trans->stats.Retransmits;
     sockaddr_copy((struct sockaddr *)&res.srcAddr,
                   srcAddr);
-    
+
 
     StunPrint(client->logUserData, client->Log_cb, StunInfoCategory_Info,
                 "<STUNCLIENT:%02d> ICMPResp from src: %s",
@@ -1152,7 +1131,7 @@ static void StunState_Idle(STUN_TRANSACTION_DATA *trans, STUN_SIGNAL sig, uint8_
         {
             StunBindReqStuct *pMsgIn = (StunBindReqStuct*)payload;
             StunMessage  stunReqMsg; /* decoded */
-            
+
             /* clear instance data */
             InitInstData(trans);
 
@@ -1161,7 +1140,7 @@ static void StunState_Idle(STUN_TRANSACTION_DATA *trans, STUN_SIGNAL sig, uint8_
             /* build and send stun bind req */
             BuildStunBindReq(trans, &stunReqMsg);
             SendStunReq(trans, &stunReqMsg);
-            
+
             InitRetryCounters(trans);
             StartFirstRetransmitTimer(trans);
             SetNextState(trans, STUN_STATE_WaitBindResp);
@@ -1333,7 +1312,7 @@ StunClient_clearStats(STUN_CLIENT_DATA *clientData)
 
 void
 StunClient_dumpStats (STUN_CLIENT_DATA *clientData, STUN_INFO_FUNC_PTR logPtr,
-		      void * userData)
+                      void * userData)
 {
     int i;
     struct StunClientStats stats;
