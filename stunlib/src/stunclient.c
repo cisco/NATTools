@@ -1,28 +1,28 @@
 /*
-Copyright 2014 Cisco. All rights reserved. 
+Copyright 2014 Cisco. All rights reserved.
 
-Redistribution and use in source and binary forms, with or without modification, are 
-permitted provided that the following conditions are met: 
+Redistribution and use in source and binary forms, with or without modification, are
+permitted provided that the following conditions are met:
 
-   1. Redistributions of source code must retain the above copyright notice, this list of 
-      conditions and the following disclaimer. 
+   1. Redistributions of source code must retain the above copyright notice, this list of
+      conditions and the following disclaimer.
 
-   2. Redistributions in binary form must reproduce the above copyright notice, this list 
-      of conditions and the following disclaimer in the documentation and/or other materials 
-      provided with the distribution. 
+   2. Redistributions in binary form must reproduce the above copyright notice, this list
+      of conditions and the following disclaimer in the documentation and/or other materials
+      provided with the distribution.
 
-THIS SOFTWARE IS PROVIDED BY CISCO ''AS IS'' AND ANY EXPRESS OR IMPLIED 
-WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND 
-FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL OR CONTRIBUTORS BE 
-LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
-WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING 
-IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH 
-DAMAGE. 
+THIS SOFTWARE IS PROVIDED BY CISCO ''AS IS'' AND ANY EXPRESS OR IMPLIED
+WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGE.
 
-The views and conclusions contained in the software and documentation are those of the 
-authors and should not be interpreted as representing official policies, either expressed 
+The views and conclusions contained in the software and documentation are those of the
+authors and should not be interpreted as representing official policies, either expressed
 or implied, of Cisco.
 */
 
@@ -125,11 +125,88 @@ static bool TransIdIsEqual(const StunMsgId *a, const StunMsgId *b)
 }
 
 
+
+static void StoreStunBindReq(STUN_TRANSACTION_DATA *trans, StunBindReqStuct *pMsgIn)
+{
+    /* copy whole msg */
+    memcpy(&trans->stunBindReq, pMsgIn, sizeof(StunBindReqStuct));
+}
+
+
+static void BuildStunBindReq(STUN_TRANSACTION_DATA *trans, StunMessage  *stunReqMsg)
+{
+    memset(stunReqMsg, 0, sizeof *stunReqMsg);
+    stunReqMsg->msgHdr.msgType = STUN_MSG_BindRequestMsg;
+
+    /* transaction id */
+    memcpy(&stunReqMsg->msgHdr.id, &trans->stunBindReq.transactionId, sizeof(StunMsgId));
+    /* Username */
+    if(strlen(trans->stunBindReq.ufrag)>0){
+        stunReqMsg->hasUsername = true;
+        strncpy(stunReqMsg->username.value, trans->stunBindReq.ufrag, STUN_MAX_STRING - 1);
+        stunReqMsg->username.sizeValue = min(STUN_MAX_STRING, strlen(trans->stunBindReq.ufrag));
+    }
+    /* Priority */
+    if(trans->stunBindReq.peerPriority > 0){
+        stunReqMsg->hasPriority    = true;
+        stunReqMsg->priority.value = trans->stunBindReq.peerPriority;
+    }
+    /* useCandidate */
+    stunReqMsg->hasUseCandidate = trans->stunBindReq.useCandidate;
+
+    /* controlling */
+    if(trans->stunBindReq.tieBreaker > 0){
+        stunReqMsg->hasControlling = trans->stunBindReq.iceControlling;
+        stunReqMsg->controlling.value = trans->stunBindReq.tieBreaker;
+        if (!trans->stunBindReq.iceControlling)
+            {
+                stunReqMsg->hasControlled = true;
+                stunReqMsg->controlled.value = trans->stunBindReq.tieBreaker;
+            }
+    }
+    /* ttl */
+    if(trans->stunBindReq.ttl > 0 ){
+        char ttlString[200];
+        char iTTL[5] ="0000\0";
+        int i;
+        stunReqMsg->hasTTL = true;
+        stunReqMsg->ttl.ttl = trans->stunBindReq.ttl;
+
+        sprintf(iTTL, "%.4i", trans->stunBindReq.ttl);
+        ttlString[0]='\0';
+        for(i=0;i<trans->stunBindReq.ttl;i++){
+            strncat(ttlString,iTTL, 4);
+        }
+
+        stunlib_addTTLString(stunReqMsg, ttlString, 'a');
+    }
+
+
+    /*Adding DISCUSS attributes if present*/
+    if (trans->stunBindReq.discussData != NULL)
+    {
+        stunReqMsg->hasStreamType = true;
+        stunReqMsg->streamType.type = trans->stunBindReq.discussData->streamType;
+        stunReqMsg->streamType.interactivity = trans->stunBindReq.discussData->interactivity;
+
+        stunReqMsg->hasNetworkStatus = true;
+        stunReqMsg->networkStatus.flags = trans->stunBindReq.discussData->networkStatus_flags;
+        stunReqMsg->networkStatus.nodeCnt = trans->stunBindReq.discussData->networkStatus_nodeCnt;
+        stunReqMsg->networkStatus.upMaxBandwidth = trans->stunBindReq.discussData->networkStatus_upMaxBandwidth;
+        stunReqMsg->networkStatus.downMaxBandwidth = trans->stunBindReq.discussData->networkStatus_downMaxBandwidth;
+    }
+
+    if(trans->stunBindReq.addSoftware){
+        stunlib_addSoftware(stunReqMsg, SoftwareVersionStr, STUN_DFLT_PAD);
+    }
+}
+
+
 /*************************************************************************/
 /************************ API ********************************************/
 /*************************************************************************/
 
-	
+
 bool
 StunClient_Alloc(STUN_CLIENT_DATA **clientDataPtr)
 {
@@ -173,7 +250,7 @@ void StunClient_free(STUN_CLIENT_DATA *clientData)
 
 void
 StunClient_RegisterLogger(STUN_CLIENT_DATA *clientData, STUN_INFO_FUNC_PTR logPtr,
-			  void * userData)
+                          void * userData)
 {
     clientData->Log_cb = logPtr;
     clientData->logUserData = userData;
@@ -196,23 +273,23 @@ void StunClient_HandleTick(STUN_CLIENT_DATA *clientData, uint32_t TimerResMsec)
 }
 
 
-int StunClient_startBindTransaction(STUN_CLIENT_DATA      *clientData,
-                                    void                  *userCtx,
-                                    const struct sockaddr *serverAddr,
-                                    const struct sockaddr *baseAddr,
-                                    bool                   useRelay,
-                                    const char            *ufrag,
-                                    const char            *password,
-                                    uint32_t               peerPriority,
-                                    bool                   useCandidate,
-                                    bool                   iceControlling,
-                                    uint64_t               tieBreaker,
-                                    StunMsgId              transactionId,
-                                    uint32_t               sockhandle,
-                                    STUN_SENDFUNC          sendFunc,
-                                    STUNCB                 stunCbFunc,
-                                    DiscussData           *discussData) /*NULL if none*/
-                                   
+uint32_t StunClient_startBindTransaction(STUN_CLIENT_DATA      *clientData,
+                                         void                  *userCtx,
+                                         const struct sockaddr *serverAddr,
+                                         const struct sockaddr *baseAddr,
+                                         bool                   useRelay,
+                                         const char            *ufrag,
+                                         const char            *password,
+                                         uint32_t               peerPriority,
+                                         bool                   useCandidate,
+                                         bool                   iceControlling,
+                                         uint64_t               tieBreaker,
+                                         StunMsgId              transactionId,
+                                         uint32_t               sockhandle,
+                                         STUN_SENDFUNC          sendFunc,
+                                         STUNCB                 stunCbFunc,
+                                         DiscussData           *discussData) /*NULL if none*/
+
 {
     StunBindReqStuct m;
 
@@ -239,8 +316,7 @@ int StunClient_startBindTransaction(STUN_CLIENT_DATA      *clientData,
     m.sendFunc       = sendFunc;
 
     m.discussData = discussData;
-    
-
+    m.addSoftware = true;
 
     /* callback and data (owned by caller) */
     m.stunCbFunc = stunCbFunc;
@@ -249,9 +325,68 @@ int StunClient_startBindTransaction(STUN_CLIENT_DATA      *clientData,
     return 0;
 }
 
+uint32_t StunClient_startSTUNTrace(STUN_CLIENT_DATA      *clientData,
+                                   void                  *userCtx,
+                                   const struct sockaddr *serverAddr,
+                                   const struct sockaddr *baseAddr,
+                                   bool                   useRelay,
+                                   const char            *ufrag,
+                                   const char            *password,
+                                   uint8_t                ttl,
+                                   StunMsgId              transactionId,
+                                   uint32_t               sockhandle,
+                                   STUN_SENDFUNC          sendFunc,
+                                   STUNCB                 stunCbFunc,
+                                   DiscussData           *discussData) /*NULL if none*/
+
+{
+    StunBindReqStuct m;
+    STUN_TRANSACTION_DATA trans;
+    StunMessage  stunMsg;
+    uint8_t stunBuff[STUN_MAX_PACKET_SIZE];
+    uint32_t len;
+
+    if (clientData == NULL)
+    {
+        StunPrint(clientData->logUserData, clientData->Log_cb,
+                StunInfoCategory_Error, "<STUNCLIENT> startBindTransaction() failed,  Not initialised or no memory");
+        return 0;
+    }
+    memset(&m, 0, sizeof(m));
+    m.userCtx        = userCtx;
+    sockaddr_copy((struct sockaddr *)&m.serverAddr, serverAddr);
+    sockaddr_copy((struct sockaddr *)&m.baseAddr, baseAddr);
+    m.useRelay = useRelay;
+    strncpy(m.ufrag, ufrag, sizeof(m.ufrag)-1);
+    strncpy(m.password,   password, sizeof(m.password)-1);
+    m.ttl = ttl;
+    m.transactionId = transactionId;
+    m.sockhandle     = sockhandle;
+    m.sendFunc       = sendFunc;
+    m.discussData = discussData;
+    m.addSoftware = false;
+
+    /* callback and data (owned by caller) */
+    m.stunCbFunc = stunCbFunc;
+
+
+    StoreStunBindReq(&trans, &m);
+    BuildStunBindReq(&trans, &stunMsg);
+
+    StunClientMain(clientData, STUNCLIENT_CTX_UNKNOWN, STUN_SIGNAL_BindReq, (uint8_t*)&m);
+
+    len = stunlib_encodeMessage(&stunMsg,
+                                (uint8_t*)stunBuff,
+                                STUN_MAX_PACKET_SIZE,
+                                (unsigned char*)password,         /* md5key */
+                                password ? strlen(password) : 0,  /* keyLen */
+                                NULL);
+    return len;
+}
+
 
 void StunClient_HandleIncResp(STUN_CLIENT_DATA * clientData, const StunMessage *msg,
-			      const struct sockaddr *srcAddr)
+                              const struct sockaddr *srcAddr)
 {
     int i;
     if (clientData == NULL)
@@ -263,6 +398,7 @@ void StunClient_HandleIncResp(STUN_CLIENT_DATA * clientData, const StunMessage *
         if (trans->inUse && TransIdIsEqual(&msg->msgHdr.id, &trans->stunBindReq.transactionId))
         {
             StunRespStruct m;
+            gettimeofday(&trans->stop, NULL);
             memcpy(&m.stunRespMessage, msg, sizeof(m.stunRespMessage));
             sockaddr_copy((struct sockaddr *)&m.srcAddr, srcAddr);
             StunClientMain(clientData, i, StunMsgToInternalStunSig(msg), (void*)&m);
@@ -272,6 +408,35 @@ void StunClient_HandleIncResp(STUN_CLIENT_DATA * clientData, const StunMessage *
 
     StunPrint(clientData->logUserData, clientData->Log_cb, StunInfoCategory_Trace,
             "<STUNCLIENT> no instance with transId, discarding, msgType %d\n ", msg->msgHdr.msgType);
+}
+
+
+void StunClient_HandleICMP(STUN_CLIENT_DATA * clientData, StunMsgId transactionId,
+                           const struct sockaddr *srcAddr,
+                           uint32_t ICMPtype,
+                           uint32_t ttl)
+{
+    int i;
+    if (clientData == NULL)
+        return;
+
+    for (i=0; i < MAX_STUN_TRANSACTIONS; i++)
+    {
+        STUN_TRANSACTION_DATA *trans = &clientData->data[i];
+        if (trans->inUse && TransIdIsEqual(&transactionId, &trans->stunBindReq.transactionId))
+        {
+            StunRespStruct m;
+            gettimeofday(&trans->stop, NULL);
+            //memcpy(&m.stunRespMessage, msg, sizeof(m.stunRespMessage));
+            sockaddr_copy((struct sockaddr *)&m.srcAddr, srcAddr);
+            m.ICMPtype = ICMPtype;
+            m.ttl = ttl;
+            StunClientMain(clientData, i, STUN_SIGNAL_ICMPResp, (void*)&m);
+            return;
+        }
+    }
+    StunPrint(clientData->logUserData, clientData->Log_cb, StunInfoCategory_Trace,
+            "<STUNCLIENT> no instance with transId, discarding, ICMP message\n ");
 }
 
 
@@ -354,18 +519,18 @@ static bool CreateConnectivityBindingResp(StunMessage *stunMsg,
         stunMsg->hasStreamType = true;
         stunMsg->streamType.type = discussData->streamType;
         stunMsg->streamType.interactivity = discussData->interactivity;
-        
+
         stunMsg->hasNetworkStatus = true;
         stunMsg->networkStatus.flags = 0;
         stunMsg->networkStatus.nodeCnt = 0;
         stunMsg->networkStatus.upMaxBandwidth = 0;
         stunMsg->networkStatus.downMaxBandwidth = 0;
-        
+
         stunMsg->hasNetworkStatusResp = true;
         stunMsg->networkStatusResp.flags = discussData->networkStatusResp_flags;
         stunMsg->networkStatusResp.nodeCnt = discussData->networkStatusResp_nodeCnt;
         stunMsg->networkStatusResp.upMaxBandwidth = discussData->networkStatusResp_upMaxBandwidth;
-        stunMsg->networkStatusResp.downMaxBandwidth = discussData->networkStatusResp_downMaxBandwidth;       
+        stunMsg->networkStatusResp.downMaxBandwidth = discussData->networkStatusResp_downMaxBandwidth;
     }
 
     return true;
@@ -399,7 +564,7 @@ static bool SendConnectivityBindResponse(STUN_CLIENT_DATA      *clientData,
     }
 
     /* send */
-    sendFunc(globalSocketId, stunBuff, stunLen, dstAddr, useRelay);
+    sendFunc(globalSocketId, stunBuff, stunLen, dstAddr, useRelay, 0);
     clientData->stats.BindRespSent++;
     return true;
 }
@@ -568,7 +733,7 @@ static void SetNextState(STUN_TRANSACTION_DATA *trans, STUN_STATE NextState)
     {
         StunPrint(client->logUserData, client->Log_cb, StunInfoCategory_Trace,
                 "<STUNCLIENT:%02d> State (%s -> %s)", trans->inst,
-		  StateTable[trans->state].StateStr, StateTable[NextState].StateStr);
+                  StateTable[trans->state].StateStr, StateTable[NextState].StateStr);
         trans->state = NextState;
     }
 
@@ -615,7 +780,7 @@ static void StartTimer(STUN_TRANSACTION_DATA *trans, STUN_SIGNAL sig, uint32_t d
             trans->TimerRetransmit = durationMsec;
             break;
 
-	      default:
+              default:
             StunPrint(client->logUserData, client->Log_cb, StunInfoCategory_Error,
                     "<STUNCLIENT:%02d> illegal StartTimer %d, duration %d",
                     trans->inst,  sig, durationMsec);
@@ -637,7 +802,7 @@ static void StopTimer(STUN_TRANSACTION_DATA *trans, STUN_SIGNAL sig)
             trans->TimerRetransmit = 0;
             break;
 
-	default:
+        default:
             StunPrint(client->logUserData, client->Log_cb, StunInfoCategory_Error,
                     "<STUNCLIENT:%02d> illegal StopTimer %d", trans->inst,  sig);
             break;
@@ -692,77 +857,28 @@ static void InitInstData(STUN_TRANSACTION_DATA *trans)
     trans->client      = orig.client;
 }
 
-
-static void StoreStunBindReq(STUN_TRANSACTION_DATA *trans, StunBindReqStuct *pMsgIn)
-{
-    /* copy whole msg */
-    memcpy(&trans->stunBindReq, pMsgIn, sizeof(StunBindReqStuct));
-}
-
-
-static void BuildStunBindReq(STUN_TRANSACTION_DATA *trans, StunMessage  *stunReqMsg)
-{
-    memset(stunReqMsg, 0, sizeof *stunReqMsg);
-    stunReqMsg->msgHdr.msgType = STUN_MSG_BindRequestMsg;
-
-    /* transaction id */
-    memcpy(&stunReqMsg->msgHdr.id, &trans->stunBindReq.transactionId, sizeof(StunMsgId));
-
-    /* Username */
-    stunReqMsg->hasUsername = true;
-    strncpy(stunReqMsg->username.value, trans->stunBindReq.ufrag, STUN_MAX_STRING - 1);
-    stunReqMsg->username.sizeValue = min(STUN_MAX_STRING, strlen(trans->stunBindReq.ufrag));
-
-    /* Priority */
-    stunReqMsg->hasPriority    = true;
-    stunReqMsg->priority.value = trans->stunBindReq.peerPriority;
-
-    /* useCandidate */
-    stunReqMsg->hasUseCandidate = trans->stunBindReq.useCandidate;
-
-    /* controlling */
-    stunReqMsg->hasControlling = trans->stunBindReq.iceControlling;
-    stunReqMsg->controlling.value = trans->stunBindReq.tieBreaker;
-    if (!trans->stunBindReq.iceControlling)
-    {
-        stunReqMsg->hasControlled = true;
-        stunReqMsg->controlled.value = trans->stunBindReq.tieBreaker;
-    }
-    
-    /*Adding DISCUSS attributes if present*/
-    if (trans->stunBindReq.discussData != NULL)
-    {
-        stunReqMsg->hasStreamType = true;
-        stunReqMsg->streamType.type = trans->stunBindReq.discussData->streamType;
-        stunReqMsg->streamType.interactivity = trans->stunBindReq.discussData->interactivity;
-        
-        stunReqMsg->hasNetworkStatus = true;
-        stunReqMsg->networkStatus.flags = trans->stunBindReq.discussData->networkStatus_flags;
-        stunReqMsg->networkStatus.nodeCnt = trans->stunBindReq.discussData->networkStatus_nodeCnt;
-        stunReqMsg->networkStatus.upMaxBandwidth = trans->stunBindReq.discussData->networkStatus_upMaxBandwidth;
-        stunReqMsg->networkStatus.downMaxBandwidth = trans->stunBindReq.discussData->networkStatus_downMaxBandwidth;
-        
-        
-    }
-
-
-
-    stunlib_addSoftware(stunReqMsg, SoftwareVersionStr, STUN_DFLT_PAD);
-}
-
-
 /* encode and send */
-static bool  SendStunReq(STUN_TRANSACTION_DATA *trans, StunMessage  *stunReqMsg)
+static bool SendStunReq(STUN_TRANSACTION_DATA *trans, StunMessage  *stunReqMsg)
 {
     STUN_CLIENT_DATA *client = trans->client;
 
     /* encode the BindReq */
-    trans->stunReqMsgBufLen = stunlib_encodeMessage(stunReqMsg,
-                                                (unsigned char*) (trans->stunReqMsgBuf),
-                                                STUN_MAX_PACKET_SIZE,
-                                                (unsigned char*)&trans->stunBindReq.password,  /* key */
-                                                strlen( trans->stunBindReq.password ) ,     /* keyLen  */
-                                                NULL);
+    if(strlen( trans->stunBindReq.password ) > 0) {
+        trans->stunReqMsgBufLen = stunlib_encodeMessage(stunReqMsg,
+                                                        (unsigned char*) (trans->stunReqMsgBuf),
+                                                        STUN_MAX_PACKET_SIZE,
+                                                        (unsigned char*)&trans->stunBindReq.password,  /* key */
+                                                        strlen( trans->stunBindReq.password ) ,     /* keyLen  */
+                                                        NULL);
+    }else{
+        trans->stunReqMsgBufLen = stunlib_encodeMessage(stunReqMsg,
+                                                        (unsigned char*) (trans->stunReqMsgBuf),
+                                                        STUN_MAX_PACKET_SIZE,
+                                                        NULL,  /* key */
+                                                        0 ,     /* keyLen  */
+                                                        NULL);
+
+    }
 
     if (!trans->stunReqMsgBufLen)
     {
@@ -771,11 +887,15 @@ static bool  SendStunReq(STUN_TRANSACTION_DATA *trans, StunMessage  *stunReqMsg)
         return false;
     }
 
+    /*Store Time so we can messure RTT */
+    gettimeofday(&trans->start, NULL);
+
     trans->stunBindReq.sendFunc(trans->stunBindReq.sockhandle,
                                 trans->stunReqMsgBuf,
                                 trans->stunReqMsgBufLen,
                                 (struct sockaddr *)&trans->stunBindReq.serverAddr,
-                                trans->stunBindReq.useRelay);
+                                trans->stunBindReq.useRelay,
+                                trans->stunBindReq.ttl);
 
     trans->stats.BindReqSent++;
 
@@ -803,11 +923,13 @@ static void StunClientFsm(STUN_TRANSACTION_DATA *trans, STUN_SIGNAL sig, uint8_t
 
 static void RetransmitLastReq(STUN_TRANSACTION_DATA *trans, struct sockaddr_storage * destAddr)
 {
+    gettimeofday(&trans->start, NULL);
     trans->stunBindReq.sendFunc(trans->stunBindReq.sockhandle,
                                 trans->stunReqMsgBuf,
                                 trans->stunReqMsgBufLen,
                                 (struct sockaddr *)destAddr,
-                                trans->stunBindReq.useRelay);
+                                trans->stunBindReq.useRelay,
+                                trans->stunBindReq.ttl);
 }
 
 
@@ -831,6 +953,7 @@ static void CallBack(STUN_TRANSACTION_DATA *trans, StunResult_T stunResult)
 
     memcpy(&res.msgId, &trans->stunBindReq.transactionId, sizeof(StunMsgId));
     res.stunResult = stunResult;
+    res.ttl = trans->stunBindReq.ttl;
 
     if (trans->stunBindReq.stunCbFunc)
        (trans->stunBindReq.stunCbFunc)(trans->stunBindReq.userCtx, &res);
@@ -940,8 +1063,45 @@ static void BindRespCallback(STUN_TRANSACTION_DATA *trans, const struct sockaddr
     sockaddr_copy((struct sockaddr*)&res.dstBaseAddr,
                   (struct sockaddr*)&trans->stunBindReq.baseAddr);
 
+    res.rtt = (trans->stop.tv_sec*1000000+trans->stop.tv_usec) - (trans->start.tv_sec*1000000+trans->start.tv_usec);
+
+    res.ttl = trans->stunBindReq.ttl;
+
     StunPrint(client->logUserData, client->Log_cb, StunInfoCategory_Info,
                 "<STUNCLIENT:%02d> BindResp from src: %s",
+                trans->inst,
+                sockaddr_toString((struct sockaddr *) &res.srcAddr, ip_str,
+                        SOCKADDR_MAX_STRLEN,
+                        true));
+
+    if (trans->stunBindReq.stunCbFunc)
+        (trans->stunBindReq.stunCbFunc)(trans->stunBindReq.userCtx, &res);
+}
+
+
+static void ICMPRespCallback(STUN_TRANSACTION_DATA *trans, const struct sockaddr *srcAddr)
+{
+    STUN_CLIENT_DATA *client = trans->client;
+    char ip_str [SOCKADDR_MAX_STRLEN];
+    StunCallBackData_T res;
+
+    memset (&res, 0, sizeof (StunCallBackData_T));
+
+    memcpy(&res.msgId, &trans->stunBindReq.transactionId, sizeof(StunMsgId));
+
+    res.stunResult = StunResult_ICMPResp;
+    res.ICMPtype = trans->ICMPtype;
+    res.ttl = trans->ttl;
+
+    res.rtt = (trans->stop.tv_sec*1000000+trans->stop.tv_usec) - (trans->start.tv_sec*1000000+trans->start.tv_usec);
+
+    res.retransmits = trans->stats.Retransmits;
+    sockaddr_copy((struct sockaddr *)&res.srcAddr,
+                  srcAddr);
+
+
+    StunPrint(client->logUserData, client->Log_cb, StunInfoCategory_Info,
+                "<STUNCLIENT:%02d> ICMPResp from src: %s",
                 trans->inst,
                 sockaddr_toString((struct sockaddr *) &res.srcAddr, ip_str,
                         SOCKADDR_MAX_STRLEN,
@@ -977,7 +1137,6 @@ static void StunState_Idle(STUN_TRANSACTION_DATA *trans, STUN_SIGNAL sig, uint8_
 
             /* store msg */
             StoreStunBindReq(trans,  pMsgIn);
-
             /* build and send stun bind req */
             BuildStunBindReq(trans, &stunReqMsg);
             SendStunReq(trans, &stunReqMsg);
@@ -1017,6 +1176,7 @@ static void  StunState_WaitBindResp(STUN_TRANSACTION_DATA *trans, STUN_SIGNAL si
             StunMessage *pResp = &pMsgIn->stunRespMessage;
 
             StopTimer(trans, STUN_SIGNAL_TimerRetransmit);
+            trans->ttl = pMsgIn->ttl;
             if (StoreBindResp(trans, pResp))
             {
                 BindRespCallback(trans, (struct sockaddr *)&pMsgIn->srcAddr);
@@ -1026,6 +1186,17 @@ static void  StunState_WaitBindResp(STUN_TRANSACTION_DATA *trans, STUN_SIGNAL si
                 CallBack(trans, StunResult_MalformedResp);
             }
             trans->stats.BindRespReceived++;
+            SetNextState(trans, STUN_STATE_Idle);
+        }
+        break;
+
+        case STUN_SIGNAL_ICMPResp:
+        {
+            StunRespStruct *pMsgIn = (StunRespStruct*)payload;
+            trans->ICMPtype = pMsgIn->ICMPtype;
+            trans->ttl = pMsgIn->ttl;
+            ICMPRespCallback(trans, (struct sockaddr *)&pMsgIn->srcAddr);
+            trans->stats.ICMPReceived++;
             SetNextState(trans, STUN_STATE_Idle);
         }
         break;
@@ -1080,6 +1251,7 @@ static void  StunState_Cancelled(STUN_TRANSACTION_DATA *trans, STUN_SIGNAL sig, 
             StunMessage *pResp = &pMsgIn->stunRespMessage;
 
             StopTimer(trans, STUN_SIGNAL_TimerRetransmit);
+            trans->ttl = pMsgIn->ttl;
             if (StoreBindResp(trans, pResp))
             {
                 BindRespCallback(trans, (struct sockaddr *)&pMsgIn->srcAddr);
@@ -1140,7 +1312,7 @@ StunClient_clearStats(STUN_CLIENT_DATA *clientData)
 
 void
 StunClient_dumpStats (STUN_CLIENT_DATA *clientData, STUN_INFO_FUNC_PTR logPtr,
-		      void * userData)
+                      void * userData)
 {
     int i;
     struct StunClientStats stats;

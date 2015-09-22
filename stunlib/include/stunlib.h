@@ -116,6 +116,12 @@ extern "C" {
 /* STUN CISCO Extensions */
 #define STUN_ATTR_Cisco_Network_Feedback 0xC001
 
+/* STUN CISCO Extensions */
+#define STUN_ATTR_Cisco_Network_Feedback 0xC001
+
+/*STUNTrace Attributes (Experimental) */
+#define STUN_ATTR_TTL                0x8055
+#define STUN_ATTR_TTLString          0x8056
 
 /* STUN attributes (TURN extensions) */
 #define STUN_ATTR_ChannelNumber       0x000c
@@ -385,6 +391,13 @@ typedef struct
 }    
 StunAtrBandwidthUsage;
 
+typedef struct
+{
+    uint8_t ttl;
+    uint8_t pad_8;
+    uint16_t pad_16;
+}    
+StunAtrTTL;
 
 typedef struct
 {
@@ -525,6 +538,12 @@ typedef struct
     bool hasBandwidthUsage;
     StunAtrBandwidthUsage bandwidthUsage;
 
+    bool hasTTL;
+    StunAtrTTL ttl;
+    
+    bool hasTTLString;
+    StunAtrString TTLString;
+
     /*After Integrity attr*/
     bool hasNetworkStatus;
     StunAtrNetworkStatus networkStatus;
@@ -551,8 +570,8 @@ typedef void (*STUN_SENDFUNC)(int                    sockHandle,    /* context -
                               const uint8_t         *buffer,        /* ptr to buffer to send */
                               int                    bufLen,        /* length of send buffer */
                               const struct sockaddr *dstAddr,       /* Optional, if connected to socket */
-                              bool                   useRelay);     /* User context data. Optional */
-
+                              bool                   useRelay,      /* User context data. Optional */
+                              const uint8_t          ttl);          /* TTL to set on IP packet, 0 is ignored */
 
 /* Defines how errors are reported */
 typedef void  (*STUN_ERR_FUNC)(const char *fmt, va_list ap);
@@ -774,7 +793,7 @@ char const *stunlib_getErrorReason(uint16_t errorClass, uint16_t errorNumber);
 
 void stunlib_setIP4Address(StunIPAddress* pIpAdr, uint32_t addr, uint16_t port);
 /* Addr is 4 long. With most significant DWORD in pos 0 */
-void stunlib_setIP6Address(StunIPAddress *pIpAdr, uint8_t addr[16], uint16_t port);
+void stunlib_setIP6Address(StunIPAddress *pIpAdr, const uint8_t addr[16], const uint16_t port);
 int stunlib_compareIPAddresses(const StunIPAddress *pS1, const StunIPAddress *pS2);
 void stunlib_printBuffer(FILE *stream, const uint8_t *pBuf, int len, char const * szHead);
 
@@ -790,6 +809,8 @@ bool     stunlib_addError(StunMessage *stunMsg, const char *reasonStr, uint16_t 
 bool     stunlib_addChannelNumber(StunMessage *stunMsg,  uint16_t channelNumber);
 uint32_t stunlib_calculateFingerprint(const uint8_t *buf, size_t len);
 bool     stunlib_checkFingerPrint(const uint8_t *buf, uint32_t fpOffset);
+
+bool stunlib_addTTLString(StunMessage *stunMsg, const char *TTLString, char padChar);
 
 
 /* Concat  username+realm+passwd into string "<username>:<realm>:<password>" then run the MD5 alg.

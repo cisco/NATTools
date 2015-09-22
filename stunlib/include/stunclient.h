@@ -1,28 +1,28 @@
 /*
-Copyright 2014 Cisco. All rights reserved. 
+Copyright 2014 Cisco. All rights reserved.
 
-Redistribution and use in source and binary forms, with or without modification, are 
-permitted provided that the following conditions are met: 
+Redistribution and use in source and binary forms, with or without modification, are
+permitted provided that the following conditions are met:
 
-   1. Redistributions of source code must retain the above copyright notice, this list of 
-      conditions and the following disclaimer. 
+   1. Redistributions of source code must retain the above copyright notice, this list of
+      conditions and the following disclaimer.
 
-   2. Redistributions in binary form must reproduce the above copyright notice, this list 
-      of conditions and the following disclaimer in the documentation and/or other materials 
-      provided with the distribution. 
+   2. Redistributions in binary form must reproduce the above copyright notice, this list
+      of conditions and the following disclaimer in the documentation and/or other materials
+      provided with the distribution.
 
-THIS SOFTWARE IS PROVIDED BY CISCO ''AS IS'' AND ANY EXPRESS OR IMPLIED 
-WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND 
-FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL OR CONTRIBUTORS BE 
-LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
-WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING 
-IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH 
-DAMAGE. 
+THIS SOFTWARE IS PROVIDED BY CISCO ''AS IS'' AND ANY EXPRESS OR IMPLIED
+WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGE.
 
-The views and conclusions contained in the software and documentation are those of the 
-authors and should not be interpreted as representing official policies, either expressed 
+The views and conclusions contained in the software and documentation are those of the
+authors and should not be interpreted as representing official policies, either expressed
 or implied, of Cisco.
 */
 
@@ -66,6 +66,7 @@ typedef enum
     StunResult_BindFailNoAnswer,         /* Bind Req failed - no contact with stun server */
     StunResult_BindFailUnauthorised,     /* passwd/username is incorrect */
     StunResult_CancelComplete,           /* Request is cancelled and timed out */
+    StunResult_ICMPResp,                 /* Received ICMP */
     StunResult_InternalError,
     StunResult_MalformedResp
 } StunResult_T;
@@ -81,6 +82,10 @@ typedef struct
     struct sockaddr_storage rflxAddr;
     struct sockaddr_storage srcAddr;
     struct sockaddr_storage dstBaseAddr;  /* The destination seen from the sender of the response */
+    uint32_t                rtt;          /* Rtt in microseconds */
+    uint32_t                retransmits;
+    uint32_t                ICMPtype;
+    uint32_t                ttl;
 } StunCallBackData_T;
 
 /* for output of managment info (optional) */
@@ -134,7 +139,7 @@ void StunClient_free(STUN_CLIENT_DATA *clientData);
 
 void
 StunClient_RegisterLogger(STUN_CLIENT_DATA *clientData, STUN_INFO_FUNC_PTR logPtr,
-			  void * userData);
+                          void * userData);
 
 
 /*
@@ -158,22 +163,36 @@ StunClient_RegisterLogger(STUN_CLIENT_DATA *clientData, STUN_INFO_FUNC_PTR logPt
  *
  *     returns          -  Turn instance/context. Application should store this in further calls to TurnClient_StartChannelBindReq(), TurnClient_HandleIncResp().
  */
-int  StunClient_startBindTransaction(STUN_CLIENT_DATA      *clientData,
-                                     void                  *userCtx,
-                                     const struct sockaddr *serverAddr,
-                                     const struct sockaddr *baseAddr,
-                                     bool                   useRelay,
-                                     const char            *ufrag,
-                                     const char            *password,
-                                     uint32_t               peerPriority,
-                                     bool                   useCandidate,
-                                     bool                   iceControlling,
-                                     uint64_t               tieBreaker,
-                                     StunMsgId              transactionId,
-                                     uint32_t               sockhandle,
-                                     STUN_SENDFUNC          sendFunc,
-                                     STUNCB                 stunCbFunc,
-                                     DiscussData        *discussData); /* nullptr if no malicedata should be sent. */
+uint32_t  StunClient_startBindTransaction(STUN_CLIENT_DATA      *clientData,
+                                          void                  *userCtx,
+                                          const struct sockaddr *serverAddr,
+                                          const struct sockaddr *baseAddr,
+                                          bool                   useRelay,
+                                          const char            *ufrag,
+                                          const char            *password,
+                                          uint32_t               peerPriority,
+                                          bool                   useCandidate,
+                                          bool                   iceControlling,
+                                          uint64_t               tieBreaker,
+                                          StunMsgId              transactionId,
+                                          uint32_t               sockhandle,
+                                          STUN_SENDFUNC          sendFunc,
+                                          STUNCB                 stunCbFunc,
+                                          DiscussData        *discussData); /* nullptr if no malicedata should be sent. */
+
+uint32_t StunClient_startSTUNTrace(STUN_CLIENT_DATA      *clientData,
+                                   void                  *userCtx,
+                                   const struct sockaddr *serverAddr,
+                                   const struct sockaddr *baseAddr,
+                                   bool                   useRelay,
+                                   const char            *ufrag,
+                                   const char            *password,
+                                   uint8_t                ttl,
+                                   StunMsgId              transactionId,
+                                   uint32_t               sockhandle,
+                                   STUN_SENDFUNC          sendFunc,
+                                   STUNCB                 stunCbFunc,
+                                   DiscussData           *discussData); /*NULL if none*/
 
 /*
  * This function must be called by the application every N msec. N must be same as in StunClientBind_Init(instances, N)
@@ -186,8 +205,13 @@ void StunClient_HandleTick(STUN_CLIENT_DATA *clientData, uint32_t TimerResMsec);
  *
  */
 void StunClient_HandleIncResp(STUN_CLIENT_DATA *clientData, const StunMessage *msg,
-			      const struct sockaddr *srcAddr);
+                              const struct sockaddr *srcAddr);
 
+
+void StunClient_HandleICMP(STUN_CLIENT_DATA * clientData, StunMsgId transactionId,
+                           const struct sockaddr *srcAddr,
+                           uint32_t ICMPType,
+                           uint32_t ttl);
 
 /*
  * Cancel a transaction with  matching  transaction id

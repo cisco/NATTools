@@ -54,7 +54,7 @@ START_TEST (integrity_turn_response)
 
   stunlib_createMD5Key((unsigned char *)md5, user, realm, password);
 
-  fail_unless(stunlib_checkIntegrity(turnResp, numbytes, &stunResponse, md5, keyLen));
+  fail_unless(stunlib_checkIntegrity(turnResp, numbytes, &stunResponse, (unsigned char *)md5, keyLen));
 }
 END_TEST
 

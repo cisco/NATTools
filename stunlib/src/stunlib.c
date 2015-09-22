@@ -1,28 +1,28 @@
 /*
-Copyright 2014 Cisco. All rights reserved. 
+Copyright 2014 Cisco. All rights reserved.
 
-Redistribution and use in source and binary forms, with or without modification, are 
-permitted provided that the following conditions are met: 
+Redistribution and use in source and binary forms, with or without modification, are
+permitted provided that the following conditions are met:
 
-   1. Redistributions of source code must retain the above copyright notice, this list of 
-      conditions and the following disclaimer. 
+   1. Redistributions of source code must retain the above copyright notice, this list of
+      conditions and the following disclaimer.
 
-   2. Redistributions in binary form must reproduce the above copyright notice, this list 
-      of conditions and the following disclaimer in the documentation and/or other materials 
-      provided with the distribution. 
+   2. Redistributions in binary form must reproduce the above copyright notice, this list
+      of conditions and the following disclaimer in the documentation and/or other materials
+      provided with the distribution.
 
-THIS SOFTWARE IS PROVIDED BY CISCO ''AS IS'' AND ANY EXPRESS OR IMPLIED 
-WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND 
-FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL OR CONTRIBUTORS BE 
-LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
-WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING 
-IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH 
-DAMAGE. 
+THIS SOFTWARE IS PROVIDED BY CISCO ''AS IS'' AND ANY EXPRESS OR IMPLIED
+WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGE.
 
-The views and conclusions contained in the software and documentation are those of the 
-authors and should not be interpreted as representing official policies, either expressed 
+The views and conclusions contained in the software and documentation are those of the
+authors and should not be interpreted as representing official policies, either expressed
 or implied, of Cisco.
 */
 #include "stunlib.h"
@@ -711,6 +711,20 @@ stunEncodeNetworkStatus(StunAtrNetworkStatus *pNetworkStatus, uint8_t **pBuf, in
     return true;
 }
 
+static bool
+stunEncodeTTL(StunAtrTTL *pTTL, uint8_t **pBuf, int *nBufLen)
+{
+    if (*nBufLen < 32) return false;
+    write_16(pBuf, STUN_ATTR_TTL); /* Attr type */
+    write_16(pBuf, 4);                  /* Length */
+    write_8(pBuf, pTTL->ttl);
+    write_8(pBuf, pTTL->pad_8);
+    write_16(pBuf, pTTL->pad_16);
+
+    *nBufLen -= 8;
+    return true;
+}
+
 
 static bool
 stunEncodeCiscoNetworkFeedback(StunAtrCiscoNetworkFeedback *ciscoNetFeed, uint8_t **pBuf, int *nBufLen)
@@ -738,7 +752,6 @@ stunEncodeBandwidthUsage(StunAtrBandwidthUsage *pBandwidthUsage, uint8_t **pBuf,
     *nBufLen -= 8;
     return true;
 }
-
 
 static uint32_t stunlib_EncodeIndication(
     uint8_t    msgType,
@@ -1139,7 +1152,7 @@ stunDecodeStreamType(StunAtrStreamType *streamTypeAtr, const uint8_t **pBuf, int
 {
     if (*nBufLen < 4) return false;
 
-    
+
 
 
     read_16(pBuf, &streamTypeAtr->type);
@@ -1185,7 +1198,21 @@ stunDecodeBandwidthUsage(StunAtrBandwidthUsage *bandwidthUsageAtr, const uint8_t
     if (*nBufLen < 1) return false;
     read_16(pBuf, &bandwidthUsageAtr->average);
     read_16(pBuf, &bandwidthUsageAtr->max);
+
     *nBufLen -= 4;
+    return true;
+}
+
+static bool
+stunDecodeTTL(StunAtrTTL *ttl, const uint8_t **pBuf, int *nBufLen)
+{
+    if (*nBufLen < 4) return false;
+
+    read_8(pBuf, &ttl->ttl);
+    read_8(pBuf, &ttl->pad_8);
+    read_16(pBuf, &ttl->pad_16);
+
+    *nBufLen -= 8;
     return true;
 }
 
@@ -1688,7 +1715,7 @@ stunlib_DecodeMessage(const uint8_t* buf,
                                             &pCurrPtr,
                                             &restlen,
                                             &message->msgHdr.id)) return false;
-                
+
                 if(message->xorRelayAddressTMP.familyType == STUN_ADDR_IPv4Family){
                     message->hasXorRelayAddressIPv4 = true;
                     memcpy(&message->xorRelayAddressIPv4,
@@ -1703,7 +1730,7 @@ stunlib_DecodeMessage(const uint8_t* buf,
                 if(message->hasXorRelayAddressIPv6 && message->hasXorRelayAddressIPv4){
                     message->hasXorRelayAddressSSODA = true;
                 }
-                
+
                 break;
             case STUN_ATTR_Priority:
                 if (!stunDecodeValueAtr(&message->priority,
@@ -1721,24 +1748,24 @@ stunlib_DecodeMessage(const uint8_t* buf,
                 if (!stunDecodeRequestedAddrFamilyAtr(&message->requestedAddrFamilyTMP,
                                                       &pCurrPtr,
                                                       &restlen)) return false;
-                
+
                 if(message->requestedAddrFamilyTMP.family == 0x01){
                     message->hasRequestedAddrFamilyIPv4 = true;
                     memcpy(&message->requestedAddrFamilyIPv4,
-                           &message->requestedAddrFamilyTMP, 
+                           &message->requestedAddrFamilyTMP,
                            sizeof(StunAttrRequestedAddrFamily));
                 }
                 if(message->requestedAddrFamilyTMP.family == 0x02){
                     message->hasRequestedAddrFamilyIPv6 = true;
                     memcpy(&message->requestedAddrFamilyIPv6,
-                           &message->requestedAddrFamilyTMP, 
+                           &message->requestedAddrFamilyTMP,
                            sizeof(StunAttrRequestedAddrFamily));
                 }
 
                 if(message->hasRequestedAddrFamilyIPv4 && message->hasRequestedAddrFamilyIPv6){
                     message->hasRequestedAddrFamilySSODA = true;
                 }
-                
+
                 break;
 
 
@@ -1762,6 +1789,21 @@ stunlib_DecodeMessage(const uint8_t* buf,
                                               &pCurrPtr,
                                               &restlen)) return false;
                 message->hasReservationToken = true;
+                break;
+
+            case STUN_ATTR_TTL:
+                if (!stunDecodeTTL(&message->ttl,
+                                          &pCurrPtr,
+                                          &restlen)) return false;
+                message->hasTTL = true;
+                break;
+
+            case STUN_ATTR_TTLString:
+                if (!stunDecodeStringAtr(&message->TTLString,
+                                         &pCurrPtr,
+                                         &restlen,
+                                         sAtr.length)) return false;
+                message->hasTTLString = true;
                 break;
 
             case STUN_ATTR_StreamType:
@@ -1791,7 +1833,7 @@ stunlib_DecodeMessage(const uint8_t* buf,
                     message->hasNetworkStatusResp = true;
                 }
                 break;
-                
+
             case STUN_ATTR_Cisco_Network_Feedback:
                 if(message->hasMessageIntegrity){
                     if (!stunDecodeCiscoNetworkFeedback(&message->ciscoNetFeed,
@@ -1827,7 +1869,7 @@ stunlib_DecodeMessage(const uint8_t* buf,
                 message->hasChannelNumber = true;
                 break;
 
-                
+
         default:
                 if (! (sAtr.type & 0x8000) )
                 {
@@ -1871,16 +1913,15 @@ bool stunlib_checkIntegrity(const uint8_t* buf,
                             int integrityKeyLen)
 
 {
-    
+
     if (message->hasMessageIntegrity)
     {
         unsigned char bufCopy[STUN_MAX_PACKET_SIZE];
         uint16_t msgIntLength;
         unsigned char hash[20];
-        uint32_t len; /*dummy value*/
         uint8_t *pCurrPtr;
-
-        len= 0;
+        unsigned int len;
+        (void)len;
         /*Lengt of message including integiryty lenght (Header and attribute)
           Fingerprint and any trailing attributes are dismissed.
           msgIntLength = message->messageIntegrity.offset+24;*/
@@ -1915,7 +1956,7 @@ bool stunlib_checkIntegrity(const uint8_t* buf,
 #endif
         if (memcmp( &hash, message->messageIntegrity.hash,20) != 0)
         {
-            /*  
+            /*
               int i;
               printf("<STUNMSG>  Integrity Failed!(%s)\n",integrityKey);
               printf("     rcv: ");
@@ -1928,7 +1969,7 @@ bool stunlib_checkIntegrity(const uint8_t* buf,
               printf("\n");
               stun_printMessage(stdout, message);
             */
-            
+
             return false;
         }
 
@@ -2026,6 +2067,9 @@ addFingerPrint (StunMessage* message)
     ||  (type == STUN_PathDiscoveryRequestMsg)
         ||  (type == STUN_PathDiscoveryResponseMsg))
     {
+        return false;
+    }
+    if(message->hasTTL){
         return false;
     }
     return true;
@@ -2277,11 +2321,30 @@ stunlib_encodeMessage(StunMessage* message,
         return 0;
     }
 
+
     if (message->hasBandwidthUsage && !stunEncodeBandwidthUsage(&message->bandwidthUsage,
                                                         &pCurrPtr,
                                                         &restlen))
     {
         if (stream != NULL) printError(stream, "Invalid BandwidthUsage attribute\n");
+        return 0;
+    }
+
+
+    if (message->hasTTL && !stunEncodeTTL(&message->ttl,
+                                          &pCurrPtr,
+                                          &restlen))
+    {
+        if (stream != NULL) printError(stream, "Invalid TTL attribute\n");
+        return 0;
+    }
+
+    if (message->hasTTLString && !stunEncodeStringAtr(&message->TTLString,
+                                                      STUN_ATTR_TTLString,
+                                                      &pCurrPtr,
+                                                      &restlen))
+    {
+        if (stream != NULL) printError(stream, "Invalid TTLString\n");
         return 0;
     }
 
@@ -2311,9 +2374,9 @@ stunlib_encodeMessage(StunMessage* message,
         return 0;
     }
 
-    
 
-    if (md5key)
+
+    if (md5key!=NULL)
     {
         message->hasMessageIntegrity = true;
         memset(&message->messageIntegrity,0,sizeof(message->messageIntegrity));
@@ -2329,7 +2392,7 @@ stunlib_encodeMessage(StunMessage* message,
     }
 
     /*DISCUSS NETWORK-STATUS Attribute is to be placed after integrity attribute*/
-    
+
     if (message->hasNetworkStatus && !stunEncodeNetworkStatus(&message->networkStatus,
                                                               &pCurrPtr,
                                                               &restlen))
@@ -2345,18 +2408,18 @@ stunlib_encodeMessage(StunMessage* message,
         if (stream != NULL) printError(stream, "Invalid Cisco Network Feedback attribute\n");
         return 0;
     }
-    
-    
+
+
 
     msglen = bufLen - restlen;
     message->msgHdr.msgLength = msglen - STUN_HEADER_SIZE;
     pCurrPtr = (uint8_t*)buf;
     restlen = bufLen;
     stunEncodeHeader(&message->msgHdr, &pCurrPtr, &restlen);
-    if (md5key)
+    if (md5key!=NULL)
     {
         uint32_t length;
-        length = 0;
+        (void)length;
         /*calculate and insert integrity hash*/
         pCurrPtr = (uint8_t*)buf;
 #if defined(__APPLE__)
@@ -2366,6 +2429,7 @@ stunlib_encodeMessage(StunMessage* message,
                message->messageIntegrity.offset,
                &message->messageIntegrity.hash[0]);
 #else
+        length = 0;
         HMAC(EVP_sha1(),
              md5key, keyLen,
              pCurrPtr, /*stunmsg string*/
@@ -2379,12 +2443,11 @@ stunlib_encodeMessage(StunMessage* message,
         }
 
     }
-    
+
     /* Add CRC Fingerprint */
     if (addFingerprint)
     {
         uint32_t crc;
-
         message->msgHdr.msgLength += 8;
 
         pCurrPtr = (uint8_t*)buf;
@@ -2447,6 +2510,20 @@ stunlib_addUserName(StunMessage *stunMsg, const char *userName, char padChar)
     stunSetString(&stunMsg->username, userName, padChar);
     return true;
 }
+
+bool
+stunlib_addTTLString(StunMessage *stunMsg, const char *TTLString, char padChar)
+{
+    if ( strlen(TTLString) > STUN_MSG_MAX_USERNAME_LENGTH )
+    {
+        return false;
+    }
+
+    stunMsg->hasTTLString = true;
+    stunSetString(&stunMsg->TTLString, TTLString, padChar);
+    return true;
+}
+
 
 bool
 stunlib_addRealm(StunMessage *stunMsg, const char *realm, char padChar)
@@ -2554,8 +2631,7 @@ void stunlib_setIP4Address(StunIPAddress *pIpAddr, uint32_t addr, uint16_t port)
     }
 }
 
-
-void stunlib_setIP6Address(StunIPAddress *pIpAddr, uint8_t addr[16], uint16_t port)
+void stunlib_setIP6Address(StunIPAddress *pIpAddr, const uint8_t addr[16], const uint16_t port)
 {
     if (pIpAddr)
     {
