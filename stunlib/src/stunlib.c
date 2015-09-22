@@ -1920,7 +1920,8 @@ bool stunlib_checkIntegrity(const uint8_t* buf,
         uint16_t msgIntLength;
         unsigned char hash[20];
         uint8_t *pCurrPtr;
-
+        unsigned int len;
+        (void)len;
         /*Lengt of message including integiryty lenght (Header and attribute)
           Fingerprint and any trailing attributes are dismissed.
           msgIntLength = message->messageIntegrity.offset+24;*/
@@ -2417,7 +2418,8 @@ stunlib_encodeMessage(StunMessage* message,
     stunEncodeHeader(&message->msgHdr, &pCurrPtr, &restlen);
     if (md5key!=NULL)
     {
-
+        uint32_t length;
+        (void)length;
         /*calculate and insert integrity hash*/
         pCurrPtr = (uint8_t*)buf;
 #if defined(__APPLE__)
@@ -2427,7 +2429,6 @@ stunlib_encodeMessage(StunMessage* message,
                message->messageIntegrity.offset,
                &message->messageIntegrity.hash[0]);
 #else
-        uint32_t length;
         length = 0;
         HMAC(EVP_sha1(),
              md5key, keyLen,
