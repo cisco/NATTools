@@ -1,3 +1,11 @@
+
+# The code has moved and no longer maintained 
+# Please wisit:
+# https://github.com/NATTools
+# for updated and maintaned code
+
+
+
 NATtool is a package that contains several stand alone submodules.
 
 -* Compiling *-
