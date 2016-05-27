@@ -204,7 +204,7 @@ bool ICELIB_triggeredFifoPutIfNotPresent(ICELIB_TRIGGERED_FIFO *fifo,
                                          ICELIB_LIST_PAIR      *pair,
                                          ICELIB_CALLBACK_LOG   *callbackLog)
 {
-    if (ICELIB_isTriggeredFifoPairPresent(fifo, pair, callbackLog)) {
+    if (!ICELIB_isTriggeredFifoPairPresent(fifo, pair, callbackLog)) {
         return ICELIB_fifoPut(fifo, pair->pairId);
     }
     return false;
